@@ -38,8 +38,9 @@ share.py            → share/statistical-tooth.html (complete standalone page w
 images/             pictures bundle.py embeds (see images/README.txt)
 source/
   datavis data/     the datasets build_data.py reads
-  teeth models/     the ZBrush tooth models build_models.py reads (not in the Git repository until their licence is confirmed; data/models.js is)
+  teeth models/     the ZBrush tooth models (canines, premolars and first molars); build_models.py reads the canines and premolars
   jaw engraving/    the team's jaw engraving prepare_jaw.py reads
+research/           the team's research folder from Google Drive: papers, extra datasets, the prototype video (see research/README.md)
 requirements.txt    Python packages for the builds (the page itself needs none)
 ```
 
@@ -123,8 +124,9 @@ GHHP skeletal sites are weighted by the share of their date range inside the win
 ## Open work
 
 - [ ] **Story pop-ups** at the `STORY` markers. The team is choosing which stories to include.
-- [ ] **A first molar model** (upper and lower) in the same format as the canines. The molar carries the wear data and is still a constructed shape.
+- [ ] **Use the first molar models.** `mandibular-first-molar.zip` and `maxillary-first-molar.zip` are now in `source/teeth models/`, in the same format as the canines. Add them to `TEETH` in `build_models.py` so the molar, which carries the wear data, stops being a constructed shape.
 - [ ] **Model credit and licence.** The ZBrush models in `source/teeth models/` arrived without author or licence information. Confirm both before public release and add the credit line to `limitsHTML()`.
+- [ ] **Before making the repository public**, remove the journal articles in `research/` (they are copyrighted; keep citations instead) and check the terms of each dataset.
 - [ ] **Jaw engraving credit.** Name the source of the engraving in `source/jaw engraving/` in `limitsHTML()`. Its lower arch is a mirrored copy of the upper one; a real lower-jaw engraving could replace it.
 - [ ] **GHHP terms.** Check the Global History of Health Project's terms before publishing the page outside the team, because it contains per-site figures derived from GHHP data.
 - [ ] **Upper molar section.** With three roots, the z = 0 cut shows little root. Revisit when the molar model arrives.

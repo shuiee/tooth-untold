@@ -2,6 +2,3 @@
 __pycache__/
 *.pyc
 .venv/
-# tooth models: kept out of the repository until their author and licence are confirmed.
-# data/models.js (built from them) is committed, so the page works without them.
-source/teeth models/
