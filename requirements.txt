@@ -1,0 +1,8 @@
+# Python packages for the data and model builds (the page itself needs none)
+pandas==3.0.6
+openpyxl==3.1.5
+numpy==2.5.3
+scipy==1.18.1
+trimesh==5.1.0
+rtree==1.4.1
+pillow==12.3.0
