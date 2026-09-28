@@ -22,7 +22,7 @@ Serve the folder rather than double-clicking `index.html`. Browsers block some l
 ## What's in the folder
 
 ```
-index.html          layout and styles (one typeface: Archivo; colours are CSS variables in :root)
+index.html          layout and styles (Lora for main text, Archivo for labels and numbers; colours are CSS variables in :root)
 app.js              the storyline: intro, pooling per 100-year window, marks, labels, timeline, panels
 tooth.js            the 3D renderer (WebGL2 ray-marched distance fields, stipple shading, cut section)
 data/
@@ -140,4 +140,4 @@ GHHP skeletal sites are weighted by the share of their date range inside the win
 - **Mühlemann et al. 2018** (github.com/acorg/parvo-2018) was checked: its samples are already in AncientMetagenomeDir.
 - **Natural Earth**, via world-atlas@2.0.2 (map outlines).
 - **Jaw engraving**: supplied by the team (source to be credited).
-- **Libraries**: d3 7.9.0, topojson-client 3.1.0; typeface Archivo (Google Fonts).
+- **Libraries**: d3 7.9.0, topojson-client 3.1.0; typefaces Lora and Archivo (Google Fonts).
