@@ -19,43 +19,51 @@ app = app.replace("(function () {", "window.startStatisticalTooth = (function ()
 app = app.rstrip()[:-len("})();")] + "});\n"
 
 GUIDE = """<!--
-  THE STATISTICAL TOOTH · What can a tooth remember?
+  THE TOOTH UNTOLD · What can a tooth remember?
   Harvard MDE data-visualisation prototype. One self-contained page: open it in Chrome, Safari or Firefox.
-  It needs an internet connection for the fonts, d3 and topojson-client, and a browser with WebGL2 for the 3D teeth.
+  It needs an internet connection for the fonts and d3, and a browser with WebGL2 for the 3D teeth.
+
+  THE FLOW
+    Intro      the engraved jaw opens, four teeth line up, the first molar and canine become point clouds.
+    Overview   the two teeth alone play through 300-1900 CE (no timeline); marks arrive century by century.
+    Layers     the teeth separate into three sheets: pathogens, morphology, metals. Click one.
+    Dashboard  that layer's teeth, with a draggable cross-section "film", beside charts drawn from the team's
+               tabular datasets (window.LAYER_DATA). The "human x layer" event strips are still placeholders.
 
   WHAT IS IN THIS FILE (top to bottom)
     1. <head>       styles. Colours, fonts and layout are CSS variables in :root.
-    2. <body>       page markup: header bar, teeth, era panel, timeline, intro layers.
-    3. Libraries    d3 7.9.0 and topojson-client 3.1.0 from public CDNs.
+    2. <body>       page markup: layer tabs, teeth, layer sheets, dashboard panel, intro layers.
+    3. Library      d3 7.9.0 from a public CDN.
     4. tooth.js     the 3D renderer. The tooth is a signed-distance shape ray-marched in a WebGL2
                     shader and drawn as an engraving. shape() holds the anatomy of each tooth type.
     5. app.js       the storyline: intro, pooling of the data per 100-year window, particles,
-                    labels, panels, timeline, walkers and autoplay.
+                    overview playback, layer sheets and dashboards.
     6. DATA         generated blocks, large and not meant for hand edits:
-                      window.ERA_IMAGES  pictures: the intro jaw engraving (jaw-arches)
-                      window.WORLD_TOPO  Natural Earth 1:50m country outlines (world-atlas@2.0.2)
+                      window.ERA_IMAGES  pictures: the intro jaw engraving (jaw-arches), event pictures (event-...)
                       window.TOOTH_DATA  every record the page draws (see "Data" below)
                       window.TOOTH_MODELS canine distance volumes and tooth point clouds (build_models.py)
+                      window.LAYER_DATA  the dashboards' chart data (build_layers.py, from source/layer data/)
     7. Start call   window.startStatisticalTooth() runs the page once the data has loaded.
 
   COMMON EDITS (all in app.js unless noted)
-    Story markers     STORY: id, year and label of each numbered marker on the timeline. Playback pauses
-                      at each one. Pop-ups for the markers are the next step.
-    Intro jaw         loadJaw(), jawInk() and jawPose() in app.js. The picture is window.ERA_IMAGES["jaw-arches"]
-                      in section 6: both arches opened flat, the hinge on the horizontal centre line. The lower
-                      half starts folded onto the upper half and swings open. JAW_TEETH places the rings.
-    Playback speed    stepPlay(): "dt * 52" is years per second; holdUntil values are pauses in ms.
+    Layers            LAYERS: name, description, chart title, legend series and placeholder events for each
+                      layer. Event pictures are window.ERA_IMAGES["event-..."] (images/event-*.jpg in the source).
+    Dashboard         CHARTS: each layer's chart titles, subtitles and notes. dashHTML() lays out the panel;
+                      drawPathogenMatrix(), drawWear(), drawLEH(), drawLead() and drawElements() draw the charts.
+    Cross-section     CUT_MIN / CUT_MAX (depth range), drawFilm() (the film strip), setCut() and the #cut slider.
+    Which marks show  paramsFor() and showsRec() keep only the chosen layer's traces in the teeth.
+    Overview speed    SPEED is years per second; stepPlay() holds briefly at 1900, then enterLayers() runs.
+    Intro jaw         loadJaw(), jawInk() and jawPose(). The picture is window.ERA_IMAGES["jaw-arches"]:
+                      both arches opened flat, the hinge on the horizontal centre line. JAW_TEETH places the rings.
     Intro timing      intro(): the wait(...) and tween(...) durations, in ms.
-    Regions           REGIONS. The values must match the region names in the data.
-    Colours           CAT (marks in the tooth), NIGHT (end panel), and the CSS variables in :root.
-    Label wording     drawLabels() for the callouts beside the teeth; endHTML() and limitsHTML() for the
-                      end-of-timeline and limitations panels.
+    Colours           CAT (marks in the tooth) and the CSS variables in :root.
     Tooth anatomy     Canines come from sculpted models (build_models.py); the first molar is still the
                       constructed shape in builtShape() in tooth.js. 1 unit = 10 mm, gum line at y = 0.
 
   TEST SHORTCUTS (add to the file's address)
-    ?scene=main&t=1347        skip the intro and open at a year
-    &mode=detail|limits       open the paused detail or the limitations view
+    ?scene=main&t=1347        skip the intro and show the overview at a year (&play=1 to play from there)
+    ?scene=layers             the separated layer sheets
+    ?scene=layer&layer=metals one layer's dashboard (pathogens, morphology or metals); &cut=-0.3 sets the film
     &still=1  &notrans=1      no travelling marks / no CSS transitions (for screenshots)
     ?freeze=0|0.5|1|2|3       hold one intro frame (0 closed jaw, 0.5 half open, 1 open, 2 lineup, 3 cloud)
 
@@ -76,15 +84,14 @@ GUIDE = """<!--
 
 data = "\n".join(
     "<script>/* " + p + " (generated) */\n" + rd(p).replace("</script", "<\\/script") + "\n</script>"
-    for p in ["data/images.js", "data/world.js", "data/data.js", "data/models.js"])
+    for p in ["data/images.js", "data/data.js", "data/models.js", "data/layers.js"])
 
 doc = ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n"
        + GUIDE + "\n" + title_meta_style + "\n<style>body{margin:0}</style>\n</head>\n<body>\n"
        + body_html + "\n\n"
-       "<!-- 3 · libraries -->\n"
-       "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js\"></script>\n"
-       "<script src=\"https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js\"></script>\n\n"
+       "<!-- 3 · library -->\n"
+       "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js\"></script>\n\n"
        "<!-- 4 · renderer -->\n<script>\n" + rd("tooth.js").replace("</script", "<\\/script") + "\n</script>\n\n"
        "<!-- 5 · storyline and interface -->\n<script>\n" + app.replace("</script", "<\\/script") + "\n</script>\n\n"
        "<!-- 6 · generated data -->\n" + data + "\n\n"

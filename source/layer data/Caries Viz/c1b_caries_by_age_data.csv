@@ -1,0 +1,49 @@
+period,age_band,pct_with_caries,n
+Pre-medieval,18–24,56.1,66.0
+Pre-medieval,25–29,60.8,79.0
+Pre-medieval,30–34,65.9,85.0
+Pre-medieval,35–39,61.5,97.0
+Pre-medieval,40–44,66.7,83.0
+Pre-medieval,45–49,73.3,87.0
+Pre-medieval,50–59,63.4,94.0
+Pre-medieval,60+,60.0,36.0
+Early medieval,18–24,30.1,206.0
+Early medieval,25–29,51.5,171.0
+Early medieval,30–34,56.0,221.0
+Early medieval,35–39,52.2,276.0
+Early medieval,40–44,60.2,333.0
+Early medieval,45–49,60.8,336.0
+Early medieval,50–59,59.5,540.0
+Early medieval,60+,60.7,253.0
+High medieval,18–24,27.8,79.0
+High medieval,25–29,47.6,126.0
+High medieval,30–34,50.0,136.0
+High medieval,35–39,51.4,145.0
+High medieval,40–44,60.0,136.0
+High medieval,45–49,53.9,104.0
+High medieval,50–59,66.1,170.0
+High medieval,60+,51.5,35.0
+Late medieval,18–24,54.8,104.0
+Late medieval,25–29,67.4,92.0
+Late medieval,30–34,63.0,148.0
+Late medieval,35–39,63.4,124.0
+Late medieval,40–44,73.4,144.0
+Late medieval,45–49,60.1,141.0
+Late medieval,50–59,67.5,198.0
+Late medieval,60+,62.5,98.0
+Early modern,18–24,58.2,282.0
+Early modern,25–29,63.3,287.0
+Early modern,30–34,67.3,276.0
+Early modern,35–39,62.2,207.0
+Early modern,40–44,62.4,223.0
+Early modern,45–49,60.9,183.0
+Early modern,50–59,70.8,306.0
+Early modern,60+,61.6,146.0
+Industrial,18–24,80.5,82.0
+Industrial,25–29,77.5,41.0
+Industrial,30–34,74.4,41.0
+Industrial,35–39,74.6,73.0
+Industrial,40–44,82.4,76.0
+Industrial,45–49,86.2,62.0
+Industrial,50–59,68.8,136.0
+Industrial,60+,64.3,49.0

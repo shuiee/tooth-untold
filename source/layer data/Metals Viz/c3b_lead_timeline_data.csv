@@ -1,0 +1,14 @@
+series,label,exposure_early,exposure_late,pb_ppm,n_individuals
+britain_chronological,Neolithic,-4040,-2525,0.1,31.0
+britain_chronological,Bronze Age,-2540,-825,0.06,13.0
+britain_chronological,Iron Age,-840,18,0.06,10.0
+britain_chronological,Roman Britain,3,375,1.21,25.0
+britain_chronological,post-Roman,360,675,0.39,50.0
+britain_chronological,early medieval,660,1075,1.93,26.0
+britain_chronological,late medieval,1160,1475,4.69,26.0
+roman_world_comparandum,Rome — Casal Bertone & Castellaccio,-39,275,3.61,17.0
+roman_world_comparandum,five Empire sites,-39,375,2.0,66.0
+roman_world_comparandum,five Empire sites (second cohort),-9,400,7.0,107.0
+modern,20th-century births,1860,1975,6.55,
+pooled_baseline,Kamenov archaeological pooled,-4040,1775,0.63,38.0
+omitted,"Gristhorpe, Yorkshire",-2240,-1525,0.003,1.0

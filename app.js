@@ -1,8 +1,9 @@
-/* The Statistical Tooth: storyline build (v4).
+/* The Tooth Untold: storyline build (v6).
    Intro: engraved jaw, closed, swings open on its hinge -> four teeth line up -> first molar and canine close in -> 2D becomes a 3D point cloud.
-   Main: header (tooth groups, time, region), two composite teeth set in a cut jaw, an era picture tied to the
-   timeline, particles entering the teeth as time plays, a paused detail view, and an end state with trends.
-   Every number comes from data/data.js; historical text is labelled as context. */
+   Overview: the two composite teeth, cut open in their jaw, play through 300-1900 CE with no timeline; marks arrive as each
+   century's records come in. Then the teeth separate into three layer sheets (pathogens, morphology, metals); a click on a
+   sheet opens that layer's dashboard. The dashboards' charts and events are placeholders until their datasets arrive.
+   Every number comes from data/data.js; nothing is invented. */
 (function () {
   "use strict";
   const D = window.TOOTH_DATA, IMG = window.ERA_IMAGES || {};
@@ -14,7 +15,6 @@
 
   // ------------------------------------------------------------------ vocabulary
   const CAT = { bacteria: "#b0362f", virus: "#2f55b0", parasite: "#16907a", metal: "#b98208", particle: "#b98208", condition: "#221f1b", sampled: "#7a7265" };
-  const NIGHT = { bacteria: "#ec7f70", virus: "#93aef0", parasite: "#46c7a7", metal: "#e3b54c" };
   const COMMON = {
     "Yersinia pestis": "plague", "Mycobacterium leprae": "leprosy", "Hepatitis B virus": "hepatitis B", "Variola virus": "smallpox",
     "Treponema pallidum": "treponemal disease", "Plasmodium falciparum": "malaria", "Plasmodium vivax": "malaria", "Plasmodium malariae": "malaria",
@@ -24,32 +24,39 @@
   };
   const common = n => COMMON[n] || n;
   const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
-  // Story points on the timeline. Pop-ups for each come later; for now they are markers only.
-  const STORY = [
-    { id: "start", y: 300, label: "Transition from hunting and gathering" },
-    { id: "blackdeath", y: 1347, label: "The Black Plague" },
-    { id: "industrial", y: 1760, label: "The Industrial Revolution" },
+  // The overview plays 300 -> 1900 at this many years per second, then the teeth separate into layers.
+  const SPEED = 160;
+  // The three layers a viewer can open. Their charts come from data/layers.js (see CHARTS below). The events
+  // are PLACEHOLDERS until their dates and pictures arrive: nothing in them is data. Event pictures: save
+  // images/event-<name>.jpg (e.g. event-justinian.jpg) and bundle.py embeds it.
+  const LAYERS = [
+    { key: "pathogens", n: "01", name: "Pathogens", about: "disease DNA recovered from teeth",
+      human: "Human × pathogen correlations across time",
+      events: [{ label: "Plague of Justinian", when: "541–750s", img: "event-justinian" }, { label: "The Black Plague", when: "Year–Year", img: "event-blackdeath" }] },
+    { key: "morphology", n: "02", name: "Morphology", about: "chewing wear, decay and stress lines",
+      human: "Human × morphology correlations across time",
+      events: [{ label: "Roller mill invented", when: "Year–Year", img: "event-rollermill" }, { label: "Refined sugar", when: "Year–Year", img: "event-sugar" }] },
+    { key: "metals", n: "03", name: "Metals", about: "lead in enamel, particles in tartar",
+      human: "Human × metal correlations across time",
+      events: [{ label: "Industrial Revolution", when: "Year–Year", img: "event-industrial" }] },
   ];
-  const REGIONS = [["all", "Europe, all"], ["Northwestern Europe", "Europe, northwestern"], ["Northeastern Europe", "Europe, northeastern"], ["Central and Southeastern Europe", "Europe, central & southeastern"], ["Mediterranean", "Europe, Mediterranean"]];
+  const layerOf = k => LAYERS.find(L => L.key === k);
 
   // ------------------------------------------------------------------ records
   const all = [].concat(D.pathogens, D.metagenomes, D.metals, D.sites);
   all.forEach(r => { r.loc = r.lat != null ? (+r.lat).toFixed(1) + "," + (+r.lon).toFixed(1) : null; });
 
   // ------------------------------------------------------------------ state
-  const S = { t: T_MIN, region: "all", jaw: "man", mode: "none", scene: "intro", playing: false, touched: false };
+  // scene: intro | main (the overview) | layers (the separated sheets) | layer (one layer's dashboard); show: which marks the teeth carry
+  // cut: depth of the cross-section in a dashboard (0 = the middle of the tooth; the overview and sheets always cut at 0)
+  const S = { t: T_MIN, region: "all", jaw: "man", scene: "intro", layer: null, show: "all", playing: false, cut: 0 };
   const everything = () => S.t > T_LAST;
 
   // ------------------------------------------------------------------ helpers
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const fmt = d3.format(",");
-  const pct = v => v == null || isNaN(v) ? "n/a" : (v < 0.1 ? (v * 100).toFixed(1) : Math.round(v * 100)) + "%";
-  const pct1 = v => v == null || isNaN(v) ? "n/a" : (v * 100).toFixed(1) + "%";
-  const mg = v => d3.format(".2~f")(v);
   const isBin = n => /^[A-Z][a-z]+ [a-z]+/.test(n) && !/virus/i.test(n);
   const nameHTML = n => isBin(n) ? "<i>" + esc(n) + "</i>" : esc(n);
   const dateStr = r => r.early === r.late ? r.early + " CE" : r.early + "–" + r.late + " CE";
-  const winStr = t => Math.round(t - HALF) + "–" + Math.round(t + HALF - 1);
   const unit = u => String(u || "").replace("ug/g", "µg/g");
   const wait = ms => new Promise(r => setTimeout(r, ms));
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -141,14 +148,16 @@
     const byW = d3.max(TEETH, T => { const S = T.R.st.S, r = T.el.getBoundingClientRect(), half = Math.max(-S.jawMin[0], S.jawMax[0], -S.jawMin[2], S.jawMax[2]) * 1.08; return r.width > 0 ? half * f * r.height / (r.width * 0.9) : 0; });
     TEETH.forEach(T => { T.R.setFrame((top + bottom) / 2 + 0.03, Math.max(byH, byW || 0)); Object.assign(T.R.st.cam, VIEW); });
   }
+  // the renderer's inputs for one tooth; S.show keeps only one layer's traces
   function paramsFor(T) {
-    const SH = T.R.st.S, top = SH.top;
-    const wear = T.type === "molar" ? G.wear : null, leh = T.type === "canine" ? G.leh : null;
+    const SH = T.R.st.S, top = SH.top, L = S.show, shape = L === "all" || L === "morphology";
+    const wear = shape && T.type === "molar" ? G.wear : null, leh = shape && T.type === "canine" ? G.leh : null;
     const wearY = wear != null ? top - (wear - 1) / 7 * 0.55 * top : top + 0.02;
-    const cr = G.caries != null ? (0.015 + 0.7 * G.caries) * (SH.B[0] / 0.5) : 0;
+    const cr = shape && G.caries != null ? (0.015 + 0.7 * G.caries) * (SH.B[0] / 0.5) : 0;
     const cp = SH.cariesAt === "occlusal" ? [0.06, Math.min(wearY, SH.grooveY) - 0.005, -0.03] : [SH.B[0] * 0.97, 0.44 * top, -0.13];
-    const pb = G.pb != null ? clamp(Math.log10(G.pb / 0.05) / Math.log10(10 / 0.05), 0, 1) : 0;
-    return { wearY, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: [0.36 * top, 0.54 * top], calc: G.calcSamples > 0 ? 1 : 0, pb, cutX: 0, jaw: true };
+    const pb = (L === "all" || L === "metals") && G.pb != null ? clamp(Math.log10(G.pb / 0.05) / Math.log10(10 / 0.05), 0, 1) : 0;
+    const calc = G.calcRecs.some(r => L === "all" || (L === "pathogens" && r.kind !== "metal") || (L === "metals" && r.kind === "metal")) ? 1 : 0;
+    return { wearY, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: [0.36 * top, 0.54 * top], calc, pb, cutX: S.scene === "layer" ? S.cut : 0, jaw: true };
   }
   const NEUTRAL = SH => ({ wearY: SH.top + 0.02, caries: [0, 0, 0, 0], leh: [0, 0], lehY: [0, 0], calc: 0, pb: 0, cutX: 5, jaw: false });
   function insideSolid(T, p, m) {
@@ -156,23 +165,24 @@
     if (P.caries[3] > 0 && Math.hypot(p[0] - P.caries[0], p[1] - P.caries[1], p[2] - P.caries[2]) < P.caries[3] + 0.03) return false;
     return d < -m;
   }
-  function findOnFace(T, y, from, step) { for (let x = from; Math.abs(x) < 1.3; x += step) { const p = [x, y, -0.002]; if (insideSolid(T, p, 0.004)) return p; } return null; }
 
   // particles: one mark per record, split between the two teeth (tooth type is not recorded)
+  const showsRec = r => S.show === "all" || (S.show === "pathogens" && r.kind === "pathogen") || (S.show === "metals" && r.kind === "metal");
   function updateParticles(animate) {
     if (!GL) return;
     const now = performance.now(), dense = everything();
     TEETH.forEach((T, ti) => {
       const want = new Map();
-      G.path.forEach(r => { if (hash(r.id) % 2 === ti) want.set(r.id, r); });
-      G.calcRecs.forEach(r => { if (r.kind !== "metagenome" && hash(r.id + "c") % 2 === ti) want.set(r.id, r); });
+      G.path.forEach(r => { if (showsRec(r) && hash(r.id) % 2 === ti) want.set(r.id, r); });
+      G.calcRecs.forEach(r => { if (r.kind !== "metagenome" && showsRec(r) && hash(r.id + "c") % 2 === ti) want.set(r.id, r); });
       T.parts.forEach((q, id) => { if (!want.has(id) && !q.dead) q.dead = now; });
       const placed = [...T.parts.values()].filter(q => !q.dead && q.face).map(q => q.p);
       let k = 0;
       [...want.values()].sort((x, y) => hash(x.id) - hash(y.id)).forEach(r => {
         const had = T.parts.get(r.id); if (had && !had.dead) return;
         const q = makeParticle(T, r, placed, dense); if (!q) return;
-        q.born = animate && !STILL ? now + Math.min(k++ * 55, 1100) : -1e9; q.dur = 1500 + (hash(r.id) % 400);
+        const fast = S.playing;   // the overview moves quickly, so marks travel faster there
+        q.born = animate && !STILL ? now + Math.min(k++ * (fast ? 25 : 55), fast ? 450 : 1100) : -1e9; q.dur = (fast ? 800 : 1500) + (hash(r.id) % (fast ? 250 : 400));
         T.parts.set(r.id, q);
       });
     });
@@ -222,13 +232,14 @@
     const seg = cum[i] - cum[i - 1] || 1, f = (L - cum[i - 1]) / seg, a = path[i - 1], b = path[i];
     return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
   }
+  const liveTeeth = () => S.scene === "main" || S.scene === "layer";
   function toPair(T, p) { const s = T.R.project(p); return [s.x + T.el.offsetLeft, s.y + T.el.offsetTop]; }
 
   const gLabels = ov.append("g"), gParts = ov.append("g");
   function drawParticles(now) {
-    if (!GL || S.scene !== "main") { gParts.selectAll("*").remove(); return false; }
+    if (!GL || !liveTeeth()) { gParts.selectAll("*").remove(); return false; }
     let busy = false;
-    const items = [], trails = [], routes = { blood: 0, air: 0 };
+    const items = [], trails = [];
     TEETH.forEach(T => {
       const b = T.R.st.basis; if (!b) return;
       T.parts.forEach((q, id) => {
@@ -238,12 +249,14 @@
         if (!q.face && q.n[0] * b.ro[0] + q.n[2] * b.ro[2] < 0.2) return;
         const k = (now - q.born) / q.dur;
         if (k < 0) { busy = true; return; }
-        const e = ease(Math.min(k, 1)), pos = k >= 1 ? q.p : along(q.path, e), xy = toPair(T, pos);
+        const e = ease(Math.min(k, 1));
+        let pos = k >= 1 ? q.p : along(q.path, e);
+        if (q.face && k >= 1 && S.scene === "layer") { pos = [q.p[0], q.p[1], S.cut - 0.002]; if (!insideSolid(T, pos, 0.006)) return; }   // marks sit on the face wherever the film is
+        const xy = toPair(T, pos);
         if (k < 1.5) {
           busy = true;
           const pts = d3.range(0, 25).map(i => toPair(T, along(q.path, e * i / 24)));
           trails.push({ id: T.key + id, pts, cat: q.cat, op: 0.55 * (k < 1 ? 1 : Math.max(0, 1 - (k - 1) * 2)) });
-          if (k < 1) routes[q.face ? "blood" : "air"]++;
         }
         items.push({ id: T.key + id, q, x: xy[0], y: xy[1], op });
       });
@@ -259,75 +272,63 @@
       .on("mousemove", (ev, d) => showTip(ev, recTip(d.q.r))).on("mouseleave", hideTip)
       .on("pointerdown", ev => ev.stopPropagation());
     en.merge(sel).attr("transform", d => "translate(" + d.x.toFixed(1) + "," + d.y.toFixed(1) + ") rotate(" + (hash(d.id) % 180) + ")").attr("opacity", d => d.op);
-    // route notes while marks travel; the routes are illustrations, not data
-    const rt = [];
-    if (routes.blood) { const T = TEETH[0], SH = T.R.st.S, xy = toPair(T, [0, SH.bottom - 0.14, 0]); rt.push({ id: "b", x: xy[0], y: xy[1], t: "↑ through the blood supply" }); }
-    if (routes.air) { const T = TEETH[1], xy = toPair(T, [0.2, T.R.st.S.top + 0.34, 0]); rt.push({ id: "a", x: xy[0], y: xy[1], t: "↓ from food and air, into tartar" }); }
-    gParts.selectAll("text.route").data(rt, d => d.id).join("text").attr("class", "route").attr("x", d => d.x).attr("y", d => d.y).attr("text-anchor", "middle").text(d => d.t);
     return busy;
   }
 
-  // callouts: molar traces on the left, canine traces on the right
+  // the tooth names are the only lettering beside the teeth
   function drawLabels() {
     gLabels.selectAll("*").remove();
-    if (!GL || S.scene !== "main") return;
-    const W = pairEl.clientWidth, H = pairEl.clientHeight;
-    ov.attr("viewBox", "0 0 " + W + " " + H);
-    const absent = [], nDNA = G.path.length, items = { molar: [], canine: [] }, letters = [];
+    if (!GL || !liveTeeth()) return;
+    ov.attr("viewBox", "0 0 " + pairEl.clientWidth + " " + pairEl.clientHeight);
+    if (S.scene === "layer") drawFilm();
+    const y = nameY();
+    TEETH.forEach(T => gLabels.append("text").attr("class", "tname").attr("x", toPair(T, [0, 0, 0])[0]).attr("y", y).attr("text-anchor", "middle").text(T.label));
+  }
+  // ------------------------------------------------------------------ the cross-section film (dashboards only)
+  // The section plane is drawn as a strip of film standing in each jaw. Drag its sprocket bands, or use the slider
+  // under the teeth: towards the viewer shows more of the whole tooth, away from the viewer cuts deeper.
+  const CUT_MIN = -0.42, CUT_MAX = 0.68;
+  const filmEl = $("#film"), cutIn = $("#cut");
+  const cutToVal = c => Math.round((c - CUT_MIN) / (CUT_MAX - CUT_MIN) * 1000), valToCut = v => CUT_MIN + v / 1000 * (CUT_MAX - CUT_MIN);
+  function setCut(c, low) {
+    S.cut = clamp(c, CUT_MIN, CUT_MAX); cutIn.value = cutToVal(S.cut);
+    if (GL) TEETH.forEach(T => T.R.setParams(paramsFor(T)));
+    requestRender(low);
+  }
+  cutIn.addEventListener("input", () => setCut(valToCut(+cutIn.value), true));
+  cutIn.addEventListener("change", () => setCut(valToCut(+cutIn.value), false));
+  let filmDrag = null;
+  function drawFilm() {
+    const z = S.cut;
     TEETH.forEach(T => {
-      const SH = T.R.st.S, P = T.R.st.P, top = SH.top, L = items[T.key];
-      if (T.type === "molar") {
-        if (G.wear != null) { const h = T.R.march([-0.16, top + 0.6, -0.1], [0, -1, 0], 2); L.push({ t: "CHEWING WEAR", v: G.wear.toFixed(1) + " of 8", s: ["first molars · dashed line = unworn"], p: h && h.p }); }
-        else absent.push("chewing wear (too few molars)");
-        if (G.caries != null) { const c = P.caries; L.push({ t: "TOOTH DECAY", v: pct(G.caries), s: ["of teeth had cavities"], p: [c[0], c[1] + c[3] * 0.3, c[2]] }); }
-        else absent.push("decay (too few teeth)");
-        const q = [...T.parts.values()].filter(x => x.face && !x.dead).sort((u, v) => u.p[0] - v.p[0])[0];
-        if (nDNA) L.push({ t: "DISEASE DNA", v: nDNA + " find" + (nDNA > 1 ? "s" : ""), s: ["one mark each, across both teeth", G.byCommon[0] ? "most: " + G.byCommon[0][0] : ""], p: q && q.p });
-        else absent.push("disease DNA (none recorded)");
-        const pe = findOnFace(T, 0.62 * Math.min(top, P.wearY), SH.boxMin[0], 0.006);
-        if (pe) letters.push({ T, t: "enamel", p: [pe[0] + 0.03, pe[1] + 0.06, pe[2]] });
-        const dn = findOnFace(T, 0.05, SH.boxMin[0], 0.01); if (dn) letters.push({ T, t: "dentine", p: [dn[0] + 0.14, 0.2, dn[2]] });
-        letters.push({ T, t: "pulp", p: [SH.pulpC[0], SH.pulpC[1] + 0.02, -0.002] });
-      } else {
-        if (G.leh) { const h = T.R.march([2, P.lehY[0], -0.12], [-1, 0, 0], 3); L.push({ t: "STRESS LINES", v: pct(G.leh[0]), s: ["of people · canines", "linked to childhood illness or hunger"], p: h && h.p }); }
-        else absent.push("stress lines (too few canines)");
-        const pe = findOnFace(T, 0.66 * top, SH.boxMax[0], -0.006);
-        if (G.pb != null) L.push({ t: "LEAD", v: mg(G.pb) + " mg/kg", s: ["median in enamel", "absorbed in early childhood"], p: pe && [pe[0] - 0.02, pe[1], pe[2]] });
-        else absent.push("lead (not measured)");
-        if (G.calcSamples) { const h = T.R.march([2, 0.1, -0.2], [-1, 0, 0], 3); L.push({ t: "TARTAR", v: G.calcSamples + " sample" + (G.calcSamples > 1 ? "s" : ""), s: ["studied for DNA or particles"], p: h && [h.p[0] + 0.03, h.p[1], h.p[2]] }); }
-        const rt = findOnFace(T, SH.rootMin * 0.5, SH.boxMax[0], -0.01); if (rt) letters.push({ T, t: "root", p: [rt[0] - 0.06, rt[1], rt[2]] });
-        letters.push({ T, t: "bone", p: [SH.jawMax[0] - 0.08, SH.bottom * 0.6, -0.002] });
-      }
-      const nx = toPair(T, [0, 0, 0])[0];
-      gLabels.append("text").attr("class", "tname").attr("x", nx).attr("y", 14).attr("text-anchor", "middle").text(T.label);
-    });
-    letters.forEach(l => { const xy = toPair(l.T, l.p); gLabels.append("text").attr("class", "ana").attr("x", xy[0]).attr("y", xy[1]).attr("text-anchor", "middle").text(l.t); });
-    const listEl = $("#coList"), narrow = W < 620;
-    listEl.classList.toggle("on", narrow);
-    listEl.innerHTML = narrow ? items.molar.concat(items.canine).map(c => "<div><b>" + esc(c.t) + "</b><span>" + esc(c.v) + "</span> " + esc(c.s.filter(Boolean).join(" · ")) + "</div>").join("") : "";
-    if (!narrow) [["molar", "L"], ["canine", "R"]].forEach(([k, side]) => {
-      const T = TEETH.find(x => x.key === k);
-      const list = items[k].map(c => Object.assign(c, { xy: c.p ? toPair(T, c.p) : null, vis: c.p ? T.R.visible(c.p) : false }));
-      list.sort((a, b) => (a.xy ? a.xy[1] : 9e3) - (b.xy ? b.xy[1] : 9e3));
-      const gap = 74; let y = 44;
-      list.forEach(c => { c.ly = Math.max(y, Math.min(H - 70, c.xy ? c.xy[1] - 16 : y)); y = c.ly + gap; });
-      for (let i = list.length - 1; i >= 0; i--) { const lim = i === list.length - 1 ? H - 56 : list[i + 1].ly - gap; if (list[i].ly > lim) list[i].ly = Math.max(30, lim); }
-      list.forEach(c => {
-        const g = gLabels.append("g").attr("class", "co");
-        const x = side === "L" ? 4 : W - 4, anchor = side === "L" ? "start" : "end";
-        let w = 0;
-        const add = (cls, dy, txt) => { if (!txt) return; const t = g.append("text").attr("class", cls).attr("x", x).attr("y", c.ly + dy).attr("text-anchor", anchor).text(txt); w = Math.max(w, t.node().getComputedTextLength()); };
-        add("co-t", 0, c.t); add("co-v", 24, c.v); c.s.forEach((s, i) => add("co-s", 40 + i * 13.5, s));
-        if (c.xy && c.vis) {
-          const x0 = side === "L" ? x + w + 8 : x - w - 8;
-          const lx = side === "L" ? Math.max(x0 + 6, Math.min(c.xy[0] - 14, x0 + 40)) : Math.min(x0 - 6, Math.max(c.xy[0] + 14, x0 - 40));
-          g.append("path").attr("class", "lead").attr("d", "M" + x0 + "," + (c.ly + 16) + " L" + lx + "," + (c.ly + 16) + " L" + c.xy[0] + "," + c.xy[1]);
-          g.append("circle").attr("cx", c.xy[0]).attr("cy", c.xy[1]).attr("r", 2.2).attr("fill", "#221f1b");
+      const SH = T.R.st.S, x0 = SH.jawMin[0] - 0.1, x1 = SH.jawMax[0] + 0.1, y0 = SH.jawMin[1] - 0.1, y1 = SH.top + 0.2, band = 0.09;
+      const quad = (a, b, c, d) => "M" + [[a, c], [b, c], [b, d], [a, d]].map(([x, y]) => toPair(T, [x, y, z]).map(v => v.toFixed(1)).join(",")).join("L") + "Z";
+      const g = gLabels.append("g").attr("class", "film");
+      g.append("path").attr("class", "film-f").attr("d", quad(x0, x1, y0, y1));
+      [[y1 - band, y1], [y0, y0 + band]].forEach(([a, b], i) => {
+        g.append("path").attr("class", "film-b grip").attr("d", quad(x0, x1, a, b)).attr("data-t", T.key).attr("aria-hidden", "true")
+          .on("pointerdown", ev => { ev.stopPropagation(); ev.preventDefault(); filmDrag = { T, x: ev.clientX, y: ev.clientY }; });
+        const holes = Math.max(4, Math.round((x1 - x0) / 0.11));
+        for (let h = 0; h < holes; h++) {
+          const cx = x0 + (h + 0.5) * (x1 - x0) / holes, cy = (a + b) / 2;
+          g.append("path").attr("class", "film-h").attr("d", quad(cx - 0.022, cx + 0.022, cy - 0.02, cy + 0.02));
         }
       });
     });
-    $("#absent").textContent = absent.length ? "Not shown: " + absent.join("; ") + "." : "";
   }
+  addEventListener("pointermove", ev => {
+    if (!filmDrag) return;
+    const { T } = filmDrag, c = [0, T.R.st.S.top * 0.3, S.cut], a = toPair(T, c), b = toPair(T, [c[0], c[1], c[2] + 0.1]);
+    // move along the film's own depth direction on screen; 320 px of drag covers the whole range
+    let vx = b[0] - a[0], vy = b[1] - a[1]; const l = Math.hypot(vx, vy);
+    if (l < 2) { vx = -1; vy = 0; } else { vx /= l; vy /= l; }
+    const dx = ev.clientX - filmDrag.x, dy = ev.clientY - filmDrag.y;
+    filmDrag.x = ev.clientX; filmDrag.y = ev.clientY;
+    setCut(S.cut + (dx * vx + dy * vy) / 320 * (CUT_MAX - CUT_MIN), true);
+  });
+  addEventListener("pointerup", () => { if (filmDrag) { filmDrag = null; requestRender(false); } });
+  // one baseline for both names, a little above the taller crown
+  const nameY = () => Math.max(14, d3.min(TEETH, T => toPair(T, [0, T.R.st.S.top, 0])[1]) - 34);
 
   // rendering
   let scheduled = false, settleT = null;
@@ -343,11 +344,10 @@
   function loop(now) {
     const busy = drawParticles(now);
     const walking = stepPlay(now);
-    drawTimeline(now);
     if (busy || walking) requestAnimationFrame(loop); else looping = false;
   }
 
-  // orbit both teeth together; a click without dragging opens the paused detail view
+  // drag to orbit both teeth together
   (function orbit() {
     let drag = null;
     TEETH.forEach(T => {
@@ -363,215 +363,314 @@
     });
   })();
 
-  // ------------------------------------------------------------------ side panel (end of timeline, limitations)
-  let panelKey = null;
-  function renderPanel(force) {
-    const mode = S.mode === "limits" ? "limits" : everything() ? "end" : "none";
-    const key = mode + "|" + S.region + S.jaw;
-    if (key === panelKey && !force) return;
-    const layoutChange = !panelKey || panelKey.split("|")[0] === "none" !== (mode === "none");
-    panelKey = key;
-    const el = $("#panel");
-    stage.classList.toggle("haspanel", mode !== "none"); el.hidden = mode === "none";
-    el.innerHTML = mode === "end" ? endHTML() : mode === "limits" ? limitsHTML() : "";
-    if (mode === "end") drawEndCharts(); if (mode === "limits") drawMap();
-    const on = (id, f) => { const b = $("#" + id); if (b) b.onclick = f; };
-    on("back", () => { S.mode = "none"; renderPanel(); });
-    on("limBtn", openLimits);
-    on("again", () => { S.mode = "none"; setT(T_MIN); play(); });
-    if (layoutChange && S.scene === "main") requestAnimationFrame(() => { refit(); requestRender(false); drawAxis(); drawTimeline(); });
-  }
-  function openLimits() { pause(); S.mode = "limits"; renderPanel(true); }
-
-  // end state: the first century against the last, plus trend lines
-  const STEPS = d3.range(T_MIN, T_LAST + 1, 25);
-  const endSeries = () => STEPS.map(t => { const g = composite(t); return { t, caries: g.caries, leh: g.leh && g.leh[0], wear: g.wear, amtl: g.amtlR, pb: g.pb }; });
-  function endHTML() {
-    const A = composite(350), B = composite(1850);
-    let pbB = B.pb, pbNote = ""; if (pbB == null) { const g = composite(1900); if (g.pb != null) { pbB = g.pb; pbNote = "(1850–1949)"; } }
-    const row = (l, a, b, f, note, noChange) => {
-      let ch = "<span class='same'>–</span>";
-      if (noChange) ch = "<span class='same'>not comparable</span>";
-      else if (a != null && b != null) { const r = (b - a) / Math.max(Math.abs(a), 1e-9); ch = Math.abs(r) < 0.03 ? "<span class='same'>≈</span>" : "<span class='" + (r > 0 ? "up" : "down") + "'>" + (r > 0 ? "↑" : "↓") + Math.round(Math.abs(r) * 100) + "%</span>"; }
-      return "<tr><td>" + l + (note ? " <span class='hint'>" + note + "</span>" : "") + "</td><td>" + (a == null ? "–" : f(a)) + "</td><td>" + (b == null ? "–" : f(b)) + "</td><td>" + ch + "</td></tr>";
-    };
-    return "<div class='card night'><div class='row'><span class='ctxnote'>Time: everything · 300–1900 CE</span><button class='btn' id='limBtn'>Limitations →</button></div>" +
-      "<div><h3>First century against the last</h3><table class='cmp'><thead><tr><th></th><th>300–399</th><th>1800–1899</th><th>change</th></tr></thead><tbody>" +
-      row("Tooth decay", A.caries, B.caries, pct1) + row("Stress lines (canines)", A.leh && A.leh[0], B.leh && B.leh[0], pct1) + row("Molar wear (1–8)", A.wear, B.wear, v => v.toFixed(2)) +
-      row("Tooth loss", A.amtlR, B.amtlR, pct1) + row("Lead in enamel, mg/kg", A.pb, pbB, mg, pbNote) +
-      row("Disease DNA finds", A.path.length, B.path.length, v => String(v), "research effort", true) + "</tbody></table></div>" +
-      "<div><h3>Disease DNA finds per century</h3><svg id='endLines' height='120' style='width:100%;display:block'></svg></div>" +
-      "<div class='minis' id='endMinis'></div>" +
-      "<div class='row'><span class='ctxnote'>The teeth now pool every period at once.</span><button class='btn' id='again'>Play again</button></div></div>";
-  }
-  function drawEndCharts() {
-    const svg = d3.select("#endLines"), W = svg.node().clientWidth || 340, H = 120;
-    svg.attr("viewBox", "0 0 " + W + " " + H);
-    const bins = d3.range(350, 1900, 100), cats = ["bacteria", "virus", "parasite"], pool = D.pathogens.filter(inRegion);
-    const yr = r => r.precise ? (r.early + r.late) / 2 : r.year;
-    const data = cats.map(c => ({ c, v: bins.map(b => ({ b, n: pool.filter(r => r.cat === c && yr(r) >= b - 50 && yr(r) < b + 50).length })) }));
-    const x = d3.scaleLinear().domain([300, 1900]).range([22, W - 62]), y = d3.scaleLinear().domain([0, d3.max(data, d => d3.max(d.v, q => q.n)) || 1]).nice().range([H - 16, 6]);
-    svg.append("g").selectAll("line").data(y.ticks(3)).join("line").attr("x1", 22).attr("x2", W - 62).attr("y1", d => y(d)).attr("y2", d => y(d)).attr("stroke", "#3a352e");
-    svg.append("g").selectAll("text").data(y.ticks(3)).join("text").attr("x", 18).attr("y", d => y(d) + 3).attr("text-anchor", "end").text(d => d);
-    [500, 1000, 1500].forEach(v => svg.append("text").attr("x", x(v)).attr("y", H - 3).attr("text-anchor", "middle").text(v));
-    data.forEach(d => svg.append("path").attr("d", d3.line().x(q => x(q.b)).y(q => y(q.n)).curve(d3.curveMonotoneX)(d.v)).attr("fill", "none").attr("stroke", NIGHT[d.c]).attr("stroke-width", 2));
-    const labs = data.map(d => ({ c: d.c, y: y(d.v[d.v.length - 1].n) + 3 })).sort((p, q) => p.y - q.y);
-    for (let i = 1; i < labs.length; i++) labs[i].y = Math.max(labs[i].y, labs[i - 1].y + 11);
-    labs.forEach(l => svg.append("text").attr("x", W - 58).attr("y", Math.min(l.y, H - 4)).style("fill", NIGHT[l.c]).text({ bacteria: "bacteria", virus: "viruses", parasite: "parasites" }[l.c]));
-    const ser = endSeries();
-    const M = [["Molar wear (1–8)", "wear", v => v.toFixed(1), "#efe9dd"], ["Tooth decay", "caries", pct, "#efe9dd"], ["Stress lines (canines)", "leh", pct, "#efe9dd"], ["Lead in enamel (mg/kg)", "pb", mg, NIGHT.metal]];
-    $("#endMinis").innerHTML = M.map(m => "<div><div class='mt'>" + m[0] + "</div><svg data-k='" + m[1] + "'></svg></div>").join("");
-    M.forEach(m => {
-      const s = d3.select("#endMinis svg[data-k='" + m[1] + "']"), w = s.node().clientWidth || 160, h = 52; s.attr("viewBox", "0 0 " + w + " " + h);
-      const vals = ser.filter(q => q[m[1]] != null); if (!vals.length) return;
-      const xx = d3.scaleLinear().domain([300, 1900]).range([2, w - 2]), ext = d3.extent(vals, q => q[m[1]]);
-      const yy = d3.scaleLinear().domain(m[1] === "pb" ? [0, ext[1] * 1.1] : [ext[0] * 0.9, ext[1] * 1.05]).range([h - 12, 4]);
-      s.append("line").attr("x1", 0).attr("x2", w).attr("y1", h - 12).attr("y2", h - 12).attr("stroke", "#3a352e");
-      s.append("path").attr("d", d3.line().defined(q => q[m[1]] != null).x(q => xx(q.t)).y(q => yy(q[m[1]])).curve(m[1] === "pb" ? d3.curveStepAfter : d3.curveMonotoneX)(ser)).attr("fill", "none").attr("stroke", m[3]).attr("stroke-width", 1.6);
-      s.append("text").attr("x", 2).attr("y", h - 2).text("300"); s.append("text").attr("x", w - 2).attr("y", h - 2).attr("text-anchor", "end").text("1900");
-      s.append("text").attr("x", w - 2).attr("y", 10).attr("text-anchor", "end").text("max " + m[2](ext[1]));
-    });
-  }
-  function limitsHTML() {
-    const rs = [].concat(G.siteList, G.path, G.meta, G.metals);
-    return "<div class='card'><div class='row'><span class='ctxnote'>Limitations</span><button class='btn' id='back'>← Back</button></div>" +
-      "<ul><li>Finding a pathogen's DNA shows it survived in a tooth. It does not show the infection was active or caused death.</li>" +
-      "<li>DNA counts show where researchers looked. Plague is studied far more than other diseases, and most hepatitis B samples come from one study.</li>" +
-      "<li>DNA ages are rounded to the nearest 100 years, so marks change once per century. Where each sample was taken inside the tooth is not recorded, so marks are spread across the cut face and split between the two teeth.</li>" +
-      "<li>The entry routes (up through the blood supply, down from food and air) illustrate how such traces usually arrive. They are not measurements.</li>" +
-      "<li>Skeletons are people who died and were buried, not the whole living population. Sites dated across several centuries are split between windows.</li>" +
-      "<li>Stress lines are scored on canines and wear on first molars. Decay and tooth loss are whole-mouth rates.</li>" +
-      "<li>Lead in enamel records early childhood and cannot say where the lead came from. Lead measured in bone is not drawn in the teeth.</li>" +
-      "<li>The canines are drawn from sculpted anatomical models supplied by the team. Their pulp is derived from each model's shape. The first molar is a constructed shape until a molar model is added. Gum and bone are illustrations. The opening jaw in the intro is an engraving supplied by the team; its lower arch is a mirrored copy of the upper one. None of this anatomy is data.</li>" +
-      "<li>Story markers on the timeline are chosen historical moments, for context. They are not data.</li></ul>" +
-      "<div><h3>Where the teeth come from</h3><svg id='map' role='img' aria-label='Map of sample locations'></svg><p class='ctxnote' style='margin-top:4px'>Dark dots: records in the current window. Blank land means no samples, not no disease.</p></div>" +
-      "<div><h3>Sources</h3><ul>" + D.meta.built_from.map(s => "<li>" + esc(s) + "</li>").join("") + "</ul></div>" +
-      "<details><summary class='ctxnote' style='cursor:pointer'>Records in the current window (" + rs.length + ")</summary><div class='tblwrap'><table class='data'><thead><tr><th>Evidence</th><th>Place</th><th>Dates</th><th>Material</th><th>Value</th></tr></thead><tbody>" +
-      rs.map(r => "<tr><td>" + nameHTML(r.name) + "</td><td>" + esc(r.site) + ", " + esc(r.country) + "</td><td>" + esc(dateStr(r)) + "</td><td>" + esc(r.material) + "</td><td>" + (r.value != null ? r.value + " " + esc(unit(r.unit)) : r.kind === "ghhp" ? fmt(r.n) + " people" : "") + "</td></tr>").join("") + "</tbody></table></div></details></div>";
-  }
-  const world = topojson.feature(window.WORLD_TOPO, window.WORLD_TOPO.objects.countries);
-  function drawMap() {
-    const svg = d3.select("#map"); if (svg.empty()) return;
-    const W = svg.node().clientWidth || 320, H = Math.round(W * 0.72);
-    svg.attr("viewBox", "0 0 " + W + " " + H).attr("height", H);
-    const proj = d3.geoConicConformal().parallels([40, 62]).rotate([-12, 0]).fitExtent([[2, 2], [W - 2, H - 2]], { type: "MultiPoint", coordinates: [[-10, 36.5], [31, 36.5], [33, 63], [-9, 62]] });
-    const path = d3.geoPath(proj);
-    svg.append("rect").attr("width", W).attr("height", H).attr("fill", "#eef0f3");
-    svg.append("path").attr("class", "grat").attr("d", path(d3.geoGraticule().step([5, 5])()));
-    svg.append("g").selectAll("path").data(world.features).join("path").attr("class", "land").attr("d", path);
-    const [a, b] = span(S.t), locs = new Map();
-    all.filter(r => r.loc && inRegion(r)).forEach(r => { const o = locs.get(r.loc) || { r, on: false }; o.on = o.on || inSpan(r, a, b); locs.set(r.loc, o); });
-    svg.append("g").selectAll("circle").data([...locs.values()]).join("circle").attr("r", d => d.on ? 3 : 1.6).attr("fill", d => d.on ? "#221f1b" : "#b3a88f")
-      .attr("transform", d => { const p = proj([+d.r.lon, +d.r.lat]); return p ? "translate(" + p + ")" : "translate(-99,-99)"; });
-  }
-
-  // ------------------------------------------------------------------ timeline, walkers and autoplay
-  const BASE = 62;
-  let tlW = 800;
-  const tlX = y => y > T_LAST ? tlW - 14 : 10 + (y - T_MIN) / (T_LAST - T_MIN) * (tlW - 66);
-  let phase = 0, lastFrame = 0;
-  const tl = d3.select("#tl"), gAxis = tl.append("g"), gWalk = tl.append("g");
-  function drawAxis() {
-    tlW = tl.node().clientWidth || 800;
-    tl.attr("viewBox", "0 0 " + tlW + " 96"); gAxis.selectAll("*").remove();
-    const mono = s => s.attr("font-family", "Archivo, system-ui, sans-serif").attr("fill", "#7b7a74");
-    gAxis.append("line").attr("x1", 10).attr("x2", tlW - 6).attr("y1", BASE).attr("y2", BASE).attr("stroke", "#221f1b").attr("stroke-width", 1.2);
-    gAxis.append("path").attr("d", "M" + (tlW - 12) + "," + (BASE - 5) + " L" + (tlW - 4) + "," + BASE + " L" + (tlW - 12) + "," + (BASE + 5)).attr("fill", "none").attr("stroke", "#221f1b").attr("stroke-width", 1.2);
-    d3.range(300, 1901, 100).forEach(v => {
-      gAxis.append("line").attr("x1", tlX(v)).attr("x2", tlX(v)).attr("y1", BASE).attr("y2", BASE + (v % 500 === 0 ? 5 : 3)).attr("stroke", "#221f1b");
-      if (v % 200 === 100 || v === 1900) mono(gAxis.append("text").attr("x", tlX(v)).attr("y", BASE + 16).attr("text-anchor", "middle").attr("font-size", 9.5)).text(v);
-    });
-    mono(gAxis.append("text").attr("x", tlW - 14).attr("y", BASE + 16).attr("text-anchor", "middle").attr("font-size", 9.5)).text("ALL");
-    gAxis.append("text").attr("x", tlW / 2).attr("y", BASE + 31).attr("text-anchor", "middle").attr("font-family", "Archivo, system-ui, sans-serif").attr("font-size", 10.5).attr("letter-spacing", "1.5").attr("fill", "#1a1a18").text("TIME");
-    // story markers: a numbered stem above the axis, label beside it
-    STORY.forEach((m, i) => {
-      const x = tlX(m.y), g = gAxis.append("g").attr("class", "story").attr("data-id", m.id);
-      g.append("line").attr("x1", x).attr("x2", x).attr("y1", BASE - 36).attr("y2", BASE).attr("stroke", "#1a1a18").attr("stroke-width", 0.8);
-      g.append("circle").attr("cx", x).attr("cy", BASE - 36).attr("r", 7.5).attr("fill", "#e9e8e4").attr("stroke", "#1a1a18");
-      g.append("text").attr("x", x).attr("y", BASE - 32.5).attr("text-anchor", "middle").attr("font-family", "Archivo, system-ui, sans-serif").attr("font-size", 10).attr("font-weight", 600).attr("fill", "#1a1a18").text(i + 1);
-      const right = x < tlW - 220;
-      g.append("text").attr("class", "slabel").attr("x", x + (right ? 12 : -12)).attr("y", BASE - 32.5).attr("text-anchor", right ? "start" : "end").attr("font-family", "Archivo, system-ui, sans-serif").attr("font-size", 11).attr("fill", "#55544f").text(m.label);
-      g.append("circle").attr("cx", x).attr("cy", BASE).attr("r", 2.6).attr("fill", "#1a1a18");
-    });
-    gAxis.append("circle").attr("class", "cursor").attr("cy", BASE).attr("r", 6.5).attr("fill", "#e9e8e4").attr("stroke", "#1a1a18").attr("stroke-width", 2);
-    gAxis.append("circle").attr("class", "cursor2").attr("cy", BASE).attr("r", 2.2).attr("fill", "#1a1a18");
-  }
-  function figure(g, t, ph) {
-    const sw = Math.sin(ph), leg = 0.5 * sw, arm = -0.45 * sw, ink = "#1a1a18";
-    const L = (x1, y1, a, len) => g.append("line").attr("x1", x1).attr("y1", y1).attr("x2", x1 + Math.sin(a) * len).attr("y2", y1 + Math.cos(a) * len).attr("stroke", ink).attr("stroke-width", 1.4).attr("stroke-linecap", "round");
-    L(0, -8, leg, 8); L(0, -8, -leg, 8); L(0, -15, arm, 6); L(0, -15, -arm, 6);
-    g.append("line").attr("x1", 0).attr("y1", -15.5).attr("x2", 0).attr("y2", -8).attr("stroke", ink).attr("stroke-width", 2.2).attr("stroke-linecap", "round");
-    if (t < 600) g.append("path").attr("d", "M-2.2,-15 L2.2,-15 L3.6,-6.5 L-3.6,-6.5Z").attr("fill", ink);
-    else if (t < 1500) g.append("path").attr("d", "M-2.2,-15 L2.2,-15 L4,-3.5 L-4,-3.5Z").attr("fill", ink);
-    else g.append("path").attr("d", "M-2.4,-15.5 L2.4,-15.5 L2.8,-8 L-2.8,-8Z").attr("fill", ink);
-    g.append("circle").attr("cx", 0).attr("cy", -18.6).attr("r", 2.4).attr("fill", ink);
-    if (t >= 600 && t < 1500) g.append("path").attr("d", "M-3,-17 Q0,-24 3,-17Z").attr("fill", ink);
-    else if (t >= 1500 && t < 1750) g.append("ellipse").attr("cx", 0).attr("cy", -20.6).attr("rx", 4.4).attr("ry", 1.1).attr("fill", ink);
-    else if (t >= 1750) { g.append("rect").attr("x", -2.2).attr("y", -25.5).attr("width", 4.4).attr("height", 4.6).attr("fill", ink); g.append("line").attr("x1", -3.8).attr("x2", 3.8).attr("y1", -21).attr("y2", -21).attr("stroke", ink).attr("stroke-width", 1.2); }
-  }
-  function drawTimeline(now) {
-    if (now && S.playing && !REDUCED) phase += Math.min(0.1, (now - (lastFrame || now)) / 1000) * 9;
-    lastFrame = now || 0;
-    const xc = tlX(S.t);
-    gAxis.select(".cursor").attr("cx", xc); gAxis.select(".cursor2").attr("cx", xc);
-    const cur = STORY.filter(m => m.y <= Math.min(S.t, T_LAST)).pop();
-    gAxis.selectAll(".story .slabel")
-      .attr("fill", function () { return cur && this.parentNode.dataset.id === cur.id && !everything() ? "#1a1a18" : "#8a8983"; })
-      .attr("opacity", function () { return tlW >= 900 || (cur && this.parentNode.dataset.id === cur.id) ? 1 : 0; });
-    gWalk.selectAll("*").remove();
-    if (!G) return;
-    const n = everything() ? 6 : clamp(Math.round(G.n / 300), 1, 6);
-    for (let i = 0; i < n; i++) figure(gWalk.append("g").attr("transform", "translate(" + (xc - 12 - i * 11) + "," + (BASE - 2) + ")"), everything() ? 1850 : S.t, phase + i * 1.3);
-  }
-  let holdUntil = 0, lastStep = 0;
+  // ------------------------------------------------------------------ overview playback: 300 -> 1900, then all periods pooled, then the layers
+  let holdUntil = 0, lastStep = 0, layersTimer = null;
   function play() {
     if (S.scene !== "main") return;
     if (everything()) setT(T_MIN);
-    if (S.mode !== "none") { S.mode = "none"; renderPanel(); }
-    S.playing = true; lastStep = performance.now();
-    if (STORY.some(m => Math.abs(m.y - S.t) < 1)) holdUntil = lastStep + 2200;
-    $("#playIcon").setAttribute("d", "M3 2h3v10H3zM8 2h3v10H8z"); $("#play").setAttribute("aria-label", "Pause");
-    kick();
+    S.playing = true; lastStep = performance.now(); kick();
   }
-  function pause() { S.playing = false; $("#playIcon").setAttribute("d", "M3 1.5v11l9-5.5z"); $("#play").setAttribute("aria-label", "Play"); }
+  function pause() { S.playing = false; }
   function stepPlay(now) {
     if (!S.playing) return false;
     const dt = Math.min(0.1, (now - lastStep) / 1000); lastStep = now;
     if (now < holdUntil) return true;
-    const prev = S.t;
-    if (prev >= T_LAST) { pause(); setT(T_ALL); return false; }
-    let t = prev + dt * 52;
-    const hit = STORY.find(m => m.y > prev && m.y <= t);
-    if (hit) { t = hit.y; holdUntil = now + 2200; }
-    if (t >= T_LAST) { t = T_LAST; holdUntil = now + 1400; }
+    if (S.t >= T_LAST) { pause(); setT(T_ALL); layersTimer = setTimeout(() => { if (S.scene === "main") enterLayers(true); }, 1800); return false; }
+    const t = Math.min(T_LAST, S.t + dt * SPEED);
+    if (t >= T_LAST) holdUntil = now + 500;
     updateTime(t);
     return true;
   }
   function updateTime(t, force) {
     const cOld = S.t > T_LAST ? "all" : Math.floor((S.t - 250) / 100);
-    S.t = t; $("#year").value = Math.round(t);
+    S.t = t;
     G = composite(S.t);
     if (GL) TEETH.forEach(T => T.R.setParams(paramsFor(T)));
     const cNew = S.t > T_LAST ? "all" : Math.floor((S.t - 250) / 100);
     if (cOld !== cNew || force) updateParticles(S.scene === "main" && !REDUCED);
-    header(); renderPanel(); requestRender(true);
+    readout(); requestRender(true);
   }
   function setT(t) { updateTime(clamp(t, T_MIN, T_ALL), true); requestRender(false); }
-  function header() {
-    $("#fTime").textContent = everything() ? "Everything" : Math.round(S.t);
-    $("#fWin").textContent = everything() ? "all teeth, 300–1900 CE, pooled" : "teeth dated " + winStr(S.t) + " · ≈" + fmt(Math.round(G.n)) + " people";
-    document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.jaw === S.jaw));
+  const readout = () => { $("#when").textContent = everything() ? "300–1900 CE, all periods pooled" : Math.round(S.t) + " CE"; };
+
+  // ------------------------------------------------------------------ layers: the teeth separate into three sheets
+  const layersEl = $("#layers"), dashEl = $("#dash"), panelEl = $("#panel");
+  // the mark glyphs again, drawn on a canvas for the sheet pictures
+  function glyphCanvas(ctx, cat, x, y, rot, s) {
+    const c = CAT[cat] || "#221f1b";
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rot * Math.PI / 180); ctx.fillStyle = c; ctx.strokeStyle = "#fbf8f1"; ctx.lineWidth = 0.7; ctx.beginPath();
+    if (cat === "bacteria") { ctx.roundRect(-4.6 * s, -1.7 * s, 9.2 * s, 3.4 * s, 1.7 * s); ctx.fill(); ctx.stroke(); }
+    else if (cat === "virus") { for (let i = 0; i < 6; i++) ctx[i ? "lineTo" : "moveTo"](4 * s * Math.cos(i * Math.PI / 3), 4 * s * Math.sin(i * Math.PI / 3)); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+    else if (cat === "parasite") { ctx.arc(0, 0, 3.5 * s, 0, 6.2832); ctx.fillStyle = "#fbf8f1"; ctx.fill(); ctx.strokeStyle = c; ctx.lineWidth = 1.7; ctx.stroke(); ctx.beginPath(); ctx.arc(1.2 * s, -s, 1.2 * s, 0, 6.2832); ctx.fillStyle = c; ctx.fill(); }
+    else if (cat === "particle") { ctx.moveTo(-4.6 * s, 0); ctx.quadraticCurveTo(-2.3 * s, -3.3 * s, 0, 0); ctx.quadraticCurveTo(2.3 * s, 3.3 * s, 4.6 * s, 0); ctx.strokeStyle = c; ctx.lineWidth = 1.7; ctx.lineCap = "round"; ctx.stroke(); }
+    else { ctx.arc(0, 0, 2.6, 0, 6.2832); ctx.fill(); }
+    ctx.restore();
+  }
+  // one picture per layer: both teeth, all periods pooled, carrying only that layer's traces
+  function sheetPicture(L, names) {
+    S.show = L.key; G = composite(T_ALL);
+    const W = pairEl.clientWidth, H = pairEl.clientHeight, dpr = Math.min(devicePixelRatio || 1, 2);
+    const cv = document.createElement("canvas"); cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const ctx = cv.getContext("2d"); ctx.scale(dpr, dpr);
+    TEETH.forEach(T => { T.parts.clear(); T.R.setParams(paramsFor(T)); T.R.st.quality = 1; T.R.render(); });
+    updateParticles(false);
+    ctx.font = "600 10.5px " + getComputedStyle(dashEl).fontFamily; ctx.textAlign = "center"; if ("letterSpacing" in ctx) ctx.letterSpacing = "0.8px";
+    TEETH.forEach(T => {
+      ctx.drawImage(T.canvas, T.el.offsetLeft, T.el.offsetTop, T.el.clientWidth, T.el.clientHeight);
+      const b = T.R.st.basis;
+      T.parts.forEach((q, id) => {
+        if (q.face ? b.ro[2] <= 0 : q.n[0] * b.ro[0] + q.n[2] * b.ro[2] < 0.2) return;
+        const xy = toPair(T, q.p); glyphCanvas(ctx, q.cat, xy[0], xy[1], hash(T.key + id) % 180, 0.75);
+      });
+      if (names) { ctx.fillStyle = "#1a1a18"; ctx.fillText(T.label, toPair(T, [0, 0, 0])[0], nameY()); }
+      T.parts.clear();
+    });
+    return cv;
+  }
+  const deck = () => stage.clientWidth - 32 <= 700;
+  function buildSheets() {
+    layersEl.innerHTML = ""; layersEl.classList.toggle("deck", deck());
+    LAYERS.forEach((L, i) => {
+      const b = document.createElement("button");
+      b.className = "sheet"; b.style.setProperty("--c", i - 1); b.setAttribute("aria-label", "Open the " + L.name.toLowerCase() + " layer");
+      b.appendChild(GL ? sheetPicture(L, !deck()) : document.createElement("canvas"));
+      b.insertAdjacentHTML("beforeend", "<span class='sl'><b>" + L.n + "</b>" + esc(L.name) + "<i>" + esc(L.about) + "</i></span>");
+      b.onclick = () => openLayer(L.key);
+      layersEl.appendChild(b);
+    });
+    S.show = "all"; G = composite(S.t);
+    fitSheets();
+  }
+  // side by side and turned, like an exploded drawing, when there is room; stacked like a deck on narrow screens
+  function fitSheets() {
+    const W = pairEl.clientWidth, H = pairEl.clientHeight, sw = stage.clientWidth - 32, wide = !deck();
+    const ry = wide ? -24 : 0, cw = W * Math.cos(ry * Math.PI / 180);
+    const s = wide ? Math.min(0.6, 0.96 * sw / (3 * cw * 0.9)) : 0.64;
+    const v = wide ? { dx: s * cw * 0.9, dy: -0.05 * H, dz: -140, rx: 0, ry } : { dx: 0, dy: 0.2 * H, dz: 40, rx: 10, ry: 0 };
+    Object.entries({ "--dx": v.dx + "px", "--dy": v.dy + "px", "--dz": v.dz + "px", "--rx": v.rx + "deg", "--ry": v.ry + "deg", "--s": s, "--bw": (1.1 / s) + "px", "--fs": (12 / s) + "px" })
+      .forEach(([k, val]) => layersEl.style.setProperty(k, val));
+  }
+  function enterLayers(animate) {
+    clearTimeout(layersTimer); pause();
+    S.scene = "layers"; S.layer = null; S.show = "all"; S.t = T_ALL; G = composite(T_ALL); readout();
+    stage.classList.remove("dashboard", "haspanel"); dashEl.hidden = true; panelEl.hidden = true; panelEl.innerHTML = ""; filmEl.hidden = true;
+    gParts.selectAll("*").remove(); gLabels.selectAll("*").remove();
+    requestAnimationFrame(() => {
+      if (S.scene !== "layers") return;
+      refit(); buildSheets();
+      layersEl.classList.remove("exploded", "settled"); layersEl.hidden = false; stage.classList.add("layers");
+      void layersEl.offsetWidth;
+      const go = () => { layersEl.classList.add("exploded"); setTimeout(() => layersEl.classList.add("settled"), 1600); };
+      // the sheets first sit exactly over the live teeth, which fade out; then they separate
+      if (animate && !REDUCED) setTimeout(go, 350); else { layersEl.classList.add("exploded", "settled"); }
+    });
   }
 
-  // controls
-  $("#fRegion").innerHTML = REGIONS.map(([v, l]) => "<option value='" + esc(v) + "'>" + esc(l) + "</option>").join("");
-  $("#fRegion").onchange = e => { S.region = e.target.value; TEETH.forEach(T => T.parts.clear()); setT(S.t); renderPanel(true); };
-  document.querySelectorAll(".seg button").forEach(b => b.onclick = () => { S.jaw = b.dataset.jaw; setShapes(); setT(S.t); renderPanel(true); });
-  $("#play").onclick = () => { S.touched = true; S.playing ? pause() : play(); };
-  $("#year").addEventListener("input", e => { S.touched = true; pause(); if (S.mode === "limits") S.mode = "none"; updateTime(+e.target.value); });
-  $("#year").addEventListener("change", () => requestRender(false));
-  $("#limitsLink").onclick = openLimits;
-  document.addEventListener("keydown", e => { if (e.key === " " && S.scene === "main" && !/INPUT|SELECT|BUTTON|SUMMARY/.test(document.activeElement.tagName)) { e.preventDefault(); S.touched = true; S.playing ? pause() : play(); } });
+  // ------------------------------------------------------------------ one layer's dashboard
+  // Charts are drawn from data/layers.js (build_layers.py, from the team's tabular datasets in source/layer data/).
+  // The "human ×" event strips stay placeholders until their pictures and dates arrive.
+  const LD = window.LAYER_DATA || null;
+  function openLayer(k) {
+    const L = layerOf(k); if (!L) return;
+    clearTimeout(layersTimer); pause();
+    S.scene = "layer"; S.layer = k; S.show = k; S.t = T_ALL; G = composite(T_ALL); readout();
+    layersEl.hidden = true; layersEl.classList.remove("exploded", "settled");
+    stage.classList.remove("layers"); stage.classList.add("dashboard", "haspanel");
+    dashEl.hidden = false; panelEl.hidden = false; filmEl.hidden = false; cutIn.value = cutToVal(S.cut);
+    dashEl.querySelectorAll("[data-l]").forEach(b => b.setAttribute("aria-current", b.dataset.l === k ? "page" : "false"));
+    panelEl.innerHTML = dashHTML(L); panelEl.scrollTop = 0;
+    requestAnimationFrame(() => {
+      if (S.scene !== "layer") return;
+      refit(); TEETH.forEach(T => { T.parts.clear(); T.R.setParams(paramsFor(T)); });
+      drawCharts(L); updateParticles(!REDUCED); requestRender(false);
+    });
+  }
+  const CHARTS = {
+    pathogens: [{ id: "pmatrix", title: "Which disease dominated the record, century by century",
+      sub: "Each cell is the share of that century's recovered genomes that belong to one organism, so each column adds up to 100%. The bar on top shows how many genomes that is.",
+      notes: ["A share cancels out how much digging and sequencing each century received, but it is not prevalence, and not a share of the oral microbiome: the denominator is genomes recovered, not people alive.",
+        "Columns resting on a handful of genomes (the 100s–300s) swing wildly; read the bar and the cell together. The 800s have no European dental samples.",
+        "Source: AncientMetagenomeDir (SPAAM community, CC-BY 4.0), European dental samples; disease labels from the team's pathogen_reference.csv."] }],
+    morphology: [{ id: "wear", title: "Chewing wear builds up with age, and eases over the centuries",
+      sub: "Mean molar wear (Smith 1984 stage, 1 to 8) by period and age at death. Each row rises with age; at every age, Industrial-period molars are the least worn.",
+      notes: ["Wear is recorded for only part of the GHHP database, which its authors warn may not generalise. Dashed cells rest on fewer than 30 people."] },
+      { id: "leh", title: "Childhood stress lines stay with a person for life",
+      sub: "Share of adults with linear enamel hypoplasia on the lower canine, by age at death, with 95% intervals. The defect forms in early childhood and enamel never remodels, so each line should run flat; the dashed line is the period's overall share.",
+      notes: ["Only the Industrial line climbs with age (53% to 61%). A childhood marker cannot do that, so it most likely reflects which sites supplied which ages. Hollow points rest on fewer than 40 people.",
+        "Source: Global History of Health Project, European module, decoded for this project; adults 18–69."] }],
+    metals: [{ id: "lead", title: "Lead in the mouth, from the Neolithic to the 20th century",
+      sub: "Lead in childhood enamel (ppm, log scale). Each bar spans the years of childhood it records; enamel forms once and never remodels.",
+      notes: ["Pale bars are Roman-world sites from other studies, for comparison. The dashed line only joins the British series to guide the eye; there are no measurements between bars.",
+        "One individual (Gristhorpe, Yorkshire, 0.003 ppm, n = 1) is left out, as in the team's draft. Sources: Montgomery et al. 2010, Moore et al. 2021, Kamenov et al. 2018."] },
+      { id: "elements", title: "Industrial metals rose; the others did not",
+      sub: "Modern enamel (20th-century births) against archaeological enamel pooled from 4040 BCE to 1775 CE (n = 38), same tissue and laboratory. Four metals rise nine- to fourteenfold; strontium falls.",
+      notes: ["Source: Kamenov et al. 2018, Table 1, via the team's particulates and metals dataset."] }],
+  };
+  function dashHTML(L) {
+    const ev = L.events.map((e, i) => "<figure class='ev' style='left:" + ((i + 1) / (L.events.length + 1) * 100).toFixed(1) + "%'><figcaption><b>" + esc(e.label) + "</b>" + esc(e.when) + "</figcaption>" +
+      (IMG[e.img] ? "<img src='" + IMG[e.img] + "' alt=''>" : "<div class='slot'>Image</div>") + "</figure>").join("");
+    const charts = (CHARTS[L.key] || []).map(c => "<section><h3>" + esc(c.title) + "</h3><p class='sub'>" + esc(c.sub) + "</p><svg class='chart' id='ch-" + c.id + "' role='img' aria-label='" + esc(c.title) + "'></svg>" +
+      c.notes.map(n => "<p class='ctxnote'>" + esc(n) + "</p>").join("") + "</section>").join("");
+    return "<div class='dp'>" + (LD ? charts : "<section><p class='sub'>data/layers.js is missing: run build_layers.py.</p></section>") +
+      "<section><h3>" + esc(L.human) + "</h3><div class='events'>" + ev + "</div><div class='axis'><span>Time 1</span><span>Time 2</span></div>" +
+      "<p class='ctxnote'>Placeholders: these events, their dates and pictures are still to come.</p></section></div>";
+  }
+  function drawCharts(L) {
+    if (!LD) return;
+    (CHARTS[L.key] || []).forEach(c => {
+      const svg = d3.select("#ch-" + c.id); if (svg.empty()) return;
+      svg.selectAll("*").remove(); d3.select(svg.node().parentNode).selectAll(".keylist").remove();
+      ({ pmatrix: drawPathogenMatrix, wear: drawWear, leh: drawLEH, lead: drawLead, elements: drawElements })[c.id](svg, svg.node().clientWidth || 600);
+    });
+  }
+  const size = (svg, W, H) => svg.attr("viewBox", "0 0 " + W + " " + H).attr("height", H);
+  const tipOn = (sel, html) => sel.on("mousemove", (ev, d) => showTip(ev, html(d))).on("mouseleave", hideTip);
+  const CATNAME = { bacteria: "Bacteria", virus: "Viruses", parasite: "Parasites", other: "Not disease agents" };
+  const shortDisease = t => (t.agent ? t.disease.split(/ — | · |, /)[0] : t.disease.split(" — ").pop()).split(" (")[0].replace(/^louse-borne /, "");
+
+  // pathogens: organisms × centuries, shaded by share, in the colours of the marks in the teeth
+  function drawPathogenMatrix(svg, W) {
+    const P = LD.pathogens, cents = P.centuries, order = ["bacteria", "virus", "parasite", "other"];
+    const rowsIn = order.flatMap(c => P.taxa.filter(t => t.cat === c).sort((a, b) => b.total - a.total));
+    const narrow = W < 480, labW = narrow ? Math.round(W * 0.36) : Math.min(176, Math.max(118, W * 0.27)), totW = narrow ? 22 : 30, cw = (W - labW - totW) / cents.length, rh = 25, top = 46, gap = 16;
+    let y = top; const ys = []; let lastCat = null;
+    rowsIn.forEach(t => { if (t.cat !== lastCat) { y += gap; lastCat = t.cat; } ys.push(y); y += rh; });
+    const H = y + 22; size(svg, W, H);
+    const x = i => labW + i * cw, maxN = d3.max(Object.values(P.genomes));
+    const col = t => t.cat === "other" ? "#8a8983" : CAT[t.cat];
+    // genomes sequenced per century
+    svg.append("text").attr("x", labW - 8).attr("y", top - 20).attr("text-anchor", "end").attr("class", "ax").text(narrow ? "genomes" : "genomes recovered");
+    cents.forEach((c, i) => {
+      const n = P.genomes[c];
+      if (n == null) {
+        svg.append("rect").attr("x", x(i) + 1).attr("y", top - 34).attr("width", cw - 2).attr("height", H - top + 12 - 22).attr("class", "nodata");
+        svg.append("text").attr("x", x(i) + cw / 2).attr("y", (top + H - 22) / 2).attr("text-anchor", "middle").attr("class", "ax").attr("transform", "rotate(-90," + (x(i) + cw / 2) + "," + (top + H - 22) / 2 + ")").text("no samples");
+        return;
+      }
+      const h = Math.max(1, 22 * n / maxN);
+      svg.append("rect").attr("x", x(i) + 2).attr("y", top - 8 - h).attr("width", cw - 4).attr("height", h).attr("fill", "#b9b7b0");
+      if (cw >= 16) svg.append("text").attr("x", x(i) + cw / 2).attr("y", top - 11 - h).attr("text-anchor", "middle").attr("class", "ax").text(n);
+      if (cw >= 34 || (cw >= 16 ? i % 2 === 0 : i % 4 === 0)) svg.append("text").attr("x", x(i) + cw / 2).attr("y", H - 6).attr("text-anchor", "middle").attr("class", "ax").text(c + "s");
+    });
+    svg.append("text").attr("x", W).attr("y", top - 20).attr("text-anchor", "end").attr("class", "ax").text("total");
+    // rows
+    lastCat = null;
+    rowsIn.forEach((t, r) => {
+      const yy = ys[r];
+      if (t.cat !== lastCat) { lastCat = t.cat; svg.append("text").attr("x", 0).attr("y", yy - 5).attr("class", "grp").attr("fill", col(t)).text(CATNAME[t.cat].toUpperCase()); }
+      svg.append("text").attr("x", labW - 8).attr("y", yy + 11).attr("text-anchor", "end").attr("class", "rl").style("font-size", narrow ? "9.5px" : null).text(shortDisease(t));
+      svg.append("text").attr("x", labW - 8).attr("y", yy + 21).attr("text-anchor", "end").attr("class", "rs").style("font-size", narrow ? "8px" : null).text(t.taxon);
+      svg.append("text").attr("x", W).attr("y", yy + 16).attr("text-anchor", "end").attr("class", "ax").text(t.total);
+      svg.append("line").attr("x1", labW).attr("x2", W - totW).attr("y1", yy + rh - 0.5).attr("y2", yy + rh - 0.5).attr("stroke", "#dcdad3").attr("stroke-width", 0.5);
+      const cells = cents.map((c, i) => ({ c, i, v: t.cells[c], t })).filter(d => d.v);
+      const g = svg.append("g");
+      tipOn(g.selectAll("rect").data(cells).join("rect").attr("x", d => x(d.i) + 1).attr("y", yy + 1).attr("width", cw - 2).attr("height", rh - 3)
+        .attr("fill", col(t)).attr("fill-opacity", d => 0.1 + 0.9 * Math.min(1, d.v[1] / 90)),
+        d => "<b>" + esc(cap(shortDisease(t))) + "</b> <span class='m'>(" + esc(t.taxon) + ")</span><br>" + d.c + "s: " + d.v[0] + " of " + P.genomes[d.c] + " genomes · " + Math.round(d.v[1]) + "%");
+      if (cw >= 20) g.selectAll("text").data(cells).join("text").attr("x", d => x(d.i) + cw / 2).attr("y", yy + rh / 2 + 3).attr("text-anchor", "middle")
+        .attr("class", "cv").attr("fill", d => d.v[1] > 45 ? "#fbf8f1" : "#1a1a18").text(d => Math.round(d.v[1]));
+    });
+  }
+  // morphology 1: mean molar wear, period × age at death
+  function drawWear(svg, W) {
+    const M = LD.morphology, narrow = W < 480, labW = narrow ? 86 : Math.min(104, W * 0.2), cw = (W - labW) / M.ages.length, rh = 34, top = 4;
+    const H = top + M.periods.length * rh + 42; size(svg, W, H);
+    const shade = d3.scaleLinear().domain([2, 5.9]).range(["#f1efe8", "#2b2925"]).interpolate(d3.interpolateRgb).clamp(true);
+    M.periods.forEach((p, r) => {
+      const y = top + r * rh;
+      svg.append("text").attr("x", labW - 8).attr("y", y + rh / 2 + 4).attr("text-anchor", "end").attr("class", "rl").style("font-size", narrow ? "9.5px" : null).text(p);
+      const cells = M.ages.map((a, i) => ({ a, i, v: M.wear[p][a] })).filter(d => d.v);
+      const g = svg.append("g");
+      tipOn(g.selectAll("rect").data(cells).join("rect").attr("x", d => labW + d.i * cw + 1).attr("y", y + 1).attr("width", cw - 2).attr("height", rh - 2)
+        .attr("fill", d => shade(d.v[0])).attr("stroke", d => d.v[1] < 30 ? "#1a1a18" : "none").attr("stroke-dasharray", "2 2"),
+        d => "<b>" + esc(p) + ", died " + d.a + "</b><br>mean wear " + d.v[0].toFixed(2) + " of 8 · n = " + d.v[1]);
+      g.selectAll("text.cv").data(cells).join("text").attr("class", "cv").attr("x", d => labW + d.i * cw + cw / 2).attr("y", y + rh / 2 + 1).attr("text-anchor", "middle")
+        .attr("fill", d => d.v[0] > 4.3 ? "#fbf8f1" : "#1a1a18").text(d => d.v[0].toFixed(1));
+      g.selectAll("text.cn").data(cells).join("text").attr("class", "cn").attr("x", d => labW + d.i * cw + cw / 2).attr("y", y + rh / 2 + 12).attr("text-anchor", "middle")
+        .attr("fill", d => d.v[0] > 4.3 ? "#d8d4ca" : "#8a8983").text(d => "n=" + d.v[1]);
+    });
+    M.ages.forEach((a, i) => { if (!narrow || i % 2 === 0 || i === M.ages.length - 1) svg.append("text").attr("x", labW + i * cw + cw / 2).attr("y", top + M.periods.length * rh + 14).attr("text-anchor", "middle").attr("class", "ax").text(a); });
+    svg.append("text").attr("x", labW + (W - labW) / 2).attr("y", H - 4).attr("text-anchor", "middle").attr("class", "ax").text("age at death");
+  }
+  // morphology 2: LEH by age at death, one small chart per period
+  function drawLEH(svg, W) {
+    const M = LD.morphology, cols = W < 520 ? 2 : 3, gx = 18, gy = 26, pw = (W - gx * (cols - 1)) / cols, ph = 128;
+    const rowsN = Math.ceil(M.periods.length / cols), H = rowsN * (ph + gy) + 16; size(svg, W, H);
+    M.periods.forEach((p, k) => {
+      const ox = (k % cols) * (pw + gx), oy = Math.floor(k / cols) * (ph + gy), g = svg.append("g").attr("transform", "translate(" + ox + "," + oy + ")");
+      const x = d3.scalePoint().domain(M.ages).range([24, pw - 6]), y = d3.scaleLinear().domain([0, 80]).range([ph - 16, 30]);
+      const pts = M.ages.map(a => ({ a, v: M.leh[p][a] })).filter(d => d.v), all = M.leh_overall[p];
+      g.append("text").attr("x", 0).attr("y", 11).attr("class", "rl").text(p);
+      g.append("text").attr("x", pw).attr("y", 12).attr("text-anchor", "end").attr("class", "big").text(Math.round(all[0]) + "%");
+      g.append("text").attr("x", pw).attr("y", 24).attr("text-anchor", "end").attr("class", "ax").text("n = " + fmtN(all[1]));
+      [0, 40, 80].forEach(v => { g.append("line").attr("x1", 24).attr("x2", pw - 6).attr("y1", y(v)).attr("y2", y(v)).attr("stroke", "#dcdad3").attr("stroke-width", 0.6);
+        g.append("text").attr("x", 18).attr("y", y(v) + 3).attr("text-anchor", "end").attr("class", "ax").text(v + (v ? "" : "%")); });
+      g.append("path").attr("d", d3.area().x(d => x(d.a)).y0(d => y(d.v[2])).y1(d => y(d.v[3])).curve(d3.curveMonotoneX)(pts)).attr("fill", "#1a1a18").attr("fill-opacity", 0.09);
+      g.append("line").attr("x1", 24).attr("x2", pw - 6).attr("y1", y(all[0])).attr("y2", y(all[0])).attr("stroke", "#1a1a18").attr("stroke-dasharray", "3 3").attr("stroke-width", 0.8);
+      g.append("path").attr("d", d3.line().x(d => x(d.a)).y(d => y(d.v[0])).curve(d3.curveMonotoneX)(pts)).attr("fill", "none").attr("stroke", "#1a1a18").attr("stroke-width", 1.4);
+      tipOn(g.selectAll("circle").data(pts).join("circle").attr("cx", d => x(d.a)).attr("cy", d => y(d.v[0])).attr("r", 3)
+        .attr("fill", d => d.v[1] < 40 ? "#e9e8e4" : "#1a1a18").attr("stroke", "#1a1a18").attr("stroke-width", 1.2),
+        d => "<b>" + esc(p) + ", died " + d.a + "</b><br>" + d.v[0].toFixed(1) + "% with LEH (95% interval " + d.v[2] + "–" + d.v[3] + ") · n = " + d.v[1]);
+      [0, M.ages.length - 1].forEach(i => g.append("text").attr("x", x(M.ages[i])).attr("y", ph - 3).attr("text-anchor", i ? "end" : "start").attr("class", "ax").text(M.ages[i]));
+    });
+    svg.append("text").attr("x", W / 2).attr("y", H - 2).attr("text-anchor", "middle").attr("class", "ax").text("age at death");
+  }
+  const fmtN = d3.format(",");
+  const yearLab = v => v < 0 ? -v + " BCE" : v === 0 ? "0" : v + " CE";
+  // metals 1: lead in childhood enamel, each bar spanning its exposure window
+  function drawLead(svg, W) {
+    const rows0 = LD.metals.lead, narrow = W < 480, H = narrow ? 240 : 300, m = { l: 34, r: 8, t: 14, b: 26 }; size(svg, W, H);
+    // two-part time axis: 4200-900 BCE takes the first third, 900 BCE-2050 CE the rest (marked with a break)
+    const brk = m.l + (W - m.l - m.r) * 0.32, x = d3.scaleLinear().domain([-4200, -900, 2050]).range([m.l, brk, W - m.r]), y = d3.scaleLog().domain([0.02, 14]).range([H - m.b, m.t]);
+    [0.1, 1, 10].forEach(v => { svg.append("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", y(v)).attr("y2", y(v)).attr("stroke", "#dcdad3").attr("stroke-width", 0.6);
+      svg.append("text").attr("x", m.l - 5).attr("y", y(v) + 3).attr("text-anchor", "end").attr("class", "ax").text(v); });
+    svg.append("text").attr("x", m.l - 5).attr("y", m.t - 3).attr("text-anchor", "end").attr("class", "ax").text("ppm");
+    (narrow ? [-4000, -2000, 0, 1000, 2000] : [-4000, -3000, -2000, -500, 0, 500, 1000, 1500, 2000]).forEach(v => svg.append("text").attr("x", x(v)).attr("y", H - 8).attr("text-anchor", "middle").attr("class", "ax").text(yearLab(v)));
+    svg.append("path").attr("d", "M" + (brk - 3) + "," + (H - m.b + 4) + "l3,-7M" + (brk + 1) + "," + (H - m.b + 4) + "l3,-7").attr("stroke", "#8a8983").attr("fill", "none");
+    svg.append("line").attr("x1", brk).attr("x2", brk).attr("y1", m.t).attr("y2", H - m.b).attr("stroke", "#dcdad3").attr("stroke-dasharray", "1 3");
+    const base = rows0.find(r => r.series === "pooled_baseline");
+    if (base) {
+      svg.append("rect").attr("x", x(base.early)).attr("width", x(base.late) - x(base.early)).attr("y", y(base.ppm) - 1.5).attr("height", 3).attr("fill", CAT.metal).attr("fill-opacity", 0.22);
+      svg.append("text").attr("x", x(base.early) + 4).attr("y", y(base.ppm) - 5).attr("class", "ax").text(narrow ? "pooled " + base.ppm + " ppm" : "pooled archaeological enamel " + base.ppm + " ppm (n = " + base.n + ")");
+    }
+    const brit = rows0.filter(r => r.series === "britain_chronological");
+    svg.append("path").attr("d", d3.line().x(r => x((r.early + r.late) / 2)).y(r => y(r.ppm))(brit)).attr("fill", "none").attr("stroke", CAT.metal).attr("stroke-width", 0.9).attr("stroke-dasharray", "2 3").attr("opacity", 0.7);
+    const shown = rows0.filter(r => ["britain_chronological", "roman_world_comparandum", "modern"].includes(r.series));
+    tipOn(svg.append("g").selectAll("rect").data(shown).join("rect").attr("x", r => x(r.early)).attr("width", r => Math.max(3, x(r.late) - x(r.early))).attr("y", r => y(r.ppm) - 3).attr("height", 6)
+      .attr("fill", r => r.series === "modern" ? "#7d5806" : CAT.metal).attr("fill-opacity", r => r.series === "roman_world_comparandum" ? 0.3 : 1),
+      r => "<b>" + esc(cap(r.label)) + "</b>" + (r.series === "britain_chronological" ? " <span class='m'>(Britain)</span>" : "") + "<br>" + r.ppm + " ppm lead in childhood enamel" + (r.n ? " · n = " + r.n : "") + "<br><span class='m'>childhood exposure " + yearLab(r.early) + " – " + yearLab(r.late) + "</span>");
+    // labels sit under their bars; the modern one sits above, flush right. Phones get a list under the chart instead.
+    if (narrow) {
+      const list = brit.concat(rows0.filter(r => r.series === "modern"));
+      d3.select(svg.node().parentNode).insert("div", "svg + *").attr("class", "keylist").html(list.map(r => "<span><b>" + esc(cap(r.label)) + "</b> " + r.ppm + " ppm" + (r.n ? " · n=" + r.n : "") + "</span>").join(""));
+      return;
+    }
+    brit.concat(rows0.filter(r => r.series === "modern")).forEach(r => {
+      const modern = r.series === "modern", above = modern, anchor = modern ? "end" : "middle";
+      const cx = modern ? W - m.r : Math.min(W - 44, Math.max(m.l + 30, x((r.early + r.late) / 2))), ty = above ? y(r.ppm) - 19 : y(r.ppm) + 15;
+      svg.append("text").attr("x", cx).attr("y", ty).attr("text-anchor", anchor).attr("class", "rl").text(r.label);
+      svg.append("text").attr("x", cx).attr("y", ty + 10).attr("text-anchor", anchor).attr("class", "ax").text(r.ppm + " ppm" + (r.n ? " · n=" + r.n : ""));
+    });
+    const rome = rows0.filter(r => r.series === "roman_world_comparandum");
+    if (rome.length) { const top = d3.max(rome, r => r.ppm);
+      svg.append("text").attr("x", x(d3.min(rome, r => r.early)) - 5).attr("y", y(top) + 3).attr("text-anchor", "end").attr("class", "ax").text("pale: Rome and Empire sites, " + rome.map(r => r.ppm).join(", ") + " ppm"); }
+  }
+  // metals 2: modern ÷ archaeological, eight elements
+  function drawElements(svg, W) {
+    const E = LD.metals.elements, narrow = W < 480, rh = 24, labW = narrow ? 80 : 92, valW = narrow ? 104 : Math.min(150, W * 0.3), H = E.length * rh + 30; size(svg, W, H);
+    const x = d3.scaleLog().domain([0.5, 20]).range([labW, W - valW]);
+    const NAME = { Cu: "copper", Cr: "chromium", Pb: "lead", Ni: "nickel", Zn: "zinc", Ba: "barium", Mg: "magnesium", Sr: "strontium" };
+    svg.append("line").attr("x1", x(1)).attr("x2", x(1)).attr("y1", 2).attr("y2", H - 22).attr("stroke", "#1a1a18").attr("stroke-width", 0.8);
+    (narrow ? [0.5, 1, 5, 20] : [0.5, 1, 2, 5, 10, 20]).forEach(v => svg.append("text").attr("x", x(v)).attr("y", H - 8).attr("text-anchor", "middle").attr("class", "ax").text("×" + v));
+    E.forEach((e, i) => {
+      const y = 12 + i * rh, up = e.ratio >= 5, c = up ? CAT.metal : "#8a8983";
+      svg.append("text").attr("x", labW - 10).attr("y", y + 4).attr("text-anchor", "end").attr("class", "rl").text(e.el + " " + (NAME[e.el] || ""));
+      svg.append("line").attr("x1", x(1)).attr("x2", x(e.ratio)).attr("y1", y).attr("y2", y).attr("stroke", c).attr("stroke-width", up ? 3 : 2);
+      tipOn(svg.append("circle").datum(e).attr("cx", x(e.ratio)).attr("cy", y).attr("r", 4).attr("fill", c),
+        d => "<b>" + esc(cap(NAME[d.el] || d.el)) + "</b><br>archaeological " + d.arch + " ppm → modern " + d.modern + " ppm (×" + d.ratio + ")");
+      svg.append("text").attr("x", W - valW + 8).attr("y", y + 4).attr("class", up ? "rl" : "ax").text(narrow ? e.arch + "→" + e.modern + " ×" + (+e.ratio.toFixed(1)) : e.arch + " → " + e.modern + " ppm  ×" + (+e.ratio.toFixed(1)));
+    });
+  }
 
   // ------------------------------------------------------------------ intro
   const jawLayer = $("#jawLayer"), lineup = $("#lineup"), cloud = $("#cloud");
@@ -659,14 +758,20 @@
     });
     ctx.globalAlpha = 1;
   }
-  function drawCloud(k, alpha) {
+  function drawCloud(k, alpha, sc) {
     const ctx = cloud.getContext("2d"), dpr = Math.min(devicePixelRatio || 1, 2), W = pairEl.clientWidth, H = pairEl.clientHeight;
     if (cloud.width !== Math.round(W * dpr) || cloud.height !== Math.round(H * dpr)) { cloud.width = Math.round(W * dpr); cloud.height = Math.round(H * dpr); }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
     if (!GL || alpha <= 0) return;
     const e = ease(k), cam = { yaw: VIEW.yaw * e, pitch: VIEW.pitch * e };
     ctx.fillStyle = "#1a1a18";
-    TEETH.forEach(T => { const pts = CLOUD[T.key]; if (pts) dots(ctx, T.R, pts, T.R.basisFor(cam), T.el.offsetLeft, T.el.offsetTop, alpha, 0.08 + 0.92 * e, 0.8); });
+    TEETH.forEach(T => {
+      const pts = CLOUD[T.key]; if (!pts) return;
+      const cx = T.el.offsetLeft + T.el.clientWidth / 2, cy = T.el.offsetTop + H / 2, f = sc || 1;
+      ctx.save(); ctx.translate(cx, cy); ctx.scale(f, f); ctx.translate(-cx, -cy);
+      dots(ctx, T.R, pts, T.R.basisFor(cam), T.el.offsetLeft, T.el.offsetTop, alpha, 0.08 + 0.92 * e, 0.8);
+      ctx.restore();
+    });
   }
   function tween(ms, f) { return new Promise(res => { const t0 = performance.now(); const st = now => { const k = Math.min(1, (now - t0) / ms); f(k); if (k < 1) requestAnimationFrame(st); else res(); }; requestAnimationFrame(st); }); }
   function centerPair(on) {
@@ -676,23 +781,24 @@
   }
   function setupLineup() {
     const w = TEETH[0].el.clientWidth, H = pairEl.clientHeight, o = TEETH[0].el.offsetLeft, cam = TEETH[0].R.st.cam;
-    const pxu = (H / 2) * cam.focal / cam.dist, mid = o + w, d = 0.98 * pxu;
+    const pxu0 = (H / 2) * cam.focal / cam.dist, fit = Math.min(1, (stage.clientWidth - 40) / (4.7 * pxu0)), pxu = pxu0 * fit, mid = o + w, d = 0.98 * pxu;
     const pos = [["molar", mid - 1.5 * d], ["pm1", mid - 0.5 * d], ["pm2", mid + 0.5 * d], ["canine", mid + 1.5 * d]];
     const shM = (o + 0.5 * w) - pos[0][1], shC = (o + 1.5 * w) - pos[3][1];
     lineup.innerHTML = "<div class='box'></div>" + pos.map(([k, c], i) => "<canvas data-i='" + i + "' style='left:" + (c - w / 2) + "px;width:" + w + "px;opacity:0'></canvas>").join("") +
       "<div class='lbl' data-i='0' style='left:" + pos[0][1] + "px'>FIRST MOLAR</div><div class='lbl' data-i='3' style='left:" + pos[3][1] + "px'>FIRST CANINE</div><div class='arrows'>→ ←</div>";
     const box = lineup.querySelector(".box");
     Object.assign(box.style, { left: (pos[0][1] - 0.85 * pxu) + "px", width: (pos[3][1] - pos[0][1] + 1.6 * pxu) + "px", top: "-4px", height: (H + 8) + "px" });
-    lineup.querySelectorAll(".lbl").forEach(l => { l.style.top = "8px"; });
+    lineup.querySelectorAll(".lbl").forEach(l => { l.style.top = (stage.clientWidth < 900 ? 46 : 8) + "px"; });   // clear of Skip intro on narrow screens
     lineup.querySelector(".arrows").style.top = (H - 44) + "px";
     const dpr = Math.min(devicePixelRatio || 1, 2), R = TEETH[0].R, b = R.basisFor({ yaw: 0, pitch: 0 });
     lineup.querySelectorAll("canvas").forEach(cv => {
       const i = +cv.dataset.i, pts = LINE[pos[i][0]] || [];
       cv.width = Math.round(w * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + "px";
       const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = "#1a1a18";
+      ctx.translate(w / 2, H / 2); ctx.scale(fit, fit); ctx.translate(-w / 2, -H / 2);
       dots(ctx, R, pts, b, 0, 0, 1, 0.08, 0.75);
     });
-    return { w, shM, shC };
+    return { w, shM, shC, fit };
   }
   // the opened jaw steps aside, its ringed teeth nearest the lineup; faint where there is no room beside it
   function jawAside() {
@@ -702,7 +808,7 @@
   }
   async function intro() {
     const run = ++introRun, alive = () => run === introRun;
-    S.scene = "intro"; pause(); stage.classList.add("intro"); gParts.selectAll("*").remove(); gLabels.selectAll("*").remove();
+    S.scene = "intro"; pause(); stage.classList.remove("layers", "dashboard", "haspanel"); layersEl.hidden = true; dashEl.hidden = true; panelEl.hidden = true; stage.classList.add("intro"); gParts.selectAll("*").remove(); gLabels.selectAll("*").remove();
     jawReset();
     Object.assign(jawLayer.style, { transform: "", opacity: 1 }); $("#introText").style.opacity = 1; lineup.innerHTML = ""; drawCloud(0, 0); cloud.style.opacity = 1;
     centerPair(true);
@@ -733,47 +839,55 @@
     lineup.querySelector(".box").style.opacity = 0; lineup.querySelector(".arrows").style.opacity = 0; jawLayer.style.opacity = 0;
     lineup.querySelectorAll(".lbl").forEach(l => { l.style.opacity = 0; });
     lineup.querySelectorAll("canvas").forEach(im => { im.style.transition = "none"; });
-    await tween(700, k => { drawCloud(0, k); lineup.querySelectorAll("canvas").forEach(im => { const i = +im.dataset.i; if (i === 0 || i === 3) im.style.opacity = 1 - k; }); });
+    await tween(700, k => { drawCloud(0, k, L.fit); lineup.querySelectorAll("canvas").forEach(im => { const i = +im.dataset.i; if (i === 0 || i === 3) im.style.opacity = 1 - k; }); });
     if (!alive()) return;
-    await tween(2400, k => drawCloud(k, 1)); if (!alive()) return;
+    await tween(2400, k => drawCloud(k, 1, L.fit + (1 - L.fit) * ease(k))); if (!alive()) return;
     // 4 · everything fades in, with the timeline at its beginning
     enterMain(true);
     cloud.style.transition = "opacity 1.2s"; cloud.style.opacity = 0;
     await wait(1300); drawCloud(0, 0); cloud.style.transition = ""; cloud.style.opacity = 1;
-    await wait(1400);
-    if (S.scene === "main" && !S.touched) play();
+    await wait(900);
+    if (S.scene === "main") play();
   }
   function enterMain(fromIntro) {
-    introRun++;
-    S.scene = "main"; S.mode = "none"; lineup.innerHTML = ""; jawLayer.style.opacity = 0;
+    introRun++; clearTimeout(layersTimer);
+    S.scene = "main"; S.layer = null; S.show = "all"; lineup.innerHTML = ""; jawLayer.style.opacity = 0;
     if (!fromIntro) drawCloud(0, 0);
     pairEl.style.transform = "";
-    stage.classList.remove("intro");
-    setShapes();
-    drawAxis(); setT(S.t); renderPanel(true);
+    stage.classList.remove("intro", "layers", "dashboard", "haspanel");
+    layersEl.hidden = true; layersEl.classList.remove("exploded", "settled"); dashEl.hidden = true; panelEl.hidden = true; filmEl.hidden = true;
+    setShapes(); setT(S.t);
   }
-  $("#skip").onclick = () => { enterMain(false); if (!REDUCED) setTimeout(() => { if (!S.touched) play(); }, 700); };
-  $("#replay").onclick = () => { S.t = T_MIN; S.mode = "none"; S.touched = false; intro(); };
+  $("#skip").onclick = () => { enterMain(false); if (REDUCED) enterLayers(false); else setTimeout(play, 500); };
+  $("#again").onclick = () => { S.t = T_MIN; enterMain(false); setTimeout(play, 300); };
+  $("#allLayers").onclick = () => enterLayers(true);
+  dashEl.querySelectorAll("[data-l]").forEach(b => { b.onclick = () => openLayer(b.dataset.l); });
 
   // ------------------------------------------------------------------ start
-  let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { drawAxis(); if (S.scene === "main") { setShapes(); setT(S.t); renderPanel(true); requestRender(false); drawTimeline(); } }, 150); });
+  let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => {
+    if (S.scene === "main") { setShapes(); setT(S.t); }
+    else if (S.scene === "layers") enterLayers(false);
+    else if (S.scene === "layer") openLayer(S.layer);
+  }, 150); });
   (async function start() {
   try { await window.ToothGL.loadModels(); } catch (e) { console.warn("tooth models not loaded; using constructed shapes", e); }
   try { await loadJaw(); } catch (e) { console.warn("jaw engraving not loaded; the intro starts at the lineup", e); }
+  if (document.fonts) document.fonts.ready.then(() => { if (liveTeeth()) requestRender(false); else if (S.scene === "layers") enterLayers(false); });
   G = composite(S.t);
   if (GL) { snapshots(); TEETH.forEach(T => T.R.setParams(paramsFor(T))); }
-  drawAxis();
   let q = null; try { q = new URLSearchParams(location.search); } catch (e) { q = null; }
   const qs = k => q && q.get(k);
   if (qs("debug")) window.__dbg = { TEETH, S };
   if (qs("notrans")) document.head.insertAdjacentHTML("beforeend", "<style>*{transition:none!important}</style>");
   if (qs("t")) S.t = +qs("t");
-  if (qs("region")) { S.region = qs("region"); $("#fRegion").value = S.region; }
+  if (qs("region")) S.region = qs("region");
   if (qs("jaw")) { S.jaw = qs("jaw"); if (GL) { snapshots(); } }
-  if (REDUCED || qs("scene") === "main") {
+  const sc = qs("scene");
+  if (REDUCED || sc === "main" || sc === "layers" || sc === "layer") {
     enterMain(false);
-    if (qs("mode") === "limits") openLimits();
-    if (qs("play") === "1") play();
+    if (REDUCED || sc === "layers") enterLayers(false);
+    else if (sc === "layer") { if (qs("cut")) S.cut = +qs("cut"); openLayer(qs("layer") || "pathogens"); }
+    else if (qs("play") === "1") play();
   } else if (qs("freeze")) {
     // test hook: show one intro frame without animation
     document.querySelectorAll("#stage *").forEach(el => { el.style.transition = "none"; });

@@ -1,0 +1,49 @@
+period,colour,age_band,n,n_with_leh,pct_with_leh,period_overall_pct,period_n
+Pre-medieval,#2a78d6,18–24,62,22,35.5,34.3,531
+Pre-medieval,#2a78d6,25–29,73,22,30.1,34.3,531
+Pre-medieval,#2a78d6,30–34,72,30,41.7,34.3,531
+Pre-medieval,#2a78d6,35–39,86,25,29.1,34.3,531
+Pre-medieval,#2a78d6,40–44,73,30,41.1,34.3,531
+Pre-medieval,#2a78d6,45–49,68,23,33.8,34.3,531
+Pre-medieval,#2a78d6,50–59,71,22,31.0,34.3,531
+Pre-medieval,#2a78d6,60+,26,8,30.8,34.3,531
+Early medieval,#eb6834,18–24,198,73,36.9,34.5,1995
+Early medieval,#eb6834,25–29,159,56,35.2,34.5,1995
+Early medieval,#eb6834,30–34,206,69,33.5,34.5,1995
+Early medieval,#eb6834,35–39,236,82,34.7,34.5,1995
+Early medieval,#eb6834,40–44,284,104,36.6,34.5,1995
+Early medieval,#eb6834,45–49,293,101,34.5,34.5,1995
+Early medieval,#eb6834,50–59,437,153,35.0,34.5,1995
+Early medieval,#eb6834,60+,182,50,27.5,34.5,1995
+High medieval,#1baf7a,18–24,74,34,45.9,36.6,809
+High medieval,#1baf7a,25–29,116,42,36.2,36.6,809
+High medieval,#1baf7a,30–34,123,44,35.8,36.6,809
+High medieval,#1baf7a,35–39,127,56,44.1,36.6,809
+High medieval,#1baf7a,40–44,112,32,28.6,36.6,809
+High medieval,#1baf7a,45–49,86,28,32.6,36.6,809
+High medieval,#1baf7a,50–59,144,52,36.1,36.6,809
+High medieval,#1baf7a,60+,27,8,29.6,36.6,809
+Late medieval,#eda100,18–24,69,38,55.1,43.9,651
+Late medieval,#eda100,25–29,64,30,46.9,43.9,651
+Late medieval,#eda100,30–34,97,56,57.7,43.9,651
+Late medieval,#eda100,35–39,83,24,28.9,43.9,651
+Late medieval,#eda100,40–44,105,46,43.8,43.9,651
+Late medieval,#eda100,45–49,78,28,35.9,43.9,651
+Late medieval,#eda100,50–59,109,50,45.9,43.9,651
+Late medieval,#eda100,60+,46,14,30.4,43.9,651
+Early modern,#e87ba4,18–24,269,142,52.8,43.7,1644
+Early modern,#e87ba4,25–29,265,121,45.7,43.7,1644
+Early modern,#e87ba4,30–34,252,106,42.1,43.7,1644
+Early modern,#e87ba4,35–39,183,70,38.3,43.7,1644
+Early modern,#e87ba4,40–44,187,99,52.9,43.7,1644
+Early modern,#e87ba4,45–49,152,53,34.9,43.7,1644
+Early modern,#e87ba4,50–59,238,93,39.1,43.7,1644
+Early modern,#e87ba4,60+,98,34,34.7,43.7,1644
+Industrial,#008300,18–24,76,40,52.6,55.2,455
+Industrial,#008300,25–29,35,14,40.0,55.2,455
+Industrial,#008300,30–34,35,18,51.4,55.2,455
+Industrial,#008300,35–39,64,32,50.0,55.2,455
+Industrial,#008300,40–44,66,41,62.1,55.2,455
+Industrial,#008300,45–49,48,27,56.2,55.2,455
+Industrial,#008300,50–59,103,62,60.2,55.2,455
+Industrial,#008300,60+,28,17,60.7,55.2,455

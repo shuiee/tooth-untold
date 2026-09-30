@@ -1,6 +1,6 @@
 # The Tooth Untold
 
-**What can a tooth remember?** An interactive data story. Two composite teeth, a first molar and a canine, are cut open inside their jaw and change as a timeline plays from 300 to 1900 CE. Decay, childhood stress lines, chewing wear, tartar, enamel lead and disease DNA all come from published European datasets. Nothing on the page is simulated.
+**What can a tooth remember?** An interactive data story. Two composite teeth, a first molar and a canine, are cut open inside their jaw and change as they play through 300 to 1900 CE. Then they separate into three layers of evidence (pathogens, morphology, metals), each with its own dashboard. Decay, childhood stress lines, chewing wear, tartar, enamel lead and disease DNA all come from published European datasets. Nothing on the page is simulated. The dashboards' charts come from the team's tabular datasets; their event strips are still marked placeholders.
 
 Harvard MDE data-visualisation prototype. The page itself is still titled *The Statistical Tooth*.
 
@@ -12,7 +12,7 @@ Harvard MDE data-visualisation prototype. The page itself is still titled *The S
 |---|---|
 | **See it** | Open `share/statistical-tooth.html` in Chrome, Safari or Firefox (internet needed for the font and two libraries; WebGL2 needed for the teeth). |
 | **Edit the page** | In this folder run `python3 -m http.server 8000`, open http://localhost:8000, edit `index.html`, `app.js` or `tooth.js`, and refresh. |
-| **Rebuild the data** | `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`, then `python3 build_data.py`, `python3 build_models.py` and `python3 prepare_jaw.py`. |
+| **Rebuild the data** | `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`, then `python3 build_data.py`, `python3 build_models.py` and `python3 prepare_jaw.py`. `python3 build_layers.py` (the dashboard charts) needs no packages. |
 | **Make the single-file versions** | `python3 bundle.py` writes `dist/` and `data/images.js`; `python3 share.py` writes `share/`. |
 
 Serve the folder rather than double-clicking `index.html`. Browsers block some loading from `file://`. `share/statistical-tooth.html` works either way because everything is inside it.
@@ -22,16 +22,18 @@ Serve the folder rather than double-clicking `index.html`. Browsers block some l
 ## What's in the folder
 
 ```
-index.html          layout and styles (Lora for main text, Archivo for labels and numbers; colours are CSS variables in :root)
-app.js              the storyline: intro, pooling per 100-year window, marks, labels, timeline, panels
+index.html          layout and styles (all text in Lora for now: --serif and --label in :root; colours are CSS variables there too)
+app.js              the storyline: intro, pooling per 100-year window, marks, overview playback, layer sheets, dashboards
 tooth.js            the 3D renderer (WebGL2 ray-marched distance fields, stipple shading, cut section)
 data/
   data.js           every record the page draws        ← build_data.py
   models.js         canine volumes + tooth point clouds ← build_models.py
-  world.js          Natural Earth 1:50m outlines, used by the Limitations map
+  layers.js         the dashboards' chart data          ← build_layers.py
+  world.js          Natural Earth 1:50m outlines (not loaded at the moment: the Limitations map went with the v6 flow)
   images.js         pictures (the intro jaw)            ← bundle.py (from images/)
 build_data.py       source spreadsheets → data/data.js (every filtering rule is commented)
 build_models.py     source tooth models → data/models.js
+build_layers.py     source/layer data/ (+ the GHHP file) → data/layers.js (standard library only)
 prepare_jaw.py      source jaw engraving → images/jaw-arches.webp (cuts it out of its white background)
 bundle.py           → dist/statistical-tooth.html (for the Claude artifact, which adds its own <!doctype>)
 share.py            → share/statistical-tooth.html (complete standalone page with an editing guide at the top)
@@ -40,6 +42,7 @@ source/
   datavis data/     the datasets build_data.py reads
   teeth models/     the ZBrush tooth models (canines, premolars and first molars); build_models.py reads the canines and premolars
   jaw engraving/    the team's jaw engraving prepare_jaw.py reads
+  layer data/       the team's tabular datasets and draft charts for each dashboard, and the scripts behind the drafts
 research/           the team's research folder from Google Drive: papers, extra datasets, the prototype video (see research/README.md)
 requirements.txt    Python packages for the builds (the page itself needs none)
 ```
@@ -55,9 +58,14 @@ Never edit `data/*.js` or `images/jaw-arches.webp` by hand. They're regenerated 
 1. **The jaw opens.** The team's engraving shows both dental arches opened out flat, with the jaw hinge on the horizontal centre line. It starts closed: the lower jaw is folded up onto the upper teeth, so we see the back of the print. The print inks itself in, darkest strokes first. Then the lower jaw swings down towards the viewer on its hinge until the picture lies flat as drawn. Rings mark the four lineup teeth on the lower arch.
 2. The jaw steps aside. Four teeth line up, drawn from the models: first molar, two premolars, canine. The premolars fade and the molar and canine close in.
 3. The drawings become rotating 3D point clouds.
-4. The main view fades in, with a header (tooth groups, time, region), both teeth cut open in their jaw, and the timeline with numbered story markers and walkers.
-5. Playback runs 300 → 1900 and pauses at each story marker. At each new century, DNA marks travel in from below through the root canal, and tartar particles settle from above.
-6. Past 1900 the time reads "Everything". The teeth pool all periods and a dark panel compares the first and last centuries with trend lines. **Limitations** opens the caveats, a coverage map, the sources and a record table.
+4. **Overview.** Only the two teeth, cut open in their jaw, play through 300 → 1900 at `SPEED` years a second, with no timeline; a small readout under them gives the year. At each new century, DNA marks travel in from below through the root canal and tartar particles settle from above. At 1900 the teeth pool all periods.
+5. **Layers.** The teeth separate into three sheets, fanned like an exploded drawing (a stacked deck on phones): **01 Pathogens** (disease DNA), **02 Morphology** (wear, decay, stress lines) and **03 Metals** (lead in enamel, particles in tartar). Each sheet is a picture of the pooled teeth carrying only that layer's traces. Hover lifts a sheet; a click opens it. **Replay** runs the overview again.
+6. **Dashboard.** The chosen layer's teeth sit beside its charts, with tabs to the other layers and a way back to all layers. The teeth can be dragged to turn them, and a **cross-section film** stands in each jaw: drag its sprocket strip, or the slider under the teeth, to cut deeper or to see more of the whole tooth. The charts:
+   - **Pathogens:** which organism dominated each century's recovered genomes (shares, in the colours of the marks in the teeth), with the number of genomes per century on top.
+   - **Morphology:** mean molar wear by period and age at death, and stress lines (LEH) by age at death for each period, with 95% intervals.
+   - **Metals:** lead in childhood enamel from the Neolithic to 20th-century births, and eight elements in modern against archaeological enamel.
+
+   The "human × layer" event strips under the charts are still **placeholders**.
 
 **The jaw animation** is plain CSS 3D. `#jaw .rig` holds the upper half, a flat canvas that never moves, and `.jw-lo`, the lower half, hinged at its top edge. `jawPose(k)` rotates the lower half from 179.4° (closed) to 0° (open) and lightly darkens faces that turn away from the light. `jawInk(p)` fills in the back of the print. Both are driven by `tween()` in `intro()`.
 
@@ -66,7 +74,7 @@ Never edit `data/*.js` or `images/jaw-arches.webp` by hand. They're regenerated 
 `source/` → `build_data.py` → `data/data.js` → `composite(t)` in `app.js` pools everything whose dating overlaps a 100-year window. The pooled values drive:
 - `paramsFor()`, which sets the renderer uniforms: wear plane, cavity size, stress-line grooves, tartar collar, lead stipple;
 - `updateParticles()`, which places one mark per DNA find on the cut face;
-- `drawLabels()`, which draws the callouts.
+- `paramsFor()` and `showsRec()` also decide which layer's traces a tooth carries (`S.show`).
 
 GHHP skeletal sites are weighted by the share of their date range inside the window. DNA finds are dated to the nearest 100 years, so marks change once per century.
 
@@ -84,24 +92,25 @@ GHHP skeletal sites are weighted by the share of their date range inside the win
 
 | Change | Where |
 |---|---|
-| Story markers (the pop-up points) | `STORY` in `app.js`: `id`, year `y`, `label`. Playback pauses at each. |
-| Pop-up content | Not built yet. Hook into `stepPlay()` (where playback pauses at a marker) and `drawAxis()` (where markers are drawn). |
-| Playback speed and pauses | `stepPlay()`: `dt * 52` is years per second; the `holdUntil` values are pauses in ms. |
+| The three layers | `LAYERS` in `app.js`: name, description, chart title, legend series and placeholder events for each |
+| A layer's charts | `CHARTS` in `app.js` (titles, subtitles, notes); `drawPathogenMatrix()`, `drawWear()`, `drawLEH()`, `drawLead()`, `drawElements()`. The data comes from `build_layers.py`: change a dataset in `source/layer data/`, rerun it, then `bundle.py`. |
+| The cross-section film | `CUT_MIN`/`CUT_MAX` (how deep or shallow it can go), `drawFilm()` (the strip), `setCut()`; the slider is `#film` in `index.html` |
+| Event pictures | Save `images/event-<name>.jpg` (the names are the `img` keys in `LAYERS`, e.g. `event-justinian`), then run `bundle.py`. |
+| Which traces each layer shows | `paramsFor()` (wear, decay, stress lines, lead, tartar) and `showsRec()` (which records become marks) |
+| Overview speed | `SPEED` (years per second); `stepPlay()` holds briefly at 1900, then `enterLayers()` runs |
+| The layer sheets | `sheetPicture()`, `buildSheets()`, `fitSheets()`; their look is `#layers` in `index.html` |
 | Intro timing | `intro()`: the `wait()` and `tween()` durations (jaw: 1600 ms ink, 3000 ms swing). |
 | Intro jaw picture | Replace `source/jaw engraving/jaw-arches.webp` (both arches opened flat, hinge on the centre line), run `prepare_jaw.py` then `bundle.py`. If the teeth move, update the ring positions in `JAW_TEETH` in `app.js`. |
 | Jaw motion | `jawPose()`: closed angle, tilt of the closed jaw, shading. Perspective is `#jaw{perspective}` in `index.html`. |
-| Label wording beside the teeth | `drawLabels()` |
-| End-of-timeline and Limitations panels | `endHTML()`, `drawEndCharts()`, `limitsHTML()` |
 | Colours, type, layout | CSS variables and rules at the top of `index.html`; mark colours in `CAT` in `app.js` |
-| Regions | `REGIONS` in `app.js` (values must match the region names in the data) |
 | Surface stipple, cut-face fills, bone and gum | The `FS` shader in `tooth.js` (`stipple()`, the `onCut` branch, `blockD()` and `gumD()`) |
 | Add a tooth model | Add an entry to `TEETH` in `build_models.py`; for the main view, map it in `modelKey()` in `tooth.js` |
 | A new data source | `build_data.py` (keep one record per sample and write down every filtering rule) |
 
 **Test shortcuts.** Add these to the address:
-- `?scene=main&t=1347` skips the intro and opens at a year.
+- `?scene=main&t=1347` skips the intro and shows the overview at a year (`&play=1` plays on from there).
+- `?scene=layers` opens the separated layer sheets; `?scene=layer&layer=metals` opens one dashboard; add `&cut=-0.3` to set the film's depth.
 - `&jaw=max` shows the upper jaw.
-- `&mode=limits` opens the Limitations view.
 - `&still=1` places marks without travel; `&notrans=1` turns off CSS transitions.
 - `?freeze=0|0.5|1|2|3` holds one intro frame: closed jaw, half open, open with rings, lineup, point cloud.
 - `&debug=1` exposes `window.__dbg`.
@@ -123,7 +132,9 @@ GHHP skeletal sites are weighted by the share of their date range inside the win
 
 ## Open work
 
-- [ ] **Story pop-ups** at the `STORY` markers. The team is choosing which stories to include.
+- [ ] **Event strips.** The "human × layer" events in `LAYERS` still need dates and pictures.
+- [ ] **Caries.** `source/layer data/Caries Viz/` (decay by age, decay severity) is in the repository but not drawn yet.
+- [ ] **Removed for now in v6**: the timeline, story markers, header (Lower/Upper, Region), number callouts, end panel and Limitations. They are in the Git history (commit `26ad507`) if any should come back.
 - [ ] **Use the first molar models.** `mandibular-first-molar.zip` and `maxillary-first-molar.zip` are now in `source/teeth models/`, in the same format as the canines. Add them to `TEETH` in `build_models.py` so the molar, which carries the wear data, stops being a constructed shape.
 - [ ] **Model credit and licence.** The ZBrush models in `source/teeth models/` arrived without author or licence information. Confirm both before public release and add the credit line to `limitsHTML()`.
 - [ ] **Before making the repository public**, remove the journal articles in `research/` (they are copyrighted; keep citations instead) and check the terms of each dataset.
@@ -142,4 +153,5 @@ GHHP skeletal sites are weighted by the share of their date range inside the win
 - **Mühlemann et al. 2018** (github.com/acorg/parvo-2018) was checked: its samples are already in AncientMetagenomeDir.
 - **Natural Earth**, via world-atlas@2.0.2 (map outlines).
 - **Jaw engraving**: supplied by the team (source to be credited).
-- **Libraries**: d3 7.9.0, topojson-client 3.1.0; typefaces Lora and Archivo (Google Fonts).
+- **Dashboard datasets**: the team's tabular extracts in `source/layer data/` (AncientMetagenomeDir; GHHP European module; Montgomery et al. 2010, Moore et al. 2021, Kamenov et al. 2018). Molar wear is recomputed from the GHHP file with the team's own method and matches their draft cell for cell.
+- **Libraries**: d3 7.9.0, topojson-client 3.1.0; typeface Lora (Google Fonts).
