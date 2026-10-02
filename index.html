@@ -116,6 +116,7 @@ a{color:inherit}
 .rd-foot[hidden]{display:none}
 .rd-foot b{color:var(--ink);font-weight:600;margin-right:.25em}
 #stage.radial .tooth canvas,#stage.radial #ov{opacity:0;transition-duration:.3s}
+#stage.radial .tcap{visibility:hidden}
 #again{position:absolute;right:28px;bottom:26px;z-index:6;display:none}
 #stage.radial #again{display:inline-block}
 
@@ -179,15 +180,6 @@ a{color:inherit}
 .dp svg rect,.dp svg circle{cursor:default}
 .keylist{display:flex;flex-wrap:wrap;gap:3px 14px;margin-top:8px;font-family:var(--label);font-size:10.5px;color:var(--ink-3)}
 .keylist b{font-weight:500;color:var(--ink)}
-/* the cross-section film: a strip in each jaw, and a slider under the teeth */
-.film{display:flex;align-items:center;gap:10px;max-width:520px;width:100%;margin:4px auto 0;font-family:var(--label);font-size:10.5px;color:var(--ink-3)}
-.film[hidden]{display:none}
-.film label{font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);margin-right:6px}
-.film input{flex:1;min-width:80px;accent-color:#1a1a18;cursor:ew-resize}
-#ov .film-f{fill:rgba(250,249,245,.12);stroke:#8a8983;stroke-width:.8}
-#ov .film-b{fill:rgba(26,26,24,.14);stroke:#8a8983;stroke-width:.6;pointer-events:all;cursor:ew-resize}
-#ov .film-b:hover{fill:rgba(26,26,24,.24)}
-#ov .film-h{fill:#e9e8e4;pointer-events:none}
 .events{position:relative;height:200px}
 .ev{position:absolute;bottom:10px;transform:translateX(-50%);width:min(40%,210px);margin:0}
 .ev::after{content:"";position:absolute;left:50%;bottom:-10px;height:10px;border-left:1px solid var(--ink)}
@@ -211,6 +203,8 @@ a{color:inherit}
   #jaw{height:min(50vh,440px)}
   #stage.dashboard .teeth{padding-right:0}
   #stage.radial .folio,#stage.radial #again{position:fixed}
+  .rh-b:first-child span{display:none}
+  .rh{gap:24px}
   #stage.radial .rh{position:fixed;left:28px;right:28px;top:16px}
   #stage.dashboard .panel{padding:12px 0 0;border-left:0;box-shadow:none;border-top:1px solid var(--rule)}
 }
@@ -241,7 +235,7 @@ a{color:inherit}
       <button data-l="wear"><b>3</b><span>Wear and LEH</span></button>
       <button data-l="metals"><b>4</b><span>Metals</span></button>
       <button data-l="interventions"><b>5</b><span>Artificial interventions</span></button>
-      <button id="rhBack" hidden><b>Plate II</b><span>All four records</span></button>
+      <button id="rhBack" hidden><b>Plate II</b><span>The timeline</span></button>
     </nav>
   </header>
 
@@ -254,7 +248,6 @@ a{color:inherit}
         <div id="lineup"></div>
         <svg id="ov"></svg>
       </div>
-      <div class="film" id="film" hidden><label for="cut">Cross-section</label><span class="end">deeper</span><input type="range" id="cut" min="0" max="1000" step="1" value="382"><span class="end">whole tooth</span></div>
       <p class="tcap fade"><span id="capText"></span><span id="when"></span></p>
     </section>
     <aside class="panel" id="panel" aria-live="polite" hidden></aside>
@@ -265,7 +258,7 @@ a{color:inherit}
   <button class="btn" id="skip">Skip intro</button>
   <button class="btn" id="again">Replay</button>
   <div id="radial" hidden></div>
-  <p class="rd-foot" id="radialFoot" hidden><b>Plate II</b> How far back each record reaches. A line's length is the time its record covers, on one scale for all five, and a gap is a stretch with no record. Circles mark the records within each line; a name opens its section.</p>
+  <p class="rd-foot" id="radialFoot" hidden><b>Plate II</b> How far back each record reaches. A line's length is the time its record covers, on one scale for all five, and a gap is a stretch with no record. Circles mark the records within each line. A name opens its section; the circle at a line's end shows how much was gathered per year.</p>
   <span class="folio l fade" id="folioL"></span><span class="folio r fade" id="folioR"></span>
 </div>
 <div id="tip" hidden></div>

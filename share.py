@@ -28,8 +28,8 @@ GUIDE = """<!--
     Overview   the two teeth alone play through 300-1900 CE (no timeline); marks arrive century by century.
     Timeline   Plate II, the radial timeline (radial.js, data in radial-data.js): five records leave a point
                between the teeth; line length is the time each covers. A name opens that record's section.
-    Sections   1 Caries, 2 Pathogens, 3 Wear and LEH, 4 Metals, 5 Artificial interventions, each a journal spread: the plate (the 3D teeth
-               with a cross-section "film" and labelled anatomy) on the left, numbered figures drawn from the
+    Sections   1 Caries, 2 Pathogens, 3 Wear and LEH, 4 Metals, 5 Artificial interventions, each a journal spread: the plate (the 3D teeth,
+               in the view that suits the record, labelled) on the left, numbered figures drawn from the
                team's datasets (window.LAYER_DATA) on the right. The event strips are still placeholders.
     Journal    a running head (title, plate or section, section index), captions under every plate and
                figure, page numbers. setPage() in app.js writes them; .rh / .fig / .sec rules in the styles.
@@ -53,7 +53,8 @@ GUIDE = """<!--
     Sections          LAYERS: number, name, dek, plate caption and placeholder events for each section. Event pictures are window.ERA_IMAGES["event-..."] (images/event-*.jpg in the source).
     Dashboard         CHARTS: each layer's chart titles, subtitles and notes. dashHTML() lays out the panel;
                       drawPathogenMatrix(), drawWear(), drawLEH(), drawLead() and drawElements() draw the charts.
-    Cross-section     CUT_MIN / CUT_MAX (depth range), drawFilm() (the film strip), setCut() and the #cut slider.
+    Plate views       LAYERS[].view: "cut" (cross-section, in the jaw), "whole" (uncut, out of the jaw) or "aerial"
+                      (the crown from above), per tooth. frameView() sets the camera; plateLabels() labels each view.
     Which marks show  paramsFor() and showsRec() keep only the chosen layer's traces in the teeth.
     Overview speed    SPEED is years per second; stepPlay() holds briefly at 1900, then enterRadial() runs.
     Radial timeline   radial-data.js holds the four records (edit numbers there). radial.js: R0, RMAX, MAX_SPAN at
@@ -68,7 +69,7 @@ GUIDE = """<!--
   TEST SHORTCUTS (add to the file's address)
     ?scene=main&t=1347        skip the intro and show the overview at a year (&play=1 to play from there)
     ?scene=radial             the radial timeline (&animate=1 plays its entrance)
-    ?scene=layer&layer=metals one layer's dashboard (pathogens, morphology or metals); &cut=-0.3 sets the film
+    ?scene=layer&layer=metals one section (caries, pathogens, wear, metals, interventions)
     &still=1  &notrans=1      no travelling marks / no CSS transitions (for screenshots)
     ?freeze=0|0.5|1|2|3       hold one intro frame (0 closed jaw, 0.5 half open, 1 open, 2 lineup, 3 cloud)
 

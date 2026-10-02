@@ -31,25 +31,35 @@
   // data/layers.js (see CHARTS below). The events are PLACEHOLDERS until their dates and pictures arrive: nothing
   // in them is data. Event pictures: save images/event-<name>.jpg (e.g. event-justinian.jpg) and bundle.py embeds it.
   //   dek    the line under the section title    plate  the end of the plate caption: what the teeth show here
+  //   view   how each tooth is drawn on the section's plate, chosen for what the record is about:
+  //          "cut"     a cross-section, for what sits inside the tooth (decay reaching in, DNA, lead in the enamel)
+  //          "whole"   the whole tooth from the side, out of its jaw like an atlas specimen, for marks on its
+  //                    outer surface (stress lines) or a tooth that carries none
+  //          "aerial"  the crown from above, out of its jaw, for the chewing surface (wear)
   const LAYERS = [
     { key: "caries", n: 1, name: "Caries", dek: "Decay in adults of six periods, by age at death and by how many teeth",
-      plate: "showing only decay: the cavity grows with the share of teeth that were carious.",
+      view: { molar: "cut", canine: "cut" },
+      plate: "cut open to show how far decay reaches into the tooth; the cavity grows with the share of teeth that were carious.",
       human: "Human × caries correlations across time",
       events: [{ label: "Refined sugar", when: "Year–Year", img: "event-sugar" }] },
     { key: "pathogens", n: 2, name: "Pathogens", dek: "Disease DNA recovered from European teeth, 100–1800 CE",
-      plate: "showing only pathogen traces: one mark per genome recovered, placed for illustration, and the tartar some were found in.",
+      view: { molar: "cut", canine: "cut" },
+      plate: "cut open, because pathogen DNA is recovered from inside the tooth: one mark per genome, placed for illustration, and the tartar some were found in.",
       human: "Human × pathogen correlations across time",
       events: [{ label: "Plague of Justinian", when: "541–750s", img: "event-justinian" }, { label: "The Black Plague", when: "Year–Year", img: "event-blackdeath" }] },
     { key: "wear", n: 3, name: "Wear and LEH", dek: "Chewing wear and childhood stress lines in adults of six periods",
-      plate: "showing only chewing wear on the molar (the dashed line is the unworn crown) and stress lines on the canine.",
+      view: { molar: "aerial", canine: "whole" },
+      plate: "the molar seen from above, where chewing wears the crown flat (the dashed line is the unworn crown), and the canine whole, where stress lines run as bands around the enamel.",
       human: "Human × wear correlations across time",
       events: [{ label: "Roller mill invented", when: "Year–Year", img: "event-rollermill" }] },
     { key: "metals", n: 4, name: "Metals", dek: "Lead and other metals in childhood enamel, from the Neolithic to the 20th century",
-      plate: "showing only lead in the enamel and particles in the tartar.",
+      view: { molar: "cut", canine: "cut" },
+      plate: "cut open, because lead is locked inside the enamel as it forms, and with the particles held in the tartar.",
       human: "Human × metal correlations across time",
       events: [{ label: "Industrial Revolution", when: "Year–Year", img: "event-industrial" }] },
     { key: "interventions", n: 5, name: "Artificial interventions", dek: "Teeth somebody repaired, from medieval graves to the 2009 dental survey",
-      plate: () => "with no traces drawn: the archaeological samples hold " + LD.interventions.marks.filter(m => m.series === "archaeological").map(m => d3.format(".1f")(m.per100)).join(", ") + " repaired teeth per 100 people, too few to place on a composite tooth.",
+      view: { molar: "whole", canine: "whole" },
+      plate: () => "whole, as an examiner sees them, with no repairs drawn: the archaeological samples hold " + LD.interventions.marks.filter(m => m.series === "archaeological").map(m => d3.format(".1f")(m.per100)).join(", ") + " repaired teeth per 100 people, too few to place on a composite tooth.",
       human: "Human × intervention correlations across time",
       events: [{ label: "Amalgam fillings", when: "Year–Year", img: "event-amalgam" }] },
   ];
@@ -61,8 +71,7 @@
 
   // ------------------------------------------------------------------ state
   // scene: intro | main (the overview) | radial (the radial timeline) | layer (one layer's dashboard); show: which marks the teeth carry
-  // cut: depth of the cross-section in a dashboard (0 = the middle of the tooth; the overview and sheets always cut at 0)
-  const S = { t: T_MIN, region: "all", jaw: "man", scene: "intro", layer: null, show: "all", playing: false, cut: 0 };
+  const S = { t: T_MIN, region: "all", jaw: "man", scene: "intro", layer: null, show: "all", playing: false };
   const everything = () => S.t > T_LAST;
 
   // ------------------------------------------------------------------ helpers
@@ -170,7 +179,21 @@
     const cp = SH.cariesAt === "occlusal" ? [0.06, Math.min(wearY, SH.grooveY) - 0.005, -0.03] : [SH.B[0] * 0.97, 0.44 * top, -0.13];
     const pb = (L === "all" || L === "metals") && G.pb != null ? clamp(Math.log10(G.pb / 0.05) / Math.log10(10 / 0.05), 0, 1) : 0;
     const calc = G.calcRecs.some(r => L === "all" || (L === "pathogens" && r.kind !== "metal") || (L === "metals" && r.kind === "metal")) ? 1 : 0;
-    return { wearY, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: [0.36 * top, 0.54 * top], calc, pb, cutX: S.scene === "layer" ? S.cut : 0, jaw: true };
+    return { wearY, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: [0.36 * top, 0.54 * top], calc, pb, cutX: viewOf(T) === "cut" ? 0 : 5, jaw: viewOf(T) === "cut" };
+  }
+  // the view a tooth is drawn in: cut everywhere except on a section's plate, where the section decides
+  const viewOf = T => S.scene === "layer" && layerOf(S.layer) ? layerOf(S.layer).view[T.key] : "cut";
+  // camera and framing for each view; "aerial" looks down on the crown and frames the jaw's footprint
+  function frameView() {
+    if (!GL) return;
+    refit();
+    TEETH.forEach(T => {
+      const v = viewOf(T), SH = T.R.st.S, cam = T.R.st.cam;
+      if (v === "aerial") {
+        const r = T.el.getBoundingClientRect(), half = Math.max(-SH.boxMin[0], SH.boxMax[0], -SH.boxMin[2], SH.boxMax[2]) * 0.95;
+        Object.assign(cam, { yaw: 0.35, pitch: 1.36, target: [0, SH.top * 0.8, 0], dist: half * cam.focal / Math.min(0.8, 0.8 * r.width / Math.max(1, r.height)) });
+      } else if (v === "whole") Object.assign(cam, { yaw: T.key === "canine" ? 1.0 : 0.4, pitch: 0.12 });   // the canine turned to show its cusp in profile
+    });
   }
   const NEUTRAL = SH => ({ wearY: SH.top + 0.02, caries: [0, 0, 0, 0], leh: [0, 0], lehY: [0, 0], calc: 0, pb: 0, cutX: 5, jaw: false });
   function insideSolid(T, p, m) {
@@ -264,7 +287,6 @@
         if (k < 0) { busy = true; return; }
         const e = ease(Math.min(k, 1));
         let pos = k >= 1 ? q.p : along(q.path, e);
-        if (q.face && k >= 1 && S.scene === "layer") { pos = [q.p[0], q.p[1], S.cut - 0.002]; if (!insideSolid(T, pos, 0.006)) return; }   // marks sit on the face wherever the film is
         const xy = toPair(T, pos);
         if (k < 1.5) {
           busy = true;
@@ -293,84 +315,54 @@
     gLabels.selectAll("*").remove();
     if (!GL || !liveTeeth()) return;
     ov.attr("viewBox", "0 0 " + pairEl.clientWidth + " " + pairEl.clientHeight);
-    if (S.scene === "layer") { drawFilm(); plateLabels(); }
+    if (S.scene === "layer") plateLabels();
     const y = nameY();
     TEETH.forEach(T => gLabels.append("text").attr("class", "tname").attr("x", toPair(T, [0, 0, 0])[0]).attr("y", y).attr("text-anchor", "middle").text(T.label));
   }
-  // ------------------------------------------------------------------ the cross-section film (dashboards only)
-  // The section plane is drawn as a strip of film standing in each jaw. Drag its sprocket bands, or use the slider
-  // under the teeth: towards the viewer shows more of the whole tooth, away from the viewer cuts deeper.
-  const CUT_MIN = -0.42, CUT_MAX = 0.68;
-  const filmEl = $("#film"), cutIn = $("#cut");
-  const cutToVal = c => Math.round((c - CUT_MIN) / (CUT_MAX - CUT_MIN) * 1000), valToCut = v => CUT_MIN + v / 1000 * (CUT_MAX - CUT_MIN);
-  function setCut(c, low) {
-    S.cut = clamp(c, CUT_MIN, CUT_MAX); cutIn.value = cutToVal(S.cut);
-    if (GL) TEETH.forEach(T => T.R.setParams(paramsFor(T)));
-    requestRender(low);
-  }
-  cutIn.addEventListener("input", () => setCut(valToCut(+cutIn.value), true));
-  cutIn.addEventListener("change", () => setCut(valToCut(+cutIn.value), false));
-  let filmDrag = null;
-  function drawFilm() {
-    const z = S.cut;
-    TEETH.forEach(T => {
-      const SH = T.R.st.S, x0 = SH.jawMin[0] - 0.1, x1 = SH.jawMax[0] + 0.1, y0 = SH.jawMin[1] - 0.1, y1 = SH.top + 0.2, band = 0.09;
-      const quad = (a, b, c, d) => "M" + [[a, c], [b, c], [b, d], [a, d]].map(([x, y]) => toPair(T, [x, y, z]).map(v => v.toFixed(1)).join(",")).join("L") + "Z";
-      const g = gLabels.append("g").attr("class", "film");
-      g.append("path").attr("class", "film-f").attr("d", quad(x0, x1, y0, y1));
-      [[y1 - band, y1], [y0, y0 + band]].forEach(([a, b], i) => {
-        g.append("path").attr("class", "film-b grip").attr("d", quad(x0, x1, a, b)).attr("data-t", T.key).attr("aria-hidden", "true")
-          .on("pointerdown", ev => { ev.stopPropagation(); ev.preventDefault(); filmDrag = { T, x: ev.clientX, y: ev.clientY }; });
-        const holes = Math.max(4, Math.round((x1 - x0) / 0.11));
-        for (let h = 0; h < holes; h++) {
-          const cx = x0 + (h + 0.5) * (x1 - x0) / holes, cy = (a + b) / 2;
-          g.append("path").attr("class", "film-h").attr("d", quad(cx - 0.022, cx + 0.022, cy - 0.02, cy + 0.02));
-        }
-      });
-    });
-  }
-  addEventListener("pointermove", ev => {
-    if (!filmDrag) return;
-    const { T } = filmDrag, c = [0, T.R.st.S.top * 0.3, S.cut], a = toPair(T, c), b = toPair(T, [c[0], c[1], c[2] + 0.1]);
-    // move along the film's own depth direction on screen; 320 px of drag covers the whole range
-    let vx = b[0] - a[0], vy = b[1] - a[1]; const l = Math.hypot(vx, vy);
-    if (l < 2) { vx = -1; vy = 0; } else { vx /= l; vy /= l; }
-    const dx = ev.clientX - filmDrag.x, dy = ev.clientY - filmDrag.y;
-    filmDrag.x = ev.clientX; filmDrag.y = ev.clientY;
-    setCut(S.cut + (dx * vx + dy * vy) / 320 * (CUT_MAX - CUT_MIN), true);
-  });
-  addEventListener("pointerup", () => { if (filmDrag) { filmDrag = null; requestRender(false); } });
-  // Atlas-style labels on a dashboard's plate: the anatomy of the cut face, and the traces this section shows,
-  // each on a hairline leader to the page margin (molar left, canine right). Illustration, not data.
+  // Atlas-style labels on a section's plate: the anatomy and the traces the section shows, each on a hairline
+  // leader to the page margin (molar left, canine right). Illustration, not data.
   function plateLabels() {
     const W = pairEl.clientWidth, H = pairEl.clientHeight; if (W < 520) return;
-    const z = S.cut - 0.002, sides = { molar: [], canine: [] };
+    const sides = { molar: [], canine: [] }, L = S.layer;
     TEETH.forEach(T => {
-      const SH = T.R.st.S, P = T.R.st.P, top = SH.top, left = T.key === "molar", b = T.R.st.basis;
-      if (!b || b.ro[2] <= 0) return;
-      const solid = p => insideSolid(T, p, 0.008);
-      const edge = (y, inset) => {   // the section's outer edge at height y on the label's side, moved inwards
-        const step = left ? 0.005 : -0.005, x0 = (left ? SH.boxMin[0] : SH.boxMax[0]) - step * 10;
-        for (let k = 0; k < 400; k++) { const x = x0 + step * k; if (solid([x, y, z])) return [x + (left ? inset : -inset), y, z]; }
-        return null;
-      };
+      const SH = T.R.st.S, P = T.R.st.P, top = SH.top, left = T.key === "molar", b = T.R.st.basis, v = viewOf(T);
+      if (!b) return;
       const add = (t, p) => { if (p) sides[T.key].push({ t, xy: toPair(T, p) }); };
-      add("enamel", edge(Math.min(top, P.wearY) * 0.72, 0.02));
-      add("dentine", edge(top * 0.2, 0.13));
-      if (solid([SH.pulpC[0], SH.pulpC[1], z])) add("pulp", [SH.pulpC[0], SH.pulpC[1], z]);
-      add("root", edge(SH.rootMin * 0.55, 0.03));
-      const bone = [left ? SH.jawMin[0] + 0.12 : SH.jawMax[0] - 0.12, SH.bottom * 0.72, z]; if (!solid(bone)) add("bone", bone);
-      const L = S.layer;
-      if (L === "caries" && P.caries[3] > 0 && P.caries[2] <= S.cut) add("cavity", P.caries.slice(0, 3));
-      if (L === "wear" && !left && P.leh[0] > 0) add("stress lines", edge(P.lehY[0], 0.004));
-      if (L === "wear" && left && P.wearY < top && solid([0.05, P.wearY - 0.02, z])) add("worn surface", [0.05, P.wearY - 0.005, z]);
-      if (L === "metals" && !left && P.pb > 0) add("lead in enamel", edge(top * 0.55, 0.015));
-      if ((L === "metals" || L === "pathogens") && P.calc) { const h = T.R.march([left ? -2 : 2, 0.1, -0.2], [left ? 1 : -1, 0, 0], 3); if (h) add("tartar", h.p); }
+      // the visible surface point on the way from the camera to a target inside the tooth
+      const seen = target => { const d = [target[0] - b.ro[0], target[1] - b.ro[1], target[2] - b.ro[2]], l = Math.hypot(...d), h = T.R.march(b.ro, d.map(x => x / l), l + 2); return h && h.p; };
+      if (v === "cut") {
+        if (b.ro[2] <= 0) return;
+        const z = -0.002, solid = p => insideSolid(T, p, 0.008);
+        const edge = (y, inset) => {   // the section's outer edge at height y on the label's side, moved inwards
+          const step = left ? 0.005 : -0.005, x0 = (left ? SH.boxMin[0] : SH.boxMax[0]) - step * 10;
+          for (let k = 0; k < 400; k++) { const x = x0 + step * k; if (solid([x, y, z])) return [x + (left ? inset : -inset), y, z]; }
+          return null;
+        };
+        add("enamel", edge(Math.min(top, P.wearY) * 0.72, 0.02));
+        add("dentine", edge(top * 0.2, 0.13));
+        if (solid([SH.pulpC[0], SH.pulpC[1], z])) add("pulp", [SH.pulpC[0], SH.pulpC[1], z]);
+        add("root", edge(SH.rootMin * 0.55, 0.03));
+        const bone = [left ? SH.jawMin[0] + 0.12 : SH.jawMax[0] - 0.12, SH.bottom * 0.72, z]; if (!solid(bone)) add("bone", bone);
+        if (L === "caries" && P.caries[3] > 0) add("cavity", P.caries[2] < -0.05 ? seen(P.caries.slice(0, 3)) : P.caries.slice(0, 3));   // a cavity behind the cut: point at where it shows
+        if (L === "metals" && !left && P.pb > 0) add("lead in enamel", edge(top * 0.55, 0.015));
+        if ((L === "metals" || L === "pathogens") && P.calc) { const h = T.R.march([left ? -2 : 2, 0.1, -0.2], [left ? 1 : -1, 0, 0], 3); if (h) add("tartar", h.p); }
+      } else if (v === "aerial") {
+        add(P.wearY < top ? "worn chewing surface" : "chewing surface", seen([0.02, top * 0.5, 0.02]));
+        // where wear has gone through the enamel the cusps show dentine: label the cusp nearest the label side
+        const cusp = P.wearY < top && SH.cusps && SH.cusps.slice().sort((a, b) => (left ? a[0] - b[0] : b[0] - a[0]))[0];
+        if (cusp && cusp[1] > P.wearY) add("dentine worn through", seen([cusp[0], P.wearY, cusp[2]]));
+        add("enamel", seen([(left ? -1 : 1) * SH.B[0] * 0.85, top * 0.7, SH.B[2] * 0.3]));
+      } else {
+        add("crown", seen([0, top * 0.8, 0]));
+        if (L === "wear" && P.leh[0] > 0) add("stress lines", seen([0, P.lehY[0], 0]));
+        add("neck", seen([0, 0.02, 0]));
+        add("root", seen([0, SH.rootMin * 0.5, 0]));
+      }
     });
     Object.entries(sides).forEach(([k, list]) => {
       const left = k === "molar", x = left ? 6 : W - 6;
       list.sort((a, b) => a.xy[1] - b.xy[1]);
-      let last = -1e9; list.forEach(l => { l.y = Math.min(H - 8, Math.max(l.xy[1], last + 16, 24)); last = l.y; });
+      let last = -1e9; list.forEach(l => { l.y = Math.min(H - 8, Math.max(l.xy[1], last + 18, 24)); last = l.y; });
       list.forEach(l => {
         const t = gLabels.append("text").attr("class", "pl").attr("x", x).attr("y", l.y + 3.5).attr("text-anchor", left ? "start" : "end").text(l.t);
         const w = t.node().getComputedTextLength(), x0 = left ? x + w + 5 : x - w - 5;
@@ -407,7 +399,7 @@
       T.el.addEventListener("pointermove", e => {
         if (!drag || !GL) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.moved += Math.abs(dx) + Math.abs(dy); drag.x = e.clientX; drag.y = e.clientY;
         if (drag.moved < 5) return;
-        TEETH.forEach(U => { U.R.st.cam.yaw -= dx * 0.009; U.R.st.cam.pitch = clamp(U.R.st.cam.pitch + dy * 0.007, -0.4, 1.1); });
+        TEETH.forEach(U => { U.R.st.cam.yaw -= dx * 0.009; U.R.st.cam.pitch = clamp(U.R.st.cam.pitch + dy * 0.007, -0.4, 1.45); });
         requestRender(true);
       });
       T.el.addEventListener("pointerup", () => { drag = null; });
@@ -506,7 +498,7 @@
   function enterRadial(animate) {
     clearTimeout(layersTimer); pause();
     S.scene = "radial"; S.layer = null; S.show = "all"; S.t = T_ALL; G = composite(T_ALL); readout();
-    stage.classList.remove("dashboard", "haspanel"); panelEl.hidden = true; panelEl.innerHTML = ""; filmEl.hidden = true;
+    stage.classList.remove("dashboard", "haspanel"); panelEl.hidden = true; panelEl.innerHTML = "";
     gParts.selectAll("*").remove(); gLabels.selectAll("*").remove(); setPage();
     requestAnimationFrame(() => {
       if (S.scene !== "radial") return;
@@ -532,11 +524,11 @@
     clearTimeout(layersTimer); pause();
     S.scene = "layer"; S.layer = k; S.show = k; S.t = T_ALL; G = composite(T_ALL); readout();
     leaveRadial(); stage.classList.add("dashboard", "haspanel");
-    panelEl.hidden = false; filmEl.hidden = false; cutIn.value = cutToVal(S.cut);
+    panelEl.hidden = false;
     panelEl.innerHTML = dashHTML(L); panelEl.scrollTop = 0; setPage();
     requestAnimationFrame(() => {
       if (S.scene !== "layer") return;
-      refit(); TEETH.forEach(T => { T.parts.clear(); T.R.setParams(paramsFor(T)); });
+      frameView(); TEETH.forEach(T => { T.parts.clear(); T.R.setParams(paramsFor(T)); });
       drawCharts(L); updateParticles(!REDUCED); requestRender(false);
     });
   }
@@ -617,20 +609,20 @@
     // labels to the right of each point; the middle one to the left, clear of its neighbour's whisker
     if (!narrow) arch.forEach((d, i) => { const left = i === 1, lx = x(d.x) + (left ? -10 : 10), ly = y(d.per100) + 17, an = left ? "end" : "start";
       svg.append("text").attr("x", lx).attr("y", ly).attr("text-anchor", an).attr("class", "rl").text(d.label.split(" — ")[0]);
-      svg.append("text").attr("x", lx).attr("y", ly + 11).attr("text-anchor", an).attr("class", "ax").text(d.teeth + " teeth / " + d.n + " people = " + d3.format(".1f")(d.per100)); });
+      svg.append("text").attr("x", lx).attr("y", ly + 13).attr("text-anchor", an).attr("class", "ax").text(d.teeth + " teeth / " + d.n + " people = " + d3.format(".1f")(d.per100)); });
     const mx = x(mod.x) + 10;
     svg.append("text").attr("x", mx).attr("y", y(mod.per100) - 6).attr("class", "big").text(fmtN(mod.per100));
     if (!narrow) { svg.append("text").attr("x", mx).attr("y", y(mod.per100) + 12).attr("class", "rl").text("ADHS 2009, England");
-      svg.append("text").attr("x", mx).attr("y", y(mod.per100) + 23).attr("class", "ax").text("6.7 restored teeth per person");
+      svg.append("text").attr("x", mx).attr("y", y(mod.per100) + 26).attr("class", "ax").text("6.7 restored teeth per person");
       svg.append("text").attr("x", x(arch[0].x) + 12).attr("y", y(arch[0].whatif[100]) + 4).attr("class", "ax").text("pale bars: ×10 and ×100, what-if only"); }
   }
   // caries 1: share with caries by age at death, one line per period; Industrial and High medieval drawn strong
   function drawCariesAge(svg, W) {
-    const C = LD.caries, H = 280, m = { l: 34, r: W < 480 ? 116 : 136, t: 10, b: 30 }; size(svg, W, H);
+    const C = LD.caries, H = 290, m = { l: 34, r: W < 480 ? 116 : 136, t: 10, b: 38 }; size(svg, W, H);
     const x = d3.scalePoint().domain(C.ages).range([m.l, W - m.r]).padding(0.1), y = d3.scaleLinear().domain([20, 90]).range([H - m.b, m.t]);
     [20, 40, 60, 80].forEach(v => { svg.append("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", y(v)).attr("y2", y(v)).attr("stroke", "#dcdad3").attr("stroke-width", 0.6);
       svg.append("text").attr("x", m.l - 6).attr("y", y(v) + 3).attr("text-anchor", "end").attr("class", "ax").text(v + "%"); });
-    C.ages.forEach((a, i) => { if (W >= 480 || i % 2 === 0 || i === C.ages.length - 1) svg.append("text").attr("x", x(a)).attr("y", H - 12).attr("text-anchor", "middle").attr("class", "ax").text(a); });
+    C.ages.forEach((a, i) => { if (W >= 480 || i % 2 === 0 || i === C.ages.length - 1) svg.append("text").attr("x", x(a)).attr("y", H - 22).attr("text-anchor", "middle").attr("class", "ax").text(a); });
     svg.append("text").attr("x", (m.l + W - m.r) / 2).attr("y", H - 1).attr("text-anchor", "middle").attr("class", "ax").text("age at death");
     const STRONG = { Industrial: ["#1a1a18", 2.2], "High medieval": ["#55544f", 2.2] };
     const order = C.periods.slice().sort((p, q) => (STRONG[p] ? 1 : 0) - (STRONG[q] ? 1 : 0));
@@ -643,7 +635,7 @@
       const last = pts[pts.length - 1]; labs.push({ p, y: y(last.v[0]), v: last.v[0], st });
     });
     labs.sort((a, b) => a.y - b.y);
-    for (let i = 1; i < labs.length; i++) labs[i].y = Math.max(labs[i].y, labs[i - 1].y + 11);
+    for (let i = 1; i < labs.length; i++) labs[i].y = Math.max(labs[i].y, labs[i - 1].y + (labs[i].st || labs[i - 1].st ? 15 : 13));
     labs.forEach(l => svg.append("text").attr("x", W - m.r + 8).attr("y", l.y + 3).attr("class", l.st ? "rl" : "ax").style("font-size", W < 480 ? "9px" : null).text(l.p + " " + pct1c(l.v)));
   }
   // caries 2: every adult by how many of their own teeth were carious, one bar per period
@@ -681,7 +673,7 @@
   function drawPathogenMatrix(svg, W) {
     const P = LD.pathogens, cents = P.centuries, order = ["bacteria", "virus", "parasite", "other"];
     const rowsIn = order.flatMap(c => P.taxa.filter(t => t.cat === c).sort((a, b) => b.total - a.total));
-    const narrow = W < 480, labW = narrow ? Math.round(W * 0.36) : Math.min(176, Math.max(118, W * 0.27)), totW = narrow ? 22 : 30, cw = (W - labW - totW) / cents.length, rh = 25, top = 46, gap = 16;
+    const narrow = W < 480, labW = narrow ? Math.round(W * 0.36) : Math.min(176, Math.max(118, W * 0.27)), totW = narrow ? 22 : 30, cw = (W - labW - totW) / cents.length, rh = 28, top = 46, gap = 18;
     let y = top; const ys = []; let lastCat = null;
     rowsIn.forEach(t => { if (t.cat !== lastCat) { y += gap; lastCat = t.cat; } ys.push(y); y += rh; });
     const H = y + 22; size(svg, W, H);
@@ -707,8 +699,8 @@
     rowsIn.forEach((t, r) => {
       const yy = ys[r];
       if (t.cat !== lastCat) { lastCat = t.cat; svg.append("text").attr("x", 0).attr("y", yy - 5).attr("class", "grp").attr("fill", col(t)).text(CATNAME[t.cat].toUpperCase()); }
-      svg.append("text").attr("x", labW - 8).attr("y", yy + 11).attr("text-anchor", "end").attr("class", "rl").style("font-size", narrow ? "9.5px" : null).text(shortDisease(t));
-      svg.append("text").attr("x", labW - 8).attr("y", yy + 21).attr("text-anchor", "end").attr("class", "rs").style("font-size", narrow ? "8px" : null).text(t.taxon);
+      svg.append("text").attr("x", labW - 8).attr("y", yy + 10).attr("text-anchor", "end").attr("class", "rl").style("font-size", narrow ? "9.5px" : null).text(shortDisease(t));
+      svg.append("text").attr("x", labW - 8).attr("y", yy + 23).attr("text-anchor", "end").attr("class", "rs").style("font-size", narrow ? "8px" : null).text(t.taxon);
       svg.append("text").attr("x", W).attr("y", yy + 16).attr("text-anchor", "end").attr("class", "ax").text(t.total);
       svg.append("line").attr("x1", labW).attr("x2", W - totW).attr("y1", yy + rh - 0.5).attr("y2", yy + rh - 0.5).attr("stroke", "#dcdad3").attr("stroke-width", 0.5);
       const cells = cents.map((c, i) => ({ c, i, v: t.cells[c], t })).filter(d => d.v);
@@ -747,11 +739,11 @@
     const rowsN = Math.ceil(M.periods.length / cols), H = rowsN * (ph + gy) + 16; size(svg, W, H);
     M.periods.forEach((p, k) => {
       const ox = (k % cols) * (pw + gx), oy = Math.floor(k / cols) * (ph + gy), g = svg.append("g").attr("transform", "translate(" + ox + "," + oy + ")");
-      const x = d3.scalePoint().domain(M.ages).range([24, pw - 6]), y = d3.scaleLinear().domain([0, 80]).range([ph - 16, 30]);
+      const x = d3.scalePoint().domain(M.ages).range([24, pw - 6]), y = d3.scaleLinear().domain([0, 80]).range([ph - 16, 40]);
       const pts = M.ages.map(a => ({ a, v: M.leh[p][a] })).filter(d => d.v), all = M.leh_overall[p];
       g.append("text").attr("x", 0).attr("y", 11).attr("class", "rl").text(p);
-      g.append("text").attr("x", pw).attr("y", 12).attr("text-anchor", "end").attr("class", "big").text(Math.round(all[0]) + "%");
-      g.append("text").attr("x", pw).attr("y", 24).attr("text-anchor", "end").attr("class", "ax").text("n = " + fmtN(all[1]));
+      g.append("text").attr("x", pw).attr("y", 13).attr("text-anchor", "end").attr("class", "big").text(Math.round(all[0]) + "%");
+      g.append("text").attr("x", 0).attr("y", 26).attr("class", "ax").text("n = " + fmtN(all[1]));
       [0, 40, 80].forEach(v => { g.append("line").attr("x1", 24).attr("x2", pw - 6).attr("y1", y(v)).attr("y2", y(v)).attr("stroke", "#dcdad3").attr("stroke-width", 0.6);
         g.append("text").attr("x", 18).attr("y", y(v) + 3).attr("text-anchor", "end").attr("class", "ax").text(v + (v ? "" : "%")); });
       g.append("path").attr("d", d3.area().x(d => x(d.a)).y0(d => y(d.v[2])).y1(d => y(d.v[3])).curve(d3.curveMonotoneX)(pts)).attr("fill", "#1a1a18").attr("fill-opacity", 0.09);
@@ -796,9 +788,9 @@
     }
     brit.concat(rows0.filter(r => r.series === "modern")).forEach(r => {
       const modern = r.series === "modern", above = modern, anchor = modern ? "end" : "middle";
-      const cx = modern ? W - m.r : Math.min(W - 44, Math.max(m.l + 30, x((r.early + r.late) / 2))), ty = above ? y(r.ppm) - 19 : y(r.ppm) + 15;
+      const cx = modern ? W - m.r : Math.min(W - 44, Math.max(m.l + 30, x((r.early + r.late) / 2))), ty = above ? y(r.ppm) - 22 : y(r.ppm) + 15;
       svg.append("text").attr("x", cx).attr("y", ty).attr("text-anchor", anchor).attr("class", "rl").text(r.label);
-      svg.append("text").attr("x", cx).attr("y", ty + 10).attr("text-anchor", anchor).attr("class", "ax").text(r.ppm + " ppm" + (r.n ? " · n=" + r.n : ""));
+      svg.append("text").attr("x", cx).attr("y", ty + 12.5).attr("text-anchor", anchor).attr("class", "ax").text(r.ppm + " ppm" + (r.n ? " · n=" + r.n : ""));
     });
     const rome = rows0.filter(r => r.series === "roman_world_comparandum");
     if (rome.length) { const top = d3.max(rome, r => r.ppm);
@@ -1004,7 +996,7 @@
     if (!fromIntro) drawCloud(0, 0);
     pairEl.style.transform = "";
     leaveRadial(); stage.classList.remove("intro", "dashboard", "haspanel");
-    panelEl.hidden = true; filmEl.hidden = true;
+    panelEl.hidden = true;
     setShapes(); setT(S.t); setPage();
   }
   $("#skip").onclick = () => { enterMain(false); if (REDUCED) enterRadial(false); else setTimeout(play, 500); };
@@ -1035,7 +1027,7 @@
   if (REDUCED || sc === "main" || sc === "radial" || sc === "layers" || sc === "layer") {
     enterMain(false);
     if (REDUCED || sc === "radial" || sc === "layers") enterRadial(!!qs("animate"));
-    else if (sc === "layer") { if (qs("cut")) S.cut = +qs("cut"); openLayer(({ morphology: "wear" })[qs("layer")] || qs("layer") || "pathogens"); }
+    else if (sc === "layer") { openLayer(({ morphology: "wear" })[qs("layer")] || qs("layer") || "pathogens"); }
     else if (qs("play") === "1") play();
   } else if (qs("freeze")) {
     // test hook: show one intro frame without animation

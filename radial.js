@@ -25,9 +25,10 @@
   const MAX_SPAN = Math.max(...DATA.map(c => c.segs[c.segs.length - 1][1] - c.segs[0][0]));
   const rAt = t => R0 + (t / MAX_SPAN) * (RMAX - R0);
 
-  // tall, narrow containers turn every line a quarter turn (the teeth stay upright) so the long lines run
-  // along the long side and the names stay on canvas
-  const PORTRAIT = 1.05, PORTRAIT_TURN = 90;
+  // Tall, narrow containers turn the whole set of lines (the teeth stay upright) to whichever angle lets the
+  // figure be largest, so the long lines run along the long side and the names stay on canvas.
+  // On small screens, names of more than one word that are longer than WRAP_AT characters break onto two lines.
+  const PORTRAIT = 1.05, TURN_STEP = 6, WRAP_AT = 10;
   // teeth: height in figure units and the gap between them; the shared point is the middle of the gap
   const TOOTH_H = { canine: 206, molar: 168 }, GAP = 30;
   // decorative hairlines: composition only, no data
@@ -70,25 +71,40 @@
       const val = v => typeof v === "function" ? v() : v;   // numbers, or functions read on every rebuild
       const padTop = Math.max(24, val(opts.padTop) || 0), padBottom = Math.max(24, val(opts.padBottom) || 0);
       const CX = W / 2, CY = (padTop + H - padBottom) / 2, HALF = (H - padTop - padBottom) / 2;
-      const narrow = W < 640, nameSize = narrow ? 14 : 18, turn = H / W > PORTRAIT ? PORTRAIT_TURN : 0;
-      const ang = c => c.angle + turn;
+      const narrow = W < 640, nameSize = narrow ? 14 : 18, lineH = nameSize * 1.12;
       svg = el("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, class: "rd", role: "group",
-        "aria-label": "Radial timeline of the tooth record: four lines leave a point between a canine and a first molar, one each for caries, pathogens, wear and linear enamel hypoplasia, and metals. A line's length is the time its record covers, on one shared scale; circles mark the records within it and gaps are years with no record. Hover or focus a circle for its years and how much was gathered; activate a name to show how much was gathered per year." }, host);
+        "aria-label": "Radial timeline of the tooth record: " + DATA.length + " lines leave a point between a canine and a first molar, one each for " + DATA.map(c => c.name.toLowerCase()).join(", ") + ". A line's length is the time its record covers, on one shared scale; circles mark the records within it and gaps are years with no record. Hover or focus a circle for its years and how much was gathered; activate a name to open its section, or an end circle to show how much was gathered per year." }, host);
       const defs = el("defs", {}, svg);
 
-      // ---- fit: one scale factor so the longest reach plus its name stays on canvas
+      // ---- names: one or two lines, and how much room each needs
       const probe = el("text", { class: "rd-name", style: "font-size:" + nameSize + "px" }, svg);
-      const nameW = DATA.map(c => { probe.textContent = c.name; return probe.getComputedTextLength(); });
-      probe.remove();
-      const pad = narrow ? 10 : 24, dotGap = 14;
-      let fit = 1.15;
-      DATA.forEach((c, i) => {
-        const a = ang(c) * Math.PI / 180, end = rAt(c.segs[c.segs.length - 1][1] - c.segs[0][0]);
-        const cx = Math.abs(Math.cos(a)), cy = Math.abs(Math.sin(a));
-        if (cx > 0.01) fit = Math.min(fit, cx < 0.26 ? (W / 2 - pad - nameW[i] / 2) / (cx * end) : (W / 2 - pad - dotGap - nameW[i]) / (cx * end));
-        if (cy > 0.01) fit = Math.min(fit, (HALF - nameSize * 1.4) / (cy * end));
+      const width = t => { probe.textContent = t; return probe.getComputedTextLength(); };
+      const nameLines = DATA.map(c => {
+        const w = c.name.split(" ");
+        if (!narrow || w.length < 2 || c.name.length <= WRAP_AT) return [c.name];
+        let best = null;   // the break that makes the wider line narrowest
+        for (let k = 1; k < w.length; k++) { const a = w.slice(0, k).join(" "), b = w.slice(k).join(" "), m = Math.max(width(a), width(b)); if (!best || m < best[0]) best = [m, a, b]; }
+        return [best[1], best[2]];
       });
-      fit = Math.max(0.28, fit);
+      const nameW = nameLines.map(L => Math.max(...L.map(width)));
+      probe.remove();
+
+      // ---- fit: one scale factor so every line plus its name stays on canvas, for a given turn of the whole set
+      const pad = narrow ? 10 : 24, dotGap = 14;
+      const fitFor = turn => {
+        let f = 1.15;
+        DATA.forEach((c, i) => {
+          const a = (c.angle + turn) * Math.PI / 180, end = rAt(c.segs[c.segs.length - 1][1] - c.segs[0][0]);
+          const cx = Math.abs(Math.cos(a)), cy = Math.abs(Math.sin(a)), tall = nameLines[i].length * lineH;
+          if (cx > 0.01) f = Math.min(f, cx < 0.26 ? (W / 2 - pad - nameW[i] / 2) / (cx * end) : (W / 2 - pad - dotGap - nameW[i]) / (cx * end));
+          if (cy > 0.01) f = Math.min(f, (HALF - tall - 4) / (cy * end));
+        });
+        return f;
+      };
+      let turn = 0;
+      if (H / W > PORTRAIT) for (let t = 0; t < 360; t += TURN_STEP) if (fitFor(t) > fitFor(turn) + 0.005) turn = t;
+      const ang = c => c.angle + turn;
+      const fit = Math.max(0.28, fitFor(turn));
       const R = t => fit * rAt(t), r0 = fit * R0;
       const pt = (ang, r) => { const a = ang * Math.PI / 180; return [CX + r * Math.cos(a), CY + r * Math.sin(a)]; };
 
@@ -149,21 +165,26 @@
 
       // ---- readout: years and amount on a thin leader line
       const rLine = el("line", {}, read), rYear = el("text", { class: "rd-yr" }, read), rCount = el("text", { class: "rd-ct" }, read);
+      // the readout sits on a short leader to one side of the line; it tries both sides and both alignments
+      // and takes the first place where it touches no name and stays on canvas
       function showRead(c, d, t0) {
         const q = pt(ang(c), (R(d[0] - t0) + R(Math.min(d[1], c.segs[c.segs.length - 1][1]) - t0)) / 2);
-        const a = ang(c) * Math.PI / 180, ux = -Math.sin(a), uy = Math.cos(a), side = uy >= 0 ? 1 : -1;
-        const lx = q[0] + ux * side * 34, ly = q[1] + uy * side * 34;
-        rLine.setAttribute("x1", q[0] + ux * side * 8); rLine.setAttribute("y1", q[1] + uy * side * 8);
-        rLine.setAttribute("x2", lx); rLine.setAttribute("y2", ly);
+        const a = ang(c) * Math.PI / 180, ux = -Math.sin(a), uy = Math.cos(a), pref = uy >= 0 ? 1 : -1;
         rYear.textContent = range(d[0], d[1]); rCount.textContent = amount(c, d);
-        // the text runs away from its own line: towards the side the leader points
-        let anchor = ux * side >= 0 ? "start" : "end";
-        const wide = Math.max(rYear.getComputedTextLength(), rCount.getComputedTextLength()) + 10;
-        if (anchor === "end" && lx - wide < 4) anchor = "start";
-        if (anchor === "start" && lx + wide > W - 4) anchor = "end";
-        const tx = lx + (anchor === "end" ? -8 : 8);
-        [[rYear, 1], [rCount, 19]].forEach(([t, dy]) => { t.setAttribute("x", tx); t.setAttribute("y", ly + dy); t.setAttribute("text-anchor", anchor); });
+        const nameBoxes = nameEls.map(n => n.getBBox()), clear = bx => bx.x >= 4 && bx.x + bx.width <= W - 4 && bx.y >= 4 && bx.y + bx.height <= H - 4 &&
+          nameBoxes.every(n => bx.x > n.x + n.width + 3 || n.x > bx.x + bx.width + 3 || bx.y > n.y + n.height + 2 || n.y > bx.y + bx.height + 2);
+        const place = (side, anchor, len) => {
+          const lx = q[0] + ux * side * len, ly = q[1] + uy * side * len, tx = lx + (anchor === "end" ? -8 : 8);
+          rLine.setAttribute("x1", q[0] + ux * side * 8); rLine.setAttribute("y1", q[1] + uy * side * 8); rLine.setAttribute("x2", lx); rLine.setAttribute("y2", ly);
+          [[rYear, 1], [rCount, 19]].forEach(([t, dy]) => { t.setAttribute("x", tx); t.setAttribute("y", ly + dy); t.setAttribute("text-anchor", anchor); });
+          const y1 = rYear.getBBox(), y2 = rCount.getBBox(), x0 = Math.min(y1.x, y2.x), x1 = Math.max(y1.x + y1.width, y2.x + y2.width);
+          return { x: x0, y: y1.y, width: x1 - x0, height: y2.y + y2.height - y1.y };
+        };
         read.classList.add("on");
+        const tries = [];
+        [34, 58, 86, 120].forEach(len => [pref, -pref].forEach(side => { const away = ux * side >= 0 ? "start" : "end"; [away, away === "start" ? "end" : "start"].forEach(an => tries.push([side, an, len])); }));
+        for (const t of tries) if (clear(place(...t))) return;
+        place(...tries[0]);   // nowhere is clear: fall back to the usual place
       }
       const hideRead = () => read.classList.remove("on");
       function showRing(node) {
@@ -239,10 +260,13 @@
         const cs = Math.cos(A * Math.PI / 180), sn = Math.sin(A * Math.PI / 180), upright = Math.abs(cs) < 0.26;
         const right = cs > 0, lp = upright ? pt(A, endR + dotGap + (sn > 0 ? nameSize * 0.7 : 0)) : pt(A, endR + dotGap + 2);
         const opens = typeof opts.onOpen === "function";
-        const name = el("text", { class: "rd-name" + (open.has(c.key) ? " open" : "") + (opens ? " go" : ""), x: lp[0], y: lp[1] + nameSize / 3, "text-anchor": upright ? "middle" : right ? "start" : "end",
+        // the block of lines sits centred on the end dot beside it, or grows away from the dot above or below it
+        const nl = nameLines[ci].length, y0 = upright ? (sn > 0 ? lp[1] + nameSize / 3 : lp[1] + nameSize / 3 - (nl - 1) * lineH) : lp[1] + nameSize / 3 - (nl - 1) * lineH / 2;
+        const name = el("text", { class: "rd-name" + (open.has(c.key) ? " open" : "") + (opens ? " go" : ""), x: lp[0], y: y0, "text-anchor": upright ? "middle" : right ? "start" : "end",
           style: "font-size:" + nameSize + "px", tabindex: 0, role: opens ? "link" : "button", "aria-pressed": opens ? null : open.has(c.key) ? "true" : "false",
           "aria-label": opens ? c.name + ": open this section" : c.name + ": show how much was gathered per year" }, names);
-        name.textContent = c.name;
+        if (nl === 1) name.textContent = c.name;
+        else nameLines[ci].forEach((t, li) => { el("tspan", { x: lp[0], dy: li ? lineH : 0 }, name).textContent = t; });
         nameEls.push(name);
         function toggle() {
           const on = !open.has(c.key);
@@ -263,21 +287,15 @@
         g.addEventListener("mouseleave", () => lit(g, false));
       });
 
-      // ---- names that run into each other: the longer one breaks onto two lines, then moves outward along its line
-      const box = n => n.getBBox(), meets = (a, b) => a.x < b.x + b.width + 6 && b.x < a.x + a.width + 6 && a.y < b.y + b.height + 2 && b.y < a.y + a.height + 2;
-      const nudge = (n, c, by) => { const a = (c.angle + turn) * Math.PI / 180; n.setAttribute("x", +n.getAttribute("x") + Math.cos(a) * by); n.setAttribute("y", +n.getAttribute("y") + Math.sin(a) * by); n.querySelectorAll("tspan").forEach(t => t.setAttribute("x", n.getAttribute("x"))); };
-      for (let pass = 0; pass < 4; pass++) {
+      // ---- names that still run into each other: the longer one moves outward along its line
+      const box = n => n.getBBox(), meets = (p, q) => p.x < q.x + q.width + 6 && q.x < p.x + p.width + 6 && p.y < q.y + q.height + 2 && q.y < p.y + p.height + 2;
+      for (let pass = 0; pass < 6; pass++) {
         let moved = false;
-        nameEls.forEach((a, i) => nameEls.forEach((b, j) => {
-          if (j <= i || !meets(box(a), box(b))) return;
-          const [n, k] = DATA[i].name.length >= DATA[j].name.length ? [a, i] : [b, j];
-          const words = DATA[k].name.split(" ");
-          if (words.length > 1 && !n.querySelector("tspan")) {
-            const half = Math.ceil(words.length / 2), x = n.getAttribute("x");
-            n.textContent = "";
-            [words.slice(0, half).join(" "), words.slice(half).join(" ")].forEach((t, li) => el("tspan", { x, dy: li ? "1.1em" : 0 }, n).textContent = t);
-            if (Math.sin((DATA[k].angle + turn) * Math.PI / 180) < -0.3) n.setAttribute("y", +n.getAttribute("y") - nameSize * 1.1);   // grow upwards on upward lines
-          } else nudge(n, DATA[k], 14);
+        nameEls.forEach((p, i) => nameEls.forEach((q, j) => {
+          if (j <= i || !meets(box(p), box(q))) return;
+          const k = DATA[i].name.length >= DATA[j].name.length ? i : j, n = nameEls[k], a = ang(DATA[k]) * Math.PI / 180;
+          n.setAttribute("x", +n.getAttribute("x") + Math.cos(a) * 12); n.setAttribute("y", +n.getAttribute("y") + Math.sin(a) * 12);
+          n.querySelectorAll("tspan").forEach(t => t.setAttribute("x", n.getAttribute("x")));
           moved = true;
         }));
         if (!moved) break;
