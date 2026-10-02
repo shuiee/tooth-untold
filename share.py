@@ -26,9 +26,10 @@ GUIDE = """<!--
   THE FLOW
     Intro      the engraved jaw opens, four teeth line up, the first molar and canine become point clouds.
     Overview   the two teeth alone play through 300-1900 CE (no timeline); marks arrive century by century.
-    Layers     the teeth separate into three sheets: pathogens, morphology, metals. Click one.
+    Layers     the teeth separate into four sheets: pathogens, morphology, metals, caries. Click one.
     Dashboard  that layer's teeth, with a draggable cross-section "film", beside charts drawn from the team's
                tabular datasets (window.LAYER_DATA). The "human x layer" event strips are still placeholders.
+               Caries shows the caries plate instead: decay spreading from the fissures, era by era.
 
   WHAT IS IN THIS FILE (top to bottom)
     1. <head>       styles. Colours, fonts and layout are CSS variables in :root.
@@ -36,20 +37,22 @@ GUIDE = """<!--
     3. Library      d3 7.9.0 from a public CDN.
     4. tooth.js     the 3D renderer. The tooth is a signed-distance shape ray-marched in a WebGL2
                     shader and drawn as an engraving. shape() holds the anatomy of each tooth type.
-    5. app.js       the storyline: intro, pooling of the data per 100-year window, particles,
+    5. caries.js    the caries plate (the Caries dashboard): decay solved to each era's rate, drawn in SVG.
+    6. app.js       the storyline: intro, pooling of the data per 100-year window, particles,
                     overview playback, layer sheets and dashboards.
-    6. DATA         generated blocks, large and not meant for hand edits:
+    7. DATA         generated blocks, large and not meant for hand edits:
                       window.ERA_IMAGES  pictures: the intro jaw engraving (jaw-arches), event pictures (event-...)
                       window.TOOTH_DATA  every record the page draws (see "Data" below)
                       window.TOOTH_MODELS canine distance volumes and tooth point clouds (build_models.py)
                       window.LAYER_DATA  the dashboards' chart data (build_layers.py, from source/layer data/)
-    7. Start call   window.startStatisticalTooth() runs the page once the data has loaded.
+    8. Start call   window.startStatisticalTooth() runs the page once the data has loaded.
 
   COMMON EDITS (all in app.js unless noted)
     Layers            LAYERS: name, description, chart title, legend series and placeholder events for each
                       layer. Event pictures are window.ERA_IMAGES["event-..."] (images/event-*.jpg in the source).
     Dashboard         CHARTS: each layer's chart titles, subtitles and notes. dashHTML() lays out the panel;
                       drawPathogenMatrix(), drawWear(), drawLEH(), drawLead() and drawElements() draw the charts.
+    Caries plate      caries.js: CONTEXT (era events and text), frac() (the expanded scale), NOTES, the cusp lobes.
     Cross-section     CUT_MIN / CUT_MAX (depth range), drawFilm() (the film strip), setCut() and the #cut slider.
     Which marks show  paramsFor() and showsRec() keep only the chosen layer's traces in the teeth.
     Overview speed    SPEED is years per second; stepPlay() holds briefly at 1900, then enterLayers() runs.
@@ -63,7 +66,7 @@ GUIDE = """<!--
   TEST SHORTCUTS (add to the file's address)
     ?scene=main&t=1347        skip the intro and show the overview at a year (&play=1 to play from there)
     ?scene=layers             the separated layer sheets
-    ?scene=layer&layer=metals one layer's dashboard (pathogens, morphology or metals); &cut=-0.3 sets the film
+    ?scene=layer&layer=metals one layer's dashboard (pathogens, morphology, metals or caries); &cut=-0.3 sets the film
     &still=1  &notrans=1      no travelling marks / no CSS transitions (for screenshots)
     ?freeze=0|0.5|1|2|3       hold one intro frame (0 closed jaw, 0.5 half open, 1 open, 2 lineup, 3 cloud)
 
@@ -79,7 +82,7 @@ GUIDE = """<!--
     100 years. Historical text and pictures are context, not data. Entry routes are illustrations.
 
   To regenerate the data, or to edit the code as separate files, ask for the source folder:
-  build_data.py, bundle.py, share.py, index.html, app.js, tooth.js, data/.
+  build_data.py, bundle.py, share.py, index.html, app.js, tooth.js, caries.js, data/.
 -->"""
 
 data = "\n".join(
@@ -93,9 +96,10 @@ doc = ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
        "<!-- 3 · library -->\n"
        "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js\"></script>\n\n"
        "<!-- 4 · renderer -->\n<script>\n" + rd("tooth.js").replace("</script", "<\\/script") + "\n</script>\n\n"
-       "<!-- 5 · storyline and interface -->\n<script>\n" + app.replace("</script", "<\\/script") + "\n</script>\n\n"
-       "<!-- 6 · generated data -->\n" + data + "\n\n"
-       "<!-- 7 · start -->\n<script>window.startStatisticalTooth();</script>\n</body>\n</html>\n")
+       "<!-- 5 · caries plate -->\n<script>\n" + rd("caries.js").replace("</script", "<\\/script") + "\n</script>\n\n"
+       "<!-- 6 · storyline and interface -->\n<script>\n" + app.replace("</script", "<\\/script") + "\n</script>\n\n"
+       "<!-- 7 · generated data -->\n" + data + "\n\n"
+       "<!-- 8 · start -->\n<script>window.startStatisticalTooth();</script>\n</body>\n</html>\n")
 
 os.makedirs(os.path.join(HERE, "share"), exist_ok=True)
 out = os.path.join(HERE, "share", "statistical-tooth.html")

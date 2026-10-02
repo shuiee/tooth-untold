@@ -25,6 +25,7 @@ Serve the folder rather than double-clicking `index.html`. Browsers block some l
 index.html          layout and styles (all text in Lora for now: --serif and --label in :root; colours are CSS variables there too)
 app.js              the storyline: intro, pooling per 100-year window, marks, overview playback, layer sheets, dashboards
 tooth.js            the 3D renderer (WebGL2 ray-marched distance fields, stipple shading, cut section)
+caries.js           the caries plate in the Caries dashboard (SVG: decay solved to each era's rate)
 data/
   data.js           every record the page draws        ← build_data.py
   models.js         canine volumes + tooth point clouds ← build_models.py
@@ -59,11 +60,12 @@ Never edit `data/*.js` or `images/jaw-arches.webp` by hand. They're regenerated 
 2. The jaw steps aside. Four teeth line up, drawn from the models: first molar, two premolars, canine. The premolars fade and the molar and canine close in.
 3. The drawings become rotating 3D point clouds.
 4. **Overview.** Only the two teeth, cut open in their jaw, play through 300 → 1900 at `SPEED` years a second, with no timeline; a small readout under them gives the year. At each new century, DNA marks travel in from below through the root canal and tartar particles settle from above. At 1900 the teeth pool all periods.
-5. **Layers.** The teeth separate into three sheets, fanned like an exploded drawing (a stacked deck on phones): **01 Pathogens** (disease DNA), **02 Morphology** (wear, decay, stress lines) and **03 Metals** (lead in enamel, particles in tartar). Each sheet is a picture of the pooled teeth carrying only that layer's traces. Hover lifts a sheet; a click opens it. **Replay** runs the overview again.
+5. **Layers.** The teeth separate into four sheets, fanned like an exploded drawing (a stacked deck on phones): **01 Pathogens** (disease DNA), **02 Morphology** (wear, decay, stress lines), **03 Metals** (lead in enamel, particles in tartar) and **04 Caries** (decay, era by era). Each sheet is a picture of the pooled teeth carrying only that layer's traces. Hover lifts a sheet; a click opens it. **Replay** runs the overview again.
 6. **Dashboard.** The chosen layer's teeth sit beside its charts, with tabs to the other layers and a way back to all layers. The teeth can be dragged to turn them, and a **cross-section film** stands in each jaw: drag its sprocket strip, or the slider under the teeth, to cut deeper or to see more of the whole tooth. The charts:
    - **Pathogens:** which organism dominated each century's recovered genomes (shares, in the colours of the marks in the teeth), with the number of genomes per century on top.
    - **Morphology:** mean molar wear by period and age at death, and stress lines (LEH) by age at death for each period, with 95% intervals.
    - **Metals:** lead in childhood enamel from the Neolithic to 20th-century births, and eight elements in modern against archaeological enamel.
+   - **Caries:** the caries plate (`caries.js`). A lower first molar and a lower canine seen from above, with decay spreading from the fissures. Six eras play in sequence and each leaves its outline; the shaded share of the crown is the share of adults with caries, age-standardised, on an expanded scale the notes state. Beside it: three figures and one severity bar per era. A click on a mark, outline or era opens that era's events (from the team's timeline) and a six-era comparison.
 
    The "human × layer" event strips under the charts are still **placeholders**.
 
@@ -92,8 +94,9 @@ GHHP skeletal sites are weighted by the share of their date range inside the win
 
 | Change | Where |
 |---|---|
-| The three layers | `LAYERS` in `app.js`: name, description, chart title, legend series and placeholder events for each |
+| The four layers | `LAYERS` in `app.js`: name, description, chart title, legend series and placeholder events for each |
 | A layer's charts | `CHARTS` in `app.js` (titles, subtitles, notes); `drawPathogenMatrix()`, `drawWear()`, `drawLEH()`, `drawLead()`, `drawElements()`. The data comes from `build_layers.py`: change a dataset in `source/layer data/`, rerun it, then `bundle.py`. |
+| The caries plate | `caries.js`: `CONTEXT` (each era's events and text, which are context, not data), `frac()` (the expanded scale), `NOTES`, the cusp lobes and fissures. Its numbers come from `build_layers.py` (caries). `CariesPlate.check(LAYER_DATA.caries)` in the browser console reports each era's shaded share against its target. |
 | The cross-section film | `CUT_MIN`/`CUT_MAX` (how deep or shallow it can go), `drawFilm()` (the strip), `setCut()`; the slider is `#film` in `index.html` |
 | Event pictures | Save `images/event-<name>.jpg` (the names are the `img` keys in `LAYERS`, e.g. `event-justinian`), then run `bundle.py`. |
 | Which traces each layer shows | `paramsFor()` (wear, decay, stress lines, lead, tartar) and `showsRec()` (which records become marks) |
@@ -133,7 +136,7 @@ GHHP skeletal sites are weighted by the share of their date range inside the win
 ## Open work
 
 - [ ] **Event strips.** The "human × layer" events in `LAYERS` still need dates and pictures.
-- [ ] **Caries.** `source/layer data/Caries Viz/` (decay by age, decay severity) is in the repository but not drawn yet.
+- [ ] **Caries by age.** The Caries dashboard draws decay by era and severity; `source/layer data/Caries Viz/c1b_caries_by_age_data.csv` (decay by age at death) is not drawn yet.
 - [ ] **Removed for now in v6**: the timeline, story markers, header (Lower/Upper, Region), number callouts, end panel and Limitations. They are in the Git history (commit `26ad507`) if any should come back.
 - [ ] **Use the first molar models.** `mandibular-first-molar.zip` and `maxillary-first-molar.zip` are now in `source/teeth models/`, in the same format as the canines. Add them to `TEETH` in `build_models.py` so the molar, which carries the wear data, stops being a constructed shape.
 - [ ] **Model credit and licence.** The ZBrush models in `source/teeth models/` arrived without author or licence information. Confirm both before public release and add the credit line to `limitsHTML()`.

@@ -39,6 +39,9 @@
     { key: "metals", n: "03", name: "Metals", about: "lead in enamel, particles in tartar",
       human: "Human × metal correlations across time",
       events: [{ label: "Industrial Revolution", when: "Year–Year", img: "event-industrial" }] },
+    // the caries plate (caries.js) carries its own events, from the team's timeline, so this layer has no placeholder strip
+    { key: "caries", n: "04", name: "Caries", about: "decay, era by era",
+      human: "", events: [] },
   ];
   const layerOf = k => LAYERS.find(L => L.key === k);
 
@@ -150,10 +153,10 @@
   }
   // the renderer's inputs for one tooth; S.show keeps only one layer's traces
   function paramsFor(T) {
-    const SH = T.R.st.S, top = SH.top, L = S.show, shape = L === "all" || L === "morphology";
+    const SH = T.R.st.S, top = SH.top, L = S.show, shape = L === "all" || L === "morphology", decay = shape || L === "caries";
     const wear = shape && T.type === "molar" ? G.wear : null, leh = shape && T.type === "canine" ? G.leh : null;
     const wearY = wear != null ? top - (wear - 1) / 7 * 0.55 * top : top + 0.02;
-    const cr = shape && G.caries != null ? (0.015 + 0.7 * G.caries) * (SH.B[0] / 0.5) : 0;
+    const cr = decay && G.caries != null ? (0.015 + 0.7 * G.caries) * (SH.B[0] / 0.5) : 0;
     const cp = SH.cariesAt === "occlusal" ? [0.06, Math.min(wearY, SH.grooveY) - 0.005, -0.03] : [SH.B[0] * 0.97, 0.44 * top, -0.13];
     const pb = (L === "all" || L === "metals") && G.pb != null ? clamp(Math.log10(G.pb / 0.05) / Math.log10(10 / 0.05), 0, 1) : 0;
     const calc = G.calcRecs.some(r => L === "all" || (L === "pathogens" && r.kind !== "metal") || (L === "metals" && r.kind === "metal")) ? 1 : 0;
@@ -432,7 +435,7 @@
     layersEl.innerHTML = ""; layersEl.classList.toggle("deck", deck());
     LAYERS.forEach((L, i) => {
       const b = document.createElement("button");
-      b.className = "sheet"; b.style.setProperty("--c", i - 1); b.setAttribute("aria-label", "Open the " + L.name.toLowerCase() + " layer");
+      b.className = "sheet"; b.style.setProperty("--c", i - (LAYERS.length - 1) / 2); b.setAttribute("aria-label", "Open the " + L.name.toLowerCase() + " layer");
       b.appendChild(GL ? sheetPicture(L, !deck()) : document.createElement("canvas"));
       b.insertAdjacentHTML("beforeend", "<span class='sl'><b>" + L.n + "</b>" + esc(L.name) + "<i>" + esc(L.about) + "</i></span>");
       b.onclick = () => openLayer(L.key);
@@ -443,10 +446,10 @@
   }
   // side by side and turned, like an exploded drawing, when there is room; stacked like a deck on narrow screens
   function fitSheets() {
-    const W = pairEl.clientWidth, H = pairEl.clientHeight, sw = stage.clientWidth - 32, wide = !deck();
+    const W = pairEl.clientWidth, H = pairEl.clientHeight, sw = stage.clientWidth - 32, wide = !deck(), n = LAYERS.length;
     const ry = wide ? -24 : 0, cw = W * Math.cos(ry * Math.PI / 180);
-    const s = wide ? Math.min(0.6, 0.96 * sw / (3 * cw * 0.9)) : 0.64;
-    const v = wide ? { dx: s * cw * 0.9, dy: -0.05 * H, dz: -140, rx: 0, ry } : { dx: 0, dy: 0.2 * H, dz: 40, rx: 10, ry: 0 };
+    const s = wide ? Math.min(0.6, 0.96 * sw / (n * cw * 0.9)) : 0.64;
+    const v = wide ? { dx: s * cw * 0.9, dy: -0.05 * H, dz: -140, rx: 0, ry } : { dx: 0, dy: 0.4 * H / (n - 1), dz: 40, rx: 10, ry: 0 };
     Object.entries({ "--dx": v.dx + "px", "--dy": v.dy + "px", "--dz": v.dz + "px", "--rx": v.rx + "deg", "--ry": v.ry + "deg", "--s": s, "--bw": (1.1 / s) + "px", "--fs": (12 / s) + "px" })
       .forEach(([k, val]) => layersEl.style.setProperty(k, val));
   }
@@ -507,7 +510,9 @@
       notes: ["Source: Kamenov et al. 2018, Table 1, via the team's particulates and metals dataset."] }],
   };
   function dashHTML(L) {
-    const ev = L.events.map((e, i) => "<figure class='ev' style='left:" + ((i + 1) / (L.events.length + 1) * 100).toFixed(1) + "%'><figcaption><b>" + esc(e.label) + "</b>" + esc(e.when) + "</figcaption>" +
+    if (L.key === "caries") return "<div class='dp'>" + (LD && LD.caries ? "<section><h3>Caries, read from the crown</h3><p class='sub'>Two teeth seen from above, with decay drawn where it begins, in the pits and fissures of the chewing surface, spreading outward. Six eras run in sequence; each leaves its outline behind.</p><div id='ch-caries'></div></section>" :
+      "<section><p class='sub'>The caries data in data/layers.js is missing: run build_layers.py.</p></section>") + "</div>";
+    const ev =L.events.map((e, i) => "<figure class='ev' style='left:" + ((i + 1) / (L.events.length + 1) * 100).toFixed(1) + "%'><figcaption><b>" + esc(e.label) + "</b>" + esc(e.when) + "</figcaption>" +
       (IMG[e.img] ? "<img src='" + IMG[e.img] + "' alt=''>" : "<div class='slot'>Image</div>") + "</figure>").join("");
     const charts = (CHARTS[L.key] || []).map(c => "<section><h3>" + esc(c.title) + "</h3><p class='sub'>" + esc(c.sub) + "</p><svg class='chart' id='ch-" + c.id + "' role='img' aria-label='" + esc(c.title) + "'></svg>" +
       c.notes.map(n => "<p class='ctxnote'>" + esc(n) + "</p>").join("") + "</section>").join("");
@@ -517,6 +522,7 @@
   }
   function drawCharts(L) {
     if (!LD) return;
+    if (L.key === "caries") { if (window.CariesPlate) CariesPlate.mount(document.getElementById("ch-caries"), LD.caries); return; }
     (CHARTS[L.key] || []).forEach(c => {
       const svg = d3.select("#ch-" + c.id); if (svg.empty()) return;
       svg.selectAll("*").remove(); d3.select(svg.node().parentNode).selectAll(".keylist").remove();
