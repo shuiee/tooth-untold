@@ -26,15 +26,19 @@ GUIDE = """<!--
   THE FLOW
     Intro      the engraved jaw opens, four teeth line up, the first molar and canine become point clouds.
     Overview   the two teeth alone play through 300-1900 CE (no timeline); marks arrive century by century.
-    Layers     the teeth separate into three sheets: pathogens, morphology, metals. Click one.
-    Dashboard  that layer's teeth, with a draggable cross-section "film", beside charts drawn from the team's
-               tabular datasets (window.LAYER_DATA). The "human x layer" event strips are still placeholders.
+    Timeline   Plate II, the radial timeline (radial.js, data in radial-data.js): five records leave a point
+               between the teeth; line length is the time each covers. A name opens that record's section.
+    Sections   1 Caries, 2 Pathogens, 3 Wear and LEH, 4 Metals, 5 Artificial interventions, each a journal spread: the plate (the 3D teeth
+               with a cross-section "film" and labelled anatomy) on the left, numbered figures drawn from the
+               team's datasets (window.LAYER_DATA) on the right. The event strips are still placeholders.
+    Journal    a running head (title, plate or section, section index), captions under every plate and
+               figure, page numbers. setPage() in app.js writes them; .rh / .fig / .sec rules in the styles.
 
   WHAT IS IN THIS FILE (top to bottom)
     1. <head>       styles. Colours, fonts and layout are CSS variables in :root.
     2. <body>       page markup: layer tabs, teeth, layer sheets, dashboard panel, intro layers.
     3. Library      d3 7.9.0 from a public CDN.
-    4. tooth.js     the 3D renderer. The tooth is a signed-distance shape ray-marched in a WebGL2
+    4. tooth.js     the 3D renderer. radial-data.js + radial.js (4b) are the radial timeline. The tooth is a signed-distance shape ray-marched in a WebGL2
                     shader and drawn as an engraving. shape() holds the anatomy of each tooth type.
     5. app.js       the storyline: intro, pooling of the data per 100-year window, particles,
                     overview playback, layer sheets and dashboards.
@@ -46,13 +50,14 @@ GUIDE = """<!--
     7. Start call   window.startStatisticalTooth() runs the page once the data has loaded.
 
   COMMON EDITS (all in app.js unless noted)
-    Layers            LAYERS: name, description, chart title, legend series and placeholder events for each
-                      layer. Event pictures are window.ERA_IMAGES["event-..."] (images/event-*.jpg in the source).
+    Sections          LAYERS: number, name, dek, plate caption and placeholder events for each section. Event pictures are window.ERA_IMAGES["event-..."] (images/event-*.jpg in the source).
     Dashboard         CHARTS: each layer's chart titles, subtitles and notes. dashHTML() lays out the panel;
                       drawPathogenMatrix(), drawWear(), drawLEH(), drawLead() and drawElements() draw the charts.
     Cross-section     CUT_MIN / CUT_MAX (depth range), drawFilm() (the film strip), setCut() and the #cut slider.
     Which marks show  paramsFor() and showsRec() keep only the chosen layer's traces in the teeth.
-    Overview speed    SPEED is years per second; stepPlay() holds briefly at 1900, then enterLayers() runs.
+    Overview speed    SPEED is years per second; stepPlay() holds briefly at 1900, then enterRadial() runs.
+    Radial timeline   radial-data.js holds the four records (edit numbers there). radial.js: R0, RMAX, MAX_SPAN at
+                      the top set the geometry; radialTeeth() in app.js makes the tooth pictures.
     Intro jaw         loadJaw(), jawInk() and jawPose(). The picture is window.ERA_IMAGES["jaw-arches"]:
                       both arches opened flat, the hinge on the horizontal centre line. JAW_TEETH places the rings.
     Intro timing      intro(): the wait(...) and tween(...) durations, in ms.
@@ -62,7 +67,7 @@ GUIDE = """<!--
 
   TEST SHORTCUTS (add to the file's address)
     ?scene=main&t=1347        skip the intro and show the overview at a year (&play=1 to play from there)
-    ?scene=layers             the separated layer sheets
+    ?scene=radial             the radial timeline (&animate=1 plays its entrance)
     ?scene=layer&layer=metals one layer's dashboard (pathogens, morphology or metals); &cut=-0.3 sets the film
     &still=1  &notrans=1      no travelling marks / no CSS transitions (for screenshots)
     ?freeze=0|0.5|1|2|3       hold one intro frame (0 closed jaw, 0.5 half open, 1 open, 2 lineup, 3 cloud)
@@ -93,6 +98,8 @@ doc = ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
        "<!-- 3 · library -->\n"
        "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js\"></script>\n\n"
        "<!-- 4 · renderer -->\n<script>\n" + rd("tooth.js").replace("</script", "<\\/script") + "\n</script>\n\n"
+       "<!-- 4b · radial timeline: data, then drawing -->\n<script>\n" + rd("radial-data.js").replace("</script", "<\\/script") + "\n</script>\n"
+       "<script>\n" + rd("radial.js").replace("</script", "<\\/script") + "\n</script>\n\n"
        "<!-- 5 · storyline and interface -->\n<script>\n" + app.replace("</script", "<\\/script") + "\n</script>\n\n"
        "<!-- 6 · generated data -->\n" + data + "\n\n"
        "<!-- 7 · start -->\n<script>window.startStatisticalTooth();</script>\n</body>\n</html>\n")

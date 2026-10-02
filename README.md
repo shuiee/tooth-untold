@@ -1,6 +1,6 @@
 # The Tooth Untold
 
-**What can a tooth remember?** An interactive data story. Two composite teeth, a first molar and a canine, are cut open inside their jaw and change as they play through 300 to 1900 CE. Then they separate into three layers of evidence (pathogens, morphology, metals), each with its own dashboard. Decay, childhood stress lines, chewing wear, tartar, enamel lead and disease DNA all come from published European datasets. Nothing on the page is simulated. The dashboards' charts come from the team's tabular datasets; their event strips are still marked placeholders.
+**What can a tooth remember?** An interactive data story. Two composite teeth, a first molar and a canine, are cut open inside their jaw and change as they play through 300 to 1900 CE. Then a radial timeline shows how far back each kind of evidence reaches (caries, pathogens, wear and LEH, metals, artificial interventions), and each record opens its own section. Everything after the intro is laid out like a scientific journal: running heads, numbered plates and figures with captions, page numbers. Decay, childhood stress lines, chewing wear, tartar, enamel lead and disease DNA all come from published European datasets. Nothing on the page is simulated. The dashboards' charts come from the team's tabular datasets; their event strips are still marked placeholders.
 
 Harvard MDE data-visualisation prototype. The page itself is still titled *The Statistical Tooth*.
 
@@ -23,8 +23,10 @@ Serve the folder rather than double-clicking `index.html`. Browsers block some l
 
 ```
 index.html          layout and styles (all text in Lora for now: --serif and --label in :root; colours are CSS variables there too)
-app.js              the storyline: intro, pooling per 100-year window, marks, overview playback, layer sheets, dashboards
+app.js              the storyline: intro, pooling per 100-year window, marks, overview playback, radial timeline scene, dashboards
 tooth.js            the 3D renderer (WebGL2 ray-marched distance fields, stipple shading, cut section)
+radial.js           the radial timeline: hand-built SVG, no libraries (window.ToothRadial)
+radial-data.js      the radial timeline's four records: hand-edited, the one data file outside data/
 data/
   data.js           every record the page draws        ← build_data.py
   models.js         canine volumes + tooth point clouds ← build_models.py
@@ -59,10 +61,12 @@ Never edit `data/*.js` or `images/jaw-arches.webp` by hand. They're regenerated 
 2. The jaw steps aside. Four teeth line up, drawn from the models: first molar, two premolars, canine. The premolars fade and the molar and canine close in.
 3. The drawings become rotating 3D point clouds.
 4. **Overview.** Only the two teeth, cut open in their jaw, play through 300 → 1900 at `SPEED` years a second, with no timeline; a small readout under them gives the year. At each new century, DNA marks travel in from below through the root canal and tartar particles settle from above. At 1900 the teeth pool all periods.
-5. **Layers.** The teeth separate into three sheets, fanned like an exploded drawing (a stacked deck on phones): **01 Pathogens** (disease DNA), **02 Morphology** (wear, decay, stress lines) and **03 Metals** (lead in enamel, particles in tartar). Each sheet is a picture of the pooled teeth carrying only that layer's traces. Hover lifts a sheet; a click opens it. **Replay** runs the overview again.
-6. **Dashboard.** The chosen layer's teeth sit beside its charts, with tabs to the other layers and a way back to all layers. The teeth can be dragged to turn them, and a **cross-section film** stands in each jaw: drag its sprocket strip, or the slider under the teeth, to cut deeper or to see more of the whole tooth. The charts:
+5. **Radial timeline** (Plate II, on the same paper as the rest of the journal). The canine and first molar (the renderer's own coloured cut sections) sit apart, and five lines leave one point between them: **Caries**, **Pathogens**, **Wear and LEH**, **Metals**, **Artificial interventions**. A line's length is the time its record covers on one shared scale (every record starts at the same radius, so distance means "years into that record"); a gap in the record is a gap in the line. Inside the teeth the lines are soft and blurred, outside crisp. The timeline is read off circles: filled where a record opens, breaks or resumes, hollow inside a continuous run, larger at the far end. Hover or focus a circle for its years and how much was gathered; click the end dot to show how much was gathered per year (several at once); hovering a line dims the others. About 45 faint hairlines are decoration only. One entrance: the lines draw out, the records fade in, then the names. On tall narrow screens the lines turn a quarter turn so the names stay on canvas, a name that would run into another breaks onto two lines, and the figure keeps clear of the running head and caption. Clicking a name opens that record's section; **Replay** runs the overview again.
+6. **Sections** (1 Caries, 2 Pathogens, 3 Wear and LEH, 4 Metals, 5 Artificial interventions). Each is a journal spread: the plate on the left (the 3D teeth showing only that record's traces, with atlas-style labels on hairline leaders, a draggable cross-section film) and the article on the right (section number, title, dek, then numbered figures with captions and notes). The running head links every section and back to Plate II. The figures:
    - **Pathogens:** which organism dominated each century's recovered genomes (shares, in the colours of the marks in the teeth), with the number of genomes per century on top.
-   - **Morphology:** mean molar wear by period and age at death, and stress lines (LEH) by age at death for each period, with 95% intervals.
+   - **Caries:** share of adults with caries by age at death (one line per period), and adults by how many of their own teeth were carious.
+   - **Wear and LEH:** mean molar wear by period and age at death, and stress lines (LEH) by age at death for each period, with 95% intervals.
+   - **Artificial interventions:** repaired teeth per 100 individuals examined, three archaeological samples against the 2009 Adult Dental Health Survey, with the draft's ×10 and ×100 what-if bars (labelled as arithmetic, not data). The plate shows no traces: repairs are too rare to place on a composite tooth.
    - **Metals:** lead in childhood enamel from the Neolithic to 20th-century births, and eight elements in modern against archaeological enamel.
 
    The "human × layer" event strips under the charts are still **placeholders**.
@@ -92,13 +96,16 @@ GHHP skeletal sites are weighted by the share of their date range inside the win
 
 | Change | Where |
 |---|---|
-| The three layers | `LAYERS` in `app.js`: name, description, chart title, legend series and placeholder events for each |
+| The four sections | `LAYERS` in `app.js`: number, name, dek, plate caption and placeholder events; keys match `radial-data.js` |
+| Journal frame | `setPage()` in `app.js` (running head, captions, page numbers); `plateLabels()` (the labels on the plate); styles `.rh`, `.sec`, `.fig`, `.notes`, `.folio` in `index.html` |
 | A layer's charts | `CHARTS` in `app.js` (titles, subtitles, notes); `drawPathogenMatrix()`, `drawWear()`, `drawLEH()`, `drawLead()`, `drawElements()`. The data comes from `build_layers.py`: change a dataset in `source/layer data/`, rerun it, then `bundle.py`. |
 | The cross-section film | `CUT_MIN`/`CUT_MAX` (how deep or shallow it can go), `drawFilm()` (the strip), `setCut()`; the slider is `#film` in `index.html` |
 | Event pictures | Save `images/event-<name>.jpg` (the names are the `img` keys in `LAYERS`, e.g. `event-justinian`), then run `bundle.py`. |
 | Which traces each layer shows | `paramsFor()` (wear, decay, stress lines, lead, tartar) and `showsRec()` (which records become marks) |
-| Overview speed | `SPEED` (years per second); `stepPlay()` holds briefly at 1900, then `enterLayers()` runs |
-| The layer sheets | `sheetPicture()`, `buildSheets()`, `fitSheets()`; their look is `#layers` in `index.html` |
+| Overview speed | `SPEED` (years per second); `stepPlay()` holds briefly at 1900, then `enterRadial()` runs |
+| Radial timeline data | `radial-data.js`: each record's `segs` (covered years, BCE negative), `dens` (`[from, to, amount]`, `null` = count absent), angle and unit. The caries and wear period boundaries are in `GHHP_PERIODS`, once for both lines. |
+| Radial timeline geometry | `R0`, `RMAX` and `MAX_SPAN` at the top of `radial.js` (MAX_SPAN is the longest record, so all lines rescale together); tooth sizes `TOOTH_H` and `GAP`; decorative lines `GHOSTS`; `PORTRAIT` for the quarter turn. The look is the `.rd-*` rules in `index.html`. |
+| Radial timeline teeth | `radialTeeth()` and `RADIAL_VIEW` in `app.js` (which renderer view, and how the engraving is printed light on dark) |
 | Intro timing | `intro()`: the `wait()` and `tween()` durations (jaw: 1600 ms ink, 3000 ms swing). |
 | Intro jaw picture | Replace `source/jaw engraving/jaw-arches.webp` (both arches opened flat, hinge on the centre line), run `prepare_jaw.py` then `bundle.py`. If the teeth move, update the ring positions in `JAW_TEETH` in `app.js`. |
 | Jaw motion | `jawPose()`: closed angle, tilt of the closed jaw, shading. Perspective is `#jaw{perspective}` in `index.html`. |
@@ -109,7 +116,7 @@ GHHP skeletal sites are weighted by the share of their date range inside the win
 
 **Test shortcuts.** Add these to the address:
 - `?scene=main&t=1347` skips the intro and shows the overview at a year (`&play=1` plays on from there).
-- `?scene=layers` opens the separated layer sheets; `?scene=layer&layer=metals` opens one dashboard; add `&cut=-0.3` to set the film's depth.
+- `?scene=radial` opens the radial timeline (`&animate=1` plays its entrance); `?scene=layer&layer=caries` opens one section (`caries`, `pathogens`, `wear`, `metals`); add `&cut=-0.3` to set the film's depth.
 - `&jaw=max` shows the upper jaw.
 - `&still=1` places marks without travel; `&notrans=1` turns off CSS transitions.
 - `?freeze=0|0.5|1|2|3` holds one intro frame: closed jaw, half open, open with rings, lineup, point cloud.
@@ -133,7 +140,6 @@ GHHP skeletal sites are weighted by the share of their date range inside the win
 ## Open work
 
 - [ ] **Event strips.** The "human × layer" events in `LAYERS` still need dates and pictures.
-- [ ] **Caries.** `source/layer data/Caries Viz/` (decay by age, decay severity) is in the repository but not drawn yet.
 - [ ] **Removed for now in v6**: the timeline, story markers, header (Lower/Upper, Region), number callouts, end panel and Limitations. They are in the Git history (commit `26ad507`) if any should come back.
 - [ ] **Use the first molar models.** `mandibular-first-molar.zip` and `maxillary-first-molar.zip` are now in `source/teeth models/`, in the same format as the canines. Add them to `TEETH` in `build_models.py` so the molar, which carries the wear data, stops being a constructed shape.
 - [ ] **Model credit and licence.** The ZBrush models in `source/teeth models/` arrived without author or licence information. Confirm both before public release and add the credit line to `limitsHTML()`.
