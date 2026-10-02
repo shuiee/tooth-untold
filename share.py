@@ -26,8 +26,9 @@ GUIDE = """<!--
   THE FLOW
     Intro      the engraved jaw opens, four teeth line up, the first molar and canine become point clouds.
     Overview   the two teeth alone play through 300-1900 CE (no timeline); marks arrive century by century.
-    Timeline   Plate II, the radial timeline (radial.js, data in radial-data.js): five records leave a point
-               between the teeth; line length is the time each covers. A name opens that record's section.
+    Timeline   Plate II, the radial timeline in perspective (radial.js, data in radial-data.js): five records
+               come towards you from a point between the deep-set teeth; line length is the time each covers.
+               A name opens that record's section.
     Sections   1 Caries, 2 Pathogens, 3 Wear and LEH, 4 Metals, 5 Artificial interventions, each a journal spread: the plate (the 3D teeth,
                in the view that suits the record, labelled) on the left, numbered figures drawn from the
                team's datasets (window.LAYER_DATA) on the right. The event strips are still placeholders.

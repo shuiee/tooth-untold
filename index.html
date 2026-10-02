@@ -81,22 +81,22 @@ a{color:inherit}
 #radial[hidden]{display:none}
 .rd{display:block;width:100%;height:100%;font-family:var(--label)}
 .rd-teeth,.rd-inside,.rd-ghosts,.rd-stems,.rd-read{pointer-events:none}
-.rd-ghost{stroke:rgba(26,26,24,.3);stroke-width:.5;fill:none}
+.rd-ghost{fill:rgba(26,26,24,.3);stroke:none}
 .rd-ghost-soft{stroke:rgba(26,26,24,.28);stroke-width:1.4;fill:none}
-.rd-stem{stroke:rgba(26,26,24,.7);stroke-width:.8;fill:none}
+.rd-stem{stroke:rgba(26,26,24,.7);fill:none}
 .rd-stem-soft{stroke:rgba(26,26,24,.62);stroke-width:2;fill:none}
 .rd-inside{opacity:.6}
 .rd-hit{stroke:transparent;stroke-width:18;fill:none;pointer-events:stroke}
-.rd-span{stroke:var(--ink);stroke-width:.9;fill:none;pointer-events:none}
-.rd-lift{stroke:var(--ink);stroke-width:2.4;opacity:0;pointer-events:none;transition:opacity .15s ease}
+.rd-span{fill:var(--ink);stroke:none;pointer-events:none}
+.rd-lift{fill:var(--ink);stroke:none;opacity:0;pointer-events:none;transition:opacity .15s ease}
 .rd-lift.on{opacity:1}
-.rd-mark{fill:var(--bg);stroke:var(--ink);stroke-width:1.1;pointer-events:none}
+.rd-mark{fill:var(--bg);stroke:var(--ink);pointer-events:none}
 .rd-mark.edge{fill:var(--ink);stroke:none}
 .rd-markhit{fill:transparent;cursor:pointer;outline:none}
 .rd-end{fill:var(--ink);cursor:pointer;outline:none}
 .rd-vol{fill:rgba(138,109,71,.12);stroke:var(--dentine-ink);stroke-width:.9;opacity:0;pointer-events:none;transition:opacity .4s ease}
 .rd [data-cat].open .rd-vol{opacity:1}
-.rd [data-cat].open .rd-span,.rd [data-cat].open .rd-lift{stroke:var(--dentine-ink)}
+.rd [data-cat].open .rd-span,.rd [data-cat].open .rd-lift{fill:var(--dentine-ink)}
 .rd [data-cat].open .rd-mark{stroke:var(--dentine-ink)}
 .rd [data-cat].open .rd-mark.edge,.rd [data-cat].open .rd-end{fill:var(--dentine-ink)}
 .rd-name{fill:var(--ink);font-family:var(--label);font-weight:500;cursor:pointer;outline:none;paint-order:stroke;stroke:var(--bg);stroke-width:6px;stroke-linejoin:round}
@@ -258,7 +258,7 @@ a{color:inherit}
   <button class="btn" id="skip">Skip intro</button>
   <button class="btn" id="again">Replay</button>
   <div id="radial" hidden></div>
-  <p class="rd-foot" id="radialFoot" hidden><b>Plate II</b> How far back each record reaches. A line's length is the time its record covers, on one scale for all five, and a gap is a stretch with no record. Circles mark the records within each line. A name opens its section; the circle at a line's end shows how much was gathered per year.</p>
+  <p class="rd-foot" id="radialFoot" hidden><b>Plate II</b> How far back each record reaches, drawn in perspective: the teeth sit deepest and the records come towards you. A line's length is the time its record covers, on one scale for all five, and a gap is a stretch with no record. Circles mark the records within each line. A name opens its section; the circle at a line's end shows how much was gathered per year.</p>
   <span class="folio l fade" id="folioL"></span><span class="folio r fade" id="folioR"></span>
 </div>
 <div id="tip" hidden></div>

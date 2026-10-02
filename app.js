@@ -441,15 +441,15 @@
   const radialEl = $("#radial"), radialFoot = $("#radialFoot"), panelEl = $("#panel");
   const radialOpen = new Set();   // lines whose "how much was gathered" view is on, kept while moving around the page
   let radial = null;
-  // Each tooth alone (no jaw), cut open and coloured exactly as on the other plates, drawn by its own renderer and
-  // cropped to its silhouette. The white and black silhouettes let radial.js blur the lines inside the teeth and
-  // mask them outside.
-  const RADIAL_VIEW = { canine: { yaw: 0, pitch: 0.04 }, molar: { yaw: 0.18, pitch: 0.05 } };
+  // Each tooth alone, whole and uncut, out of its jaw (the 3D model itself, as on the "whole" plates), drawn by its
+  // own renderer and cropped to its silhouette. The white and black silhouettes let radial.js blur the lines inside
+  // the teeth and mask them outside.
+  const RADIAL_VIEW = { canine: { yaw: 1.0, pitch: 0.12 }, molar: { yaw: 0.4, pitch: 0.12 } };   // the canine shows its cusp in profile
   function radialTeeth() {
     const out = {};
     TEETH.forEach(T => {
       const R = T.R, SH = R.st.S, cam = Object.assign({}, R.st.cam);
-      R.setParams(Object.assign(NEUTRAL(SH), { cutX: 0 })); Object.assign(R.st.cam, RADIAL_VIEW[T.key]); R.st.quality = 1; R.render();
+      R.setParams(Object.assign(NEUTRAL(SH), { cutX: 5, jaw: false })); Object.assign(R.st.cam, RADIAL_VIEW[T.key]); R.st.quality = 1; R.render();
       const cw = T.canvas.width, ch = T.canvas.height, src = document.createElement("canvas");
       src.width = cw; src.height = ch;
       const sx = src.getContext("2d"); sx.drawImage(T.canvas, 0, 0);
