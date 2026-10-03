@@ -12,15 +12,20 @@ that build_data.py also reads. Nothing is interpolated or smoothed here.
               figure script does (figure scripts/c6_wear_leh.py + _style.py load_ghhp): rows with consistent
               counts and observed dentition, adults 18-69, mean of molar_wear_mean per cell. The result matches
               the team's draft figure c6_wear_leh.png cell for cell.
-  Metals      Metals Viz/c3b_lead_timeline_data.csv   lead in childhood enamel by exposure window
-              Metals Viz/particulates_metals_dataset.csv, Kamenov2018 rows: eight elements in archaeological
-              and modern enamel (the draft's panel B)
-  Caries      computed from ghhp_dental_decoded.csv with the same rows as the team's severity figure
+  Caries      Caries Viz/c1b_caries_by_age_data.csv   share of adults with at least one carious tooth, by period and age
+              Caries Viz/c2b_caries_severity_data.csv  adults by how many of their own teeth were carious, per period
+  Caries plate computed from ghhp_dental_decoded.csv with the same rows as the team's severity figure
               (figure scripts/c2b_caries_severity.py: consistent counts, observed dentition, adults 18-69). Per period:
               share with any carious tooth, crude and age-standardised to the pooled age distribution of all
               periods (the eight age bands above); mean and 90th percentile of carious teeth among the affected;
               mean age; and the 10th-90th percentile of site mid-dates (rounded to the decade) as the era's span.
               The severity bands are checked against Caries Viz/c2b_caries_severity_data.csv.
+  Interventions  Artificial Interventions Viz/c7_intervention_continuous_data.csv  repaired teeth per 100 individuals
+              examined, three archaeological samples and the 2009 Adult Dental Health Survey, with the draft's ×10 and
+              ×100 what-if bars (arithmetic only, flagged as not data in the file and on the page)
+  Metals      Metals Viz/c3b_lead_timeline_data.csv   lead in childhood enamel by exposure window
+              Metals Viz/particulates_metals_dataset.csv, Kamenov2018 rows: eight elements in archaeological
+              and modern enamel (the draft's panel B)
 """
 import csv, json, os
 
@@ -79,27 +84,22 @@ if GHHP:
 morphology = dict(periods=PERIODS, ages=AGES, wear=wear, leh=leh, leh_overall=leh_all,
     source="Global History of Health Project, European module, decoded for this project; adults 18-69")
 
-# ---------------------------------------------------------------- metals
-lead = []
-for r in rows("Metals Viz", "c3b_lead_timeline_data.csv"):
-    lead.append(dict(series=r["series"], label=r["label"], early=int(float(r["exposure_early"])), late=int(float(r["exposure_late"])),
-                     ppm=float(r["pb_ppm"]), n=None if r["n_individuals"] == "" else int(float(r["n_individuals"]))))
-el = {}
-for r in rows("Metals Viz", "particulates_metals_dataset.csv"):
-    if r["study_id"] != "Kamenov2018" or r["measure"] != "mean concentration" or r["tissue"] != "enamel": continue
-    side = "modern" if r["site"].startswith("Modern") else "arch" if r["site"].startswith("Archaeological") else None
-    if side: el.setdefault(r["analyte"], {})[side] = float(r["value_mean"])
-elements = [dict(el=k, arch=v["arch"], modern=v["modern"], ratio=round(v["modern"] / v["arch"], 2)) for k, v in el.items() if "arch" in v and "modern" in v]
-elements.sort(key=lambda e: -e["ratio"])
-metals = dict(lead=lead, elements=elements,
-    source="Montgomery et al. 2010, Moore et al. 2021, Kamenov et al. 2018 (lead); Kamenov et al. 2018, Table 1 (elements)")
-
 # ---------------------------------------------------------------- caries
-BANDS = [(0, 0, "no caries"), (1, 2, "1–2 teeth"), (3, 4, "3–4 teeth"), (5, 9, "5–9 teeth"), (10, 999, "10+ teeth")]
+by_age = {p: {} for p in PERIODS}
+for r in rows("Caries Viz", "c1b_caries_by_age_data.csv"):
+    by_age[r["period"]][r["age_band"]] = [float(r["pct_with_caries"]), int(float(r["n"]))]
+sev_rows = rows("Caries Viz", "c2b_caries_severity_data.csv")
+BANDS = [k for k in sev_rows[0].keys() if k not in ("", "n")]
+severity = {r[""]: dict(n=int(float(r["n"])), shares=[float(r[b]) for b in BANDS]) for r in sev_rows}
+caries = dict(periods=PERIODS, ages=AGES, by_age=by_age, bands=BANDS, severity=severity,
+    source="Global History of Health Project, European module, decoded for this project; adults 18-69")
+
+# ---------------------------------------------------------------- caries plate (the Caries section's figure, caries.js)
+PBANDS = [(0, 0, "no caries"), (1, 2, "1–2 teeth"), (3, 4, "3–4 teeth"), (5, 9, "5–9 teeth"), (10, 999, "10+ teeth")]
 def pctl(v, q):                                    # linear interpolation, as numpy's default
     v = sorted(v); k = (len(v) - 1) * q; f = int(k)
     return v[f] + (v[min(f + 1, len(v) - 1)] - v[f]) * (k - f)
-caries = None
+plate = None
 if GHHP:
     ppl = []                                       # (period, age band, carious teeth, site mid-date, age)
     with open(GHHP, newline="", encoding="utf-8") as f:
@@ -119,17 +119,51 @@ if GHHP:
         std = sum(w * anyc(B) for w, B in ((pool[b], [q for q in R if q[1] == b]) for b in range(8)) if B)
         aff = [q[2] for q in R if q[2] > 0]
         mids = [q[3] for q in R if q[3] is not None]
-        sev = [round(100 * sum(lo <= q[2] <= hi for q in R) / len(R), 1) for lo, hi, _ in BANDS]
-        for (_, _, lab), v in zip(BANDS, sev): assert abs(v - float(sev_check[p][lab])) < 0.051, (p, lab)   # matches the team's figure
+        sev = [round(100 * sum(lo <= q[2] <= hi for q in R) / len(R), 1) for lo, hi, _ in PBANDS]
+        for (_, _, lab), v in zip(PBANDS, sev): assert abs(v - float(sev_check[p][lab])) < 0.051, (p, lab)   # matches the team's figure
         assert len(R) == int(sev_check[p]["n"])
         eras.append(dict(p=p, lo=int(round(pctl(mids, .1) / 10) * 10), hi=int(round(pctl(mids, .9) / 10) * 10),
                          std=round(std, 1), crude=round(anyc(R), 1), n=len(R), age=round(sum(q[4] for q in R) / len(R), 1),
                          sev=sev, aff=round(sum(aff) / len(aff), 1), p90=int(round(pctl(aff, .9)))))
-    caries = dict(eras=eras, bands=[b[2] for b in BANDS], n=len(ppl),
+    plate = dict(eras=eras, bands=[b[2] for b in PBANDS], n=len(ppl),
         source="Global History of Health Project, European module, decoded for this project; adults 18-69")
 
-out = dict(pathogens=pathogens, morphology=morphology, metals=metals, caries=caries)
+caries["plate"] = plate
+
+# ---------------------------------------------------------------- metals
+lead = []
+for r in rows("Metals Viz", "c3b_lead_timeline_data.csv"):
+    lead.append(dict(series=r["series"], label=r["label"], early=int(float(r["exposure_early"])), late=int(float(r["exposure_late"])),
+                     ppm=float(r["pb_ppm"]), n=None if r["n_individuals"] == "" else int(float(r["n_individuals"]))))
+el = {}
+for r in rows("Metals Viz", "particulates_metals_dataset.csv"):
+    if r["study_id"] != "Kamenov2018" or r["measure"] != "mean concentration" or r["tissue"] != "enamel": continue
+    side = "modern" if r["site"].startswith("Modern") else "arch" if r["site"].startswith("Archaeological") else None
+    if side: el.setdefault(r["analyte"], {})[side] = float(r["value_mean"])
+elements = [dict(el=k, arch=v["arch"], modern=v["modern"], ratio=round(v["modern"] / v["arch"], 2)) for k, v in el.items() if "arch" in v and "modern" in v]
+elements.sort(key=lambda e: -e["ratio"])
+metals = dict(lead=lead, elements=elements,
+    source="Montgomery et al. 2010, Moore et al. 2021, Kamenov et al. 2018 (lead); Kamenov et al. 2018, Table 1 (elements)")
+
+# ---------------------------------------------------------------- artificial interventions
+marks, whatif = [], {}
+for r in rows("Artificial Interventions Viz", "c7_intervention_continuous_data.csv"):
+    if r["series"] in ("archaeological", "modern"):
+        marks.append(dict(id=r["mark_id"], series=r["series"], label=r["label"], x=int(float(r["x_year"])),
+                          early=int(float(r["x_date_early"])), late=int(float(r["x_date_late"])), per100=float(r["y_repaired_teeth_per_100"]),
+                          teeth=r["numerator_repaired_teeth"], n=int(float(r["denominator_individuals"])),
+                          lo=num(r["ci_low_per_100"]), hi=num(r["ci_high_per_100"]), source=r["source_citation"]))
+    elif r["series"] == "sensitivity":
+        whatif.setdefault(r["label"], {})[int(float(r["multiplier"]))] = float(r["y_repaired_teeth_per_100"])
+    elif r["series"] == "derived":
+        breakeven = float(r["assumed_miss_rate"])
+for m in marks:
+    m["whatif"] = whatif.get(m["label"])
+interventions = dict(marks=marks, breakeven=breakeven,
+    source="Monaco et al. 2022; Dittmar et al. 2026; Waters-Rist et al. 2013 (conference poster); ADHS 2009 published tables, NHS Digital")
+
+out = dict(caries=caries, interventions=interventions, pathogens=pathogens, morphology=morphology, metals=metals)
 p = os.path.join(HERE, "data", "layers.js")
 with open(p, "w", encoding="utf-8") as f:
     f.write("// Generated by build_layers.py from source/layer data/. Do not edit by hand.\nwindow.LAYER_DATA = " + json.dumps(out, ensure_ascii=False, separators=(",", ":")) + ";\n")
-print(p, round(os.path.getsize(p) / 1024, 1), "KB ·", len(taxa), "organisms ·", sum(len(v) for v in wear.values()), "wear cells ·", len(lead), "lead rows ·", len(elements), "elements ·", len(caries["eras"]) if caries else 0, "caries eras")
+print(p, round(os.path.getsize(p) / 1024, 1), "KB ·", sum(len(v) for v in by_age.values()), "caries cells ·", len(taxa), "organisms ·", sum(len(v) for v in wear.values()), "wear cells ·", len(lead), "lead rows ·", len(elements), "elements")

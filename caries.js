@@ -4,7 +4,8 @@
    leaves its outline behind. A click on a numbered mark, an outline or an era opens that era's detail.
    The shaded area encodes the share of adults in the era with caries (data/layers.js, caries), not damage to one tooth.
    The outlines are drawn from cusp lobes and the fissure pattern: illustration, not measurement.
-   window.CariesPlate.mount(el, data) fills el; it is safe to call again on the same element. */
+   window.CariesPlate.mount(el, data) fills el; it is safe to call again on the same element. CariesPlate.notes(data)
+   gives the figure's notes for the page to set under its caption. */
 (function () {
   "use strict";
   const NS = "http://www.w3.org/2000/svg", TAU = Math.PI * 2, K = 360;
@@ -193,7 +194,7 @@
     "<div class='cp-detail' hidden><div class='cp-dtop'><p class='cp-dh'></p><button class='link cp-close' type='button'>Close</button></div>" +
     "<p class='cp-h4'>What was happening</p><div class='cp-ev'></div><p class='cp-h4'>Why it may have reached the teeth</p><p class='cp-why'></p>" +
     "<p class='cp-h4'>All six eras</p><div class='cp-cmp'></div></div>" +
-    "<div class='cp-notes'></div></div>";
+    "</div>";
 
   function mount(el, data) {
     if (!el || !data || !data.eras) return;
@@ -289,7 +290,6 @@
       b.innerHTML = "<span class='n'>" + (i + 1) + "</span>" + esc(d.p) + "<span class='y'>" + d.lo + "–" + d.hi + "</span>";
       b.addEventListener("click", () => pick(i)); q(".cp-rail").appendChild(b); return b;
     });
-    q(".cp-notes").innerHTML = NOTES(data.n).map(n => "<p class='ctxnote'><b>" + esc(n[0]) + "</b>" + esc(n[1]) + "</p>").join("");
 
     function readout(i) {
       const d = PD[i];
@@ -370,5 +370,7 @@
     const corr = (a, b) => { const n = a.length, ma = a.reduce((s, v) => s + v, 0) / n, mb = b.reduce((s, v) => s + v, 0) / n; let c = 0, va = 0, vb = 0; for (let k = 0; k < n; k++) { c += (a[k] - ma) * (b[k] - mb); va += (a[k] - ma) ** 2; vb += (b[k] - mb) ** 2; } return c / Math.sqrt(va * vb); };
     return data.eras.map((d, i) => ({ era: d.p, target: +frac(d.std).toFixed(4), shaded: TEETH.map(T => +(areaOf(T, era(i)[TEETH.indexOf(T)].out) / T.area).toFixed(4)), corr: TEETH.map((T, ti) => +corr(Array.from(era(i)[ti].out), Array.from(T.crown)).toFixed(3)) }));
   }
-  window.CariesPlate = { mount, check };
+  // the figure's notes, for the page to set under its caption: one sentence-led line each
+  const notes = data => NOTES(data.n).map(n => n[0] + ". " + n[1]);
+  window.CariesPlate = { mount, check, notes };
 })();
