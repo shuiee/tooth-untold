@@ -150,6 +150,79 @@ a{color:inherit}
 .ev .slot{display:grid;place-items:center;border:1px solid var(--rule);background:repeating-linear-gradient(135deg,transparent 0 6px,rgba(26,26,24,.06) 6px 7px);font-family:var(--label);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
 .axis{display:flex;justify-content:space-between;border-top:1px solid var(--ink);padding-top:4px;font-family:var(--label);font-size:10px;color:var(--ink-3)}
 .ctxnote{font-size:10.5px;color:var(--ink-3);letter-spacing:.03em;margin:0}
+/* the caries plate (caries.js): figure, era rail, readout of three figures and one bar; detail only on request */
+.cp{display:flex;flex-direction:column;gap:14px}
+.cp-fig{border:1px solid var(--rule);background:var(--card);padding:8px 8px 2px}
+.cp-plate{display:block;width:100%;height:auto}
+.cp-enamel{fill:url(#cpEnamel);stroke:#3b3a35;stroke-width:1.6}
+.cp-fiss{fill:none;stroke:#6f6d66;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;opacity:.6}
+.cp-fiss-deep{fill:none;stroke:#0e0d0b;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round;opacity:.55}
+.cp-ghost{fill:none;stroke:#55544f;stroke-width:1;pointer-events:none}
+.cp-ghost-in{stroke:#e9e8e4;stroke-dasharray:3 2}
+.cp-ghost-hit{fill:none;stroke:#000;stroke-width:14;stroke-opacity:0;cursor:pointer}
+.cp-out{fill:url(#cpDecay);stroke:#211e18;stroke-width:1.3;pointer-events:none}
+.cp-mid{fill:#2c2619;opacity:.78;pointer-events:none}
+.cp-in{fill:#141109;opacity:.86;pointer-events:none}
+.cp-halo{fill:none;stroke:#7d776a;stroke-width:5;opacity:.22;pointer-events:none}
+.cp-speck{pointer-events:none}
+.cp-speck circle{fill:#0b0a08;opacity:.5}
+.cp-plate text{font-family:var(--label)}
+.cp-no{font-size:12px;font-weight:600;letter-spacing:.08em;fill:var(--ink)}
+.cp-cap{font-size:12px;font-style:italic;fill:var(--ink-2)}
+.cp-mark{cursor:pointer}
+.cp-mark circle{fill:var(--card);stroke:var(--ink);stroke-width:1.1}
+.cp-mark text{font-size:10px;font-weight:600;fill:var(--ink)}
+.cp-mark.on circle{fill:var(--ink)}
+.cp-mark.on text{fill:var(--card)}
+.cp-mark:focus{outline:none}
+.cp-mark:focus-visible circle{stroke-width:2.6}
+.cp-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:-6px}
+.cp-hint{font-size:12.5px;font-style:italic;color:var(--ink-3)}
+.cp-rail{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px}
+.cp-rail button{display:flex;align-items:baseline;gap:7px;text-align:left;font-size:12.5px;color:var(--ink-2);background:transparent;border:1px solid var(--rule);padding:6px 9px;cursor:pointer}
+.cp-rail button:hover{border-color:var(--ink-2);color:var(--ink)}
+.cp-rail .n,.cp-rail .y{font-family:var(--label);font-size:10px;color:var(--ink-3);flex:none}
+.cp-rail .y{margin-left:auto}
+.cp-rail button[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);background:var(--card)}
+.cp-rail button[aria-pressed="true"] .n{color:var(--ink);font-weight:600}
+.cp-read{border-top:1px solid var(--rule);padding-top:12px}
+.cp-era{font-size:26px;line-height:1.1;margin:0}
+.cp-yrs{font-family:var(--label);font-size:11px;letter-spacing:.08em;color:var(--ink-3);margin:4px 0 0}
+.cp-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:16px;margin-top:16px}
+.cp-stats b{display:block;font-size:clamp(26px,3vw,36px);font-weight:500;line-height:1}
+.cp-stats small{font-size:.55em}
+.cp-stats span{display:block;font-size:12px;line-height:1.3;color:var(--ink-2);margin-top:6px}
+.cp-bh,.cp-h4{font-family:var(--label);font-size:10.5px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:18px 0 8px}
+.cp-bar{display:flex;height:24px;border:1px solid var(--ink);min-width:0}
+.cp-bar span{height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--label);font-size:10px;font-weight:600;overflow:hidden;border-right:1px solid var(--ink);transition:width .7s cubic-bezier(.35,0,.2,1)}
+.cp-bar span:last-child{border-right:0}
+.cp-keys{display:flex;flex-wrap:wrap;gap:3px 14px;margin-top:8px;font-family:var(--label);font-size:10.5px;color:var(--ink-3)}
+.cp-keys span{display:flex;align-items:center;gap:5px}
+.cp-keys i{width:12px;height:10px;border:1px solid var(--ink)}
+.cp-detail{border-top:1px solid var(--ink);padding-top:12px}
+.cp-detail[hidden]{display:none}
+.cp-dtop{display:flex;justify-content:space-between;align-items:baseline;gap:14px}
+.cp-dh{font-size:20px;margin:0}
+.cp-dh em{display:block;font-family:var(--label);font-style:normal;font-size:10.5px;color:var(--ink-3);margin-top:4px}
+.cp-e{display:grid;grid-template-columns:78px minmax(0,1fr);gap:12px;padding:9px 0;border-top:1px solid var(--rule)}
+.cp-e:first-child{border-top:0;padding-top:0}
+.cp-e .y{font-family:var(--label);font-size:10.5px;color:var(--ink-3);padding-top:2px}
+.cp-e .t{font-size:13.5px;line-height:1.3;margin:0 0 2px}
+.cp-e .m{font-size:12px;line-height:1.45;color:var(--ink-2);margin:0}
+.cp-e .tag{display:inline-block;font-family:var(--label);font-size:8.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:0 4px;border:1px solid var(--ink-2);color:var(--ink-2);margin-left:7px;vertical-align:2px}
+.cp-why{font-size:12.5px;line-height:1.55;color:var(--ink-2);margin:0;max-width:66ch}
+.cp-why b{color:var(--ink);font-weight:600}
+.cp-cmp{display:grid;gap:4px}
+.cp-row{display:grid;grid-template-columns:96px minmax(0,1fr) 42px;gap:8px;align-items:center;font-size:12px;background:none;border:0;padding:0;text-align:left;cursor:pointer;color:var(--ink-2)}
+.cp-row .nm{text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cp-row.on .nm{color:var(--ink);font-weight:600}
+.cp-row .cb{display:flex;height:14px;border:1px solid var(--ink);min-width:0}
+.cp-row .cb span{height:100%;border-right:1px solid var(--ink)}
+.cp-row .cb span:last-child{border-right:0}
+.cp-row .v{font-family:var(--label);font-size:10px;color:var(--ink-3)}
+.cp-notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 20px;border-top:1px solid var(--rule);padding-top:12px}
+.cp-notes .ctxnote{margin:0;line-height:1.5}
+.cp-notes b{display:block;font-weight:600;color:var(--ink-2);text-transform:uppercase;letter-spacing:.07em;font-size:9.5px;margin-bottom:4px}
 #tip{position:fixed;pointer-events:none;z-index:50;background:var(--ink);color:var(--bg);font-size:12px;line-height:1.4;padding:7px 10px;max-width:300px}
 #tip .m{font-size:11px;color:#bdbcb6}
 .fallback{position:absolute;inset:0;display:grid;place-items:center;padding:30px;text-align:center;color:var(--ink-2)}
@@ -174,7 +247,7 @@ a{color:inherit}
 </style>
 
 <div id="stage" class="intro">
-  <nav class="dash" id="dash" aria-label="Layers" hidden><span class="tabs"><button data-l="pathogens">Pathogens</button><button data-l="morphology">Morphology</button><button data-l="metals">Metals</button></span><button class="link" id="allLayers">← All layers</button></nav>
+  <nav class="dash" id="dash" aria-label="Layers" hidden><span class="tabs"><button data-l="pathogens">Pathogens</button><button data-l="morphology">Morphology</button><button data-l="metals">Metals</button><button data-l="caries">Caries</button></span><button class="link" id="allLayers">← All layers</button></nav>
 
   <main class="scene">
     <section class="teeth" aria-label="Composite teeth">
@@ -217,7 +290,7 @@ window.TOOTH_MODELS = {"man_canine": {"source": "mandibular-left-canine.zip", "t
 </script>
 <script>/* data/layers.js */
 // Generated by build_layers.py from source/layer data/. Do not edit by hand.
-window.LAYER_DATA = {"pathogens":{"centuries":[100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800],"genomes":{"100":3,"1100":10,"1300":51,"1800":10,"200":2,"1500":54,"1700":13,"1000":7,"300":3,"400":22,"500":5,"600":20,"1200":11,"1400":9,"1600":22,"700":11,"900":14},"taxa":[{"taxon":"Salmonella enterica","disease":"enteric fever · typhoid & paratyphoid","agent":true,"cat":"bacteria","total":14,"cells":{"100":[1,33.33],"1100":[1,10.0],"1300":[8,15.69],"1800":[4,40.0]}},{"taxon":"Plasmodium falciparum","disease":"malaria","agent":true,"cat":"parasite","total":10,"cells":{"100":[2,66.67],"200":[1,50.0],"1100":[1,10.0],"1300":[1,1.96],"1500":[3,5.56],"1700":[1,7.69],"1800":[1,10.0]}},{"taxon":"Tannerella forsythia","disease":"NOT an epidemic disease — gum disease","agent":false,"cat":"other","total":2,"cells":{"200":[1,50.0],"1000":[1,14.29]}},{"taxon":"Yersinia pestis","disease":"plague — bubonic, pneumonic, septicaemic","agent":true,"cat":"bacteria","total":143,"cells":{"300":[2,66.67],"400":[19,86.36],"500":[2,40.0],"600":[12,60.0],"1100":[1,10.0],"1200":[3,27.27],"1300":[35,68.63],"1400":[3,33.33],"1500":[39,72.22],"1600":[17,77.27],"1700":[10,76.92]}},{"taxon":"Human alphaherpesvirus 1","disease":"oral herpes","agent":true,"cat":"virus","total":4,"cells":{"300":[1,33.33],"400":[1,4.55],"1300":[1,1.96],"1600":[1,4.55]}},{"taxon":"Hepatitis B virus","disease":"hepatitis B","agent":true,"cat":"virus","total":14,"cells":{"400":[1,4.55],"600":[2,10.0],"700":[2,18.18],"1000":[1,14.29],"1100":[3,30.0],"1200":[2,18.18],"1300":[3,5.88]}},{"taxon":"Haemophilus influenzae","disease":"pneumonia, meningitis","agent":true,"cat":"bacteria","total":1,"cells":{"400":[1,4.55]}},{"taxon":"Mycobacterium leprae","disease":"leprosy","agent":true,"cat":"bacteria","total":21,"cells":{"500":[1,20.0],"900":[1,7.14],"1000":[3,42.86],"1100":[2,20.0],"1200":[6,54.55],"1300":[3,5.88],"1400":[4,44.44],"1800":[1,10.0]}},{"taxon":"Clostridium tetani","disease":"tetanus","agent":true,"cat":"bacteria","total":11,"cells":{"500":[1,20.0],"600":[3,15.0],"700":[2,18.18],"900":[3,21.43],"1600":[1,4.55],"1700":[1,7.69]}},{"taxon":"Plasmodium vivax","disease":"malaria","agent":true,"cat":"parasite","total":10,"cells":{"500":[1,20.0],"1000":[1,14.29],"1100":[2,20.0],"1400":[1,11.11],"1500":[3,5.56],"1600":[1,4.55],"1700":[1,7.69]}},{"taxon":"Variola virus","disease":"smallpox","agent":true,"cat":"virus","total":12,"cells":{"600":[2,10.0],"700":[1,9.09],"900":[8,57.14],"1800":[1,10.0]}},{"taxon":"Methanobrevibacter oralis","disease":"NOT a disease — oral archaeon","agent":false,"cat":"other","total":1,"cells":{"600":[1,5.0]}},{"taxon":"Parvovirus B19","disease":"fifth disease (erythema infectiosum)","agent":true,"cat":"virus","total":5,"cells":{"700":[1,9.09],"900":[2,14.29],"1000":[1,14.29],"1400":[1,11.11]}},{"taxon":"Streptococcus pneumoniae","disease":"pneumonia, meningitis","agent":true,"cat":"bacteria","total":2,"cells":{"700":[2,18.18]}},{"taxon":"Erysipelothrix rhusiopathiae","disease":"erysipeloid — a zoonosis of animal handling","agent":true,"cat":"bacteria","total":2,"cells":{"700":[2,18.18]}},{"taxon":"Borrelia recurrentis","disease":"louse-borne relapsing fever","agent":true,"cat":"bacteria","total":4,"cells":{"1500":[2,3.7],"1800":[2,20.0]}},{"taxon":"Plasmodium malariae","disease":"malaria","agent":true,"cat":"parasite","total":4,"cells":{"1500":[2,3.7],"1600":[1,4.55],"1800":[1,10.0]}},{"taxon":"Treponema pallidum","disease":"syphilis · yaws · bejel (by subspecies)","agent":true,"cat":"bacteria","total":3,"cells":{"1500":[2,3.7],"1600":[1,4.55]}}],"source":"AncientMetagenomeDir (SPAAM community, CC-BY 4.0), European dental samples, 100-1800 CE; disease labels from pathogen_reference.csv"},"morphology":{"periods":["Pre-medieval","Early medieval","High medieval","Late medieval","Early modern","Industrial"],"ages":["18–24","25–29","30–34","35–39","40–44","45–49","50–59","60+"],"wear":{"Pre-medieval":{"45–49":[5.061,78],"35–39":[4.189,92],"30–34":[4.075,82],"25–29":[3.394,76],"18–24":[3.063,65],"40–44":[4.501,74],"50–59":[5.063,77],"60+":[5.583,28]},"Early medieval":{"35–39":[4.507,236],"45–49":[5.247,273],"50–59":[5.474,412],"25–29":[3.427,157],"40–44":[5.133,286],"18–24":[3.03,198],"60+":[5.633,170],"30–34":[3.956,193]},"High medieval":{"30–34":[3.925,126],"35–39":[4.492,134],"45–49":[4.753,90],"25–29":[3.451,121],"40–44":[4.679,123],"50–59":[5.564,145],"18–24":[2.819,79],"60+":[5.843,29]},"Late medieval":{"45–49":[4.442,113],"18–24":[2.834,102],"40–44":[4.664,130],"50–59":[4.7,140],"30–34":[3.989,132],"25–29":[3.368,86],"35–39":[4.238,111],"60+":[4.696,74]},"Early modern":{"50–59":[4.638,227],"40–44":[4.128,196],"45–49":[4.339,155],"30–34":[3.289,247],"25–29":[2.885,276],"18–24":[2.526,277],"35–39":[3.667,181],"60+":[4.982,80]},"Industrial":{"30–34":[2.676,25],"25–29":[2.09,30],"45–49":[3.23,16],"18–24":[2.191,49],"35–39":[3.063,36],"40–44":[3.268,26],"50–59":[3.776,37],"60+":[3.509,9]}},"leh":{"Pre-medieval":{"18–24":[35.5,62,24.7,47.9],"25–29":[30.1,73,20.8,41.4],"30–34":[41.7,72,31.0,53.2],"35–39":[29.1,86,20.5,39.4],"40–44":[41.1,73,30.5,52.6],"45–49":[33.8,68,23.7,45.7],"50–59":[31.0,71,21.4,42.5],"60+":[30.8,26,16.5,50.0]},"Early medieval":{"18–24":[36.9,198,30.5,43.8],"25–29":[35.2,159,28.2,42.9],"30–34":[33.5,206,27.4,40.2],"35–39":[34.7,236,29.0,41.0],"40–44":[36.6,284,31.2,42.4],"45–49":[34.5,293,29.3,40.1],"50–59":[35.0,437,30.7,39.6],"60+":[27.5,182,21.5,34.4]},"High medieval":{"18–24":[45.9,74,35.1,57.2],"25–29":[36.2,116,28.0,45.3],"30–34":[35.8,123,27.9,44.6],"35–39":[44.1,127,35.8,52.8],"40–44":[28.6,112,21.0,37.5],"45–49":[32.6,86,23.6,43.0],"50–59":[36.1,144,28.7,44.2],"60+":[29.6,27,15.9,48.5]},"Late medieval":{"18–24":[55.1,69,43.4,66.2],"25–29":[46.9,64,35.2,58.9],"30–34":[57.7,97,47.8,67.1],"35–39":[28.9,83,20.3,39.4],"40–44":[43.8,105,34.7,53.4],"45–49":[35.9,78,26.1,47.0],"50–59":[45.9,109,36.8,55.2],"60+":[30.4,46,19.1,44.8]},"Early modern":{"18–24":[52.8,269,46.8,58.7],"25–29":[45.7,265,39.8,51.7],"30–34":[42.1,252,36.1,48.2],"35–39":[38.3,183,31.5,45.5],"40–44":[52.9,187,45.8,60.0],"45–49":[34.9,152,27.7,42.7],"50–59":[39.1,238,33.1,45.4],"60+":[34.7,98,26.0,44.5]},"Industrial":{"18–24":[52.6,76,41.6,63.5],"25–29":[40.0,35,25.6,56.4],"30–34":[51.4,35,35.6,67.0],"35–39":[50.0,64,38.1,61.9],"40–44":[62.1,66,50.1,72.9],"45–49":[56.2,48,42.3,69.3],"50–59":[60.2,103,50.5,69.1],"60+":[60.7,28,42.4,76.4]}},"leh_overall":{"Pre-medieval":[34.3,531],"Early medieval":[34.5,1995],"High medieval":[36.6,809],"Late medieval":[43.9,651],"Early modern":[43.7,1644],"Industrial":[55.2,455]},"source":"Global History of Health Project, European module, decoded for this project; adults 18-69"},"metals":{"lead":[{"series":"britain_chronological","label":"Neolithic","early":-4040,"late":-2525,"ppm":0.1,"n":31},{"series":"britain_chronological","label":"Bronze Age","early":-2540,"late":-825,"ppm":0.06,"n":13},{"series":"britain_chronological","label":"Iron Age","early":-840,"late":18,"ppm":0.06,"n":10},{"series":"britain_chronological","label":"Roman Britain","early":3,"late":375,"ppm":1.21,"n":25},{"series":"britain_chronological","label":"post-Roman","early":360,"late":675,"ppm":0.39,"n":50},{"series":"britain_chronological","label":"early medieval","early":660,"late":1075,"ppm":1.93,"n":26},{"series":"britain_chronological","label":"late medieval","early":1160,"late":1475,"ppm":4.69,"n":26},{"series":"roman_world_comparandum","label":"Rome — Casal Bertone & Castellaccio","early":-39,"late":275,"ppm":3.61,"n":17},{"series":"roman_world_comparandum","label":"five Empire sites","early":-39,"late":375,"ppm":2.0,"n":66},{"series":"roman_world_comparandum","label":"five Empire sites (second cohort)","early":-9,"late":400,"ppm":7.0,"n":107},{"series":"modern","label":"20th-century births","early":1860,"late":1975,"ppm":6.55,"n":null},{"series":"pooled_baseline","label":"Kamenov archaeological pooled","early":-4040,"late":1775,"ppm":0.63,"n":38},{"series":"omitted","label":"Gristhorpe, Yorkshire","early":-2240,"late":-1525,"ppm":0.003,"n":1}],"elements":[{"el":"Cu","arch":0.25,"modern":3.6,"ratio":14.4},{"el":"Cr","arch":0.072,"modern":0.8,"ratio":11.11},{"el":"Pb","arch":0.63,"modern":6.55,"ratio":10.4},{"el":"Ni","arch":0.24,"modern":2.2,"ratio":9.17},{"el":"Zn","arch":145.0,"modern":215.0,"ratio":1.48},{"el":"Ba","arch":3.2,"modern":4.6,"ratio":1.44},{"el":"Mg","arch":2430.0,"modern":3075.0,"ratio":1.27},{"el":"Sr","arch":188.0,"modern":168.0,"ratio":0.89}],"source":"Montgomery et al. 2010, Moore et al. 2021, Kamenov et al. 2018 (lead); Kamenov et al. 2018, Table 1 (elements)"}};
+window.LAYER_DATA = {"pathogens":{"centuries":[100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800],"genomes":{"100":3,"1100":10,"1300":51,"1800":10,"200":2,"1500":54,"1700":13,"1000":7,"300":3,"400":22,"500":5,"600":20,"1200":11,"1400":9,"1600":22,"700":11,"900":14},"taxa":[{"taxon":"Salmonella enterica","disease":"enteric fever · typhoid & paratyphoid","agent":true,"cat":"bacteria","total":14,"cells":{"100":[1,33.33],"1100":[1,10.0],"1300":[8,15.69],"1800":[4,40.0]}},{"taxon":"Plasmodium falciparum","disease":"malaria","agent":true,"cat":"parasite","total":10,"cells":{"100":[2,66.67],"200":[1,50.0],"1100":[1,10.0],"1300":[1,1.96],"1500":[3,5.56],"1700":[1,7.69],"1800":[1,10.0]}},{"taxon":"Tannerella forsythia","disease":"NOT an epidemic disease — gum disease","agent":false,"cat":"other","total":2,"cells":{"200":[1,50.0],"1000":[1,14.29]}},{"taxon":"Yersinia pestis","disease":"plague — bubonic, pneumonic, septicaemic","agent":true,"cat":"bacteria","total":143,"cells":{"300":[2,66.67],"400":[19,86.36],"500":[2,40.0],"600":[12,60.0],"1100":[1,10.0],"1200":[3,27.27],"1300":[35,68.63],"1400":[3,33.33],"1500":[39,72.22],"1600":[17,77.27],"1700":[10,76.92]}},{"taxon":"Human alphaherpesvirus 1","disease":"oral herpes","agent":true,"cat":"virus","total":4,"cells":{"300":[1,33.33],"400":[1,4.55],"1300":[1,1.96],"1600":[1,4.55]}},{"taxon":"Hepatitis B virus","disease":"hepatitis B","agent":true,"cat":"virus","total":14,"cells":{"400":[1,4.55],"600":[2,10.0],"700":[2,18.18],"1000":[1,14.29],"1100":[3,30.0],"1200":[2,18.18],"1300":[3,5.88]}},{"taxon":"Haemophilus influenzae","disease":"pneumonia, meningitis","agent":true,"cat":"bacteria","total":1,"cells":{"400":[1,4.55]}},{"taxon":"Mycobacterium leprae","disease":"leprosy","agent":true,"cat":"bacteria","total":21,"cells":{"500":[1,20.0],"900":[1,7.14],"1000":[3,42.86],"1100":[2,20.0],"1200":[6,54.55],"1300":[3,5.88],"1400":[4,44.44],"1800":[1,10.0]}},{"taxon":"Clostridium tetani","disease":"tetanus","agent":true,"cat":"bacteria","total":11,"cells":{"500":[1,20.0],"600":[3,15.0],"700":[2,18.18],"900":[3,21.43],"1600":[1,4.55],"1700":[1,7.69]}},{"taxon":"Plasmodium vivax","disease":"malaria","agent":true,"cat":"parasite","total":10,"cells":{"500":[1,20.0],"1000":[1,14.29],"1100":[2,20.0],"1400":[1,11.11],"1500":[3,5.56],"1600":[1,4.55],"1700":[1,7.69]}},{"taxon":"Variola virus","disease":"smallpox","agent":true,"cat":"virus","total":12,"cells":{"600":[2,10.0],"700":[1,9.09],"900":[8,57.14],"1800":[1,10.0]}},{"taxon":"Methanobrevibacter oralis","disease":"NOT a disease — oral archaeon","agent":false,"cat":"other","total":1,"cells":{"600":[1,5.0]}},{"taxon":"Parvovirus B19","disease":"fifth disease (erythema infectiosum)","agent":true,"cat":"virus","total":5,"cells":{"700":[1,9.09],"900":[2,14.29],"1000":[1,14.29],"1400":[1,11.11]}},{"taxon":"Streptococcus pneumoniae","disease":"pneumonia, meningitis","agent":true,"cat":"bacteria","total":2,"cells":{"700":[2,18.18]}},{"taxon":"Erysipelothrix rhusiopathiae","disease":"erysipeloid — a zoonosis of animal handling","agent":true,"cat":"bacteria","total":2,"cells":{"700":[2,18.18]}},{"taxon":"Borrelia recurrentis","disease":"louse-borne relapsing fever","agent":true,"cat":"bacteria","total":4,"cells":{"1500":[2,3.7],"1800":[2,20.0]}},{"taxon":"Plasmodium malariae","disease":"malaria","agent":true,"cat":"parasite","total":4,"cells":{"1500":[2,3.7],"1600":[1,4.55],"1800":[1,10.0]}},{"taxon":"Treponema pallidum","disease":"syphilis · yaws · bejel (by subspecies)","agent":true,"cat":"bacteria","total":3,"cells":{"1500":[2,3.7],"1600":[1,4.55]}}],"source":"AncientMetagenomeDir (SPAAM community, CC-BY 4.0), European dental samples, 100-1800 CE; disease labels from pathogen_reference.csv"},"morphology":{"periods":["Pre-medieval","Early medieval","High medieval","Late medieval","Early modern","Industrial"],"ages":["18–24","25–29","30–34","35–39","40–44","45–49","50–59","60+"],"wear":{"Pre-medieval":{"45–49":[5.061,78],"35–39":[4.189,92],"30–34":[4.075,82],"25–29":[3.394,76],"18–24":[3.063,65],"40–44":[4.501,74],"50–59":[5.063,77],"60+":[5.583,28]},"Early medieval":{"35–39":[4.507,236],"45–49":[5.247,273],"50–59":[5.474,412],"25–29":[3.427,157],"40–44":[5.133,286],"18–24":[3.03,198],"60+":[5.633,170],"30–34":[3.956,193]},"High medieval":{"30–34":[3.925,126],"35–39":[4.492,134],"45–49":[4.753,90],"25–29":[3.451,121],"40–44":[4.679,123],"50–59":[5.564,145],"18–24":[2.819,79],"60+":[5.843,29]},"Late medieval":{"45–49":[4.442,113],"18–24":[2.834,102],"40–44":[4.664,130],"50–59":[4.7,140],"30–34":[3.989,132],"25–29":[3.368,86],"35–39":[4.238,111],"60+":[4.696,74]},"Early modern":{"50–59":[4.638,227],"40–44":[4.128,196],"45–49":[4.339,155],"30–34":[3.289,247],"25–29":[2.885,276],"18–24":[2.526,277],"35–39":[3.667,181],"60+":[4.982,80]},"Industrial":{"30–34":[2.676,25],"25–29":[2.09,30],"45–49":[3.23,16],"18–24":[2.191,49],"35–39":[3.063,36],"40–44":[3.268,26],"50–59":[3.776,37],"60+":[3.509,9]}},"leh":{"Pre-medieval":{"18–24":[35.5,62,24.7,47.9],"25–29":[30.1,73,20.8,41.4],"30–34":[41.7,72,31.0,53.2],"35–39":[29.1,86,20.5,39.4],"40–44":[41.1,73,30.5,52.6],"45–49":[33.8,68,23.7,45.7],"50–59":[31.0,71,21.4,42.5],"60+":[30.8,26,16.5,50.0]},"Early medieval":{"18–24":[36.9,198,30.5,43.8],"25–29":[35.2,159,28.2,42.9],"30–34":[33.5,206,27.4,40.2],"35–39":[34.7,236,29.0,41.0],"40–44":[36.6,284,31.2,42.4],"45–49":[34.5,293,29.3,40.1],"50–59":[35.0,437,30.7,39.6],"60+":[27.5,182,21.5,34.4]},"High medieval":{"18–24":[45.9,74,35.1,57.2],"25–29":[36.2,116,28.0,45.3],"30–34":[35.8,123,27.9,44.6],"35–39":[44.1,127,35.8,52.8],"40–44":[28.6,112,21.0,37.5],"45–49":[32.6,86,23.6,43.0],"50–59":[36.1,144,28.7,44.2],"60+":[29.6,27,15.9,48.5]},"Late medieval":{"18–24":[55.1,69,43.4,66.2],"25–29":[46.9,64,35.2,58.9],"30–34":[57.7,97,47.8,67.1],"35–39":[28.9,83,20.3,39.4],"40–44":[43.8,105,34.7,53.4],"45–49":[35.9,78,26.1,47.0],"50–59":[45.9,109,36.8,55.2],"60+":[30.4,46,19.1,44.8]},"Early modern":{"18–24":[52.8,269,46.8,58.7],"25–29":[45.7,265,39.8,51.7],"30–34":[42.1,252,36.1,48.2],"35–39":[38.3,183,31.5,45.5],"40–44":[52.9,187,45.8,60.0],"45–49":[34.9,152,27.7,42.7],"50–59":[39.1,238,33.1,45.4],"60+":[34.7,98,26.0,44.5]},"Industrial":{"18–24":[52.6,76,41.6,63.5],"25–29":[40.0,35,25.6,56.4],"30–34":[51.4,35,35.6,67.0],"35–39":[50.0,64,38.1,61.9],"40–44":[62.1,66,50.1,72.9],"45–49":[56.2,48,42.3,69.3],"50–59":[60.2,103,50.5,69.1],"60+":[60.7,28,42.4,76.4]}},"leh_overall":{"Pre-medieval":[34.3,531],"Early medieval":[34.5,1995],"High medieval":[36.6,809],"Late medieval":[43.9,651],"Early modern":[43.7,1644],"Industrial":[55.2,455]},"source":"Global History of Health Project, European module, decoded for this project; adults 18-69"},"metals":{"lead":[{"series":"britain_chronological","label":"Neolithic","early":-4040,"late":-2525,"ppm":0.1,"n":31},{"series":"britain_chronological","label":"Bronze Age","early":-2540,"late":-825,"ppm":0.06,"n":13},{"series":"britain_chronological","label":"Iron Age","early":-840,"late":18,"ppm":0.06,"n":10},{"series":"britain_chronological","label":"Roman Britain","early":3,"late":375,"ppm":1.21,"n":25},{"series":"britain_chronological","label":"post-Roman","early":360,"late":675,"ppm":0.39,"n":50},{"series":"britain_chronological","label":"early medieval","early":660,"late":1075,"ppm":1.93,"n":26},{"series":"britain_chronological","label":"late medieval","early":1160,"late":1475,"ppm":4.69,"n":26},{"series":"roman_world_comparandum","label":"Rome — Casal Bertone & Castellaccio","early":-39,"late":275,"ppm":3.61,"n":17},{"series":"roman_world_comparandum","label":"five Empire sites","early":-39,"late":375,"ppm":2.0,"n":66},{"series":"roman_world_comparandum","label":"five Empire sites (second cohort)","early":-9,"late":400,"ppm":7.0,"n":107},{"series":"modern","label":"20th-century births","early":1860,"late":1975,"ppm":6.55,"n":null},{"series":"pooled_baseline","label":"Kamenov archaeological pooled","early":-4040,"late":1775,"ppm":0.63,"n":38},{"series":"omitted","label":"Gristhorpe, Yorkshire","early":-2240,"late":-1525,"ppm":0.003,"n":1}],"elements":[{"el":"Cu","arch":0.25,"modern":3.6,"ratio":14.4},{"el":"Cr","arch":0.072,"modern":0.8,"ratio":11.11},{"el":"Pb","arch":0.63,"modern":6.55,"ratio":10.4},{"el":"Ni","arch":0.24,"modern":2.2,"ratio":9.17},{"el":"Zn","arch":145.0,"modern":215.0,"ratio":1.48},{"el":"Ba","arch":3.2,"modern":4.6,"ratio":1.44},{"el":"Mg","arch":2430.0,"modern":3075.0,"ratio":1.27},{"el":"Sr","arch":188.0,"modern":168.0,"ratio":0.89}],"source":"Montgomery et al. 2010, Moore et al. 2021, Kamenov et al. 2018 (lead); Kamenov et al. 2018, Table 1 (elements)"},"caries":{"eras":[{"p":"Pre-medieval","lo":200,"hi":500,"std":63.7,"crude":63.9,"n":621,"age":38.9,"sev":[36.1,32.5,18.0,10.5,2.9],"aff":3.2,"p90":6},{"p":"Early medieval","lo":560,"hi":900,"std":54.3,"crude":55.5,"n":2289,"age":42.1,"sev":[44.5,32.2,14.4,7.9,1.0],"aff":2.8,"p90":6},{"p":"High medieval","lo":1050,"hi":1250,"std":52.4,"crude":52.8,"n":920,"age":38.7,"sev":[47.2,28.8,13.3,10.2,0.5],"aff":2.9,"p90":6},{"p":"Late medieval","lo":1400,"hi":1550,"std":64.5,"crude":64.5,"n":1025,"age":40.9,"sev":[35.5,32.4,16.8,13.3,2.0],"aff":3.4,"p90":7},{"p":"Early modern","lo":1500,"hi":1780,"std":64.0,"crude":63.7,"n":1841,"age":37.6,"sev":[36.3,25.8,14.7,17.9,5.3],"aff":4.2,"p90":9},{"p":"Industrial","lo":1770,"hi":1920,"std":76.1,"crude":75.9,"n":531,"age":40.6,"sev":[24.1,29.0,18.5,19.8,8.7],"aff":4.5,"p90":10}],"bands":["no caries","1–2 teeth","3–4 teeth","5–9 teeth","10+ teeth"],"n":7227,"source":"Global History of Health Project, European module, decoded for this project; adults 18-69"}};
 
 </script>
 <script>/* tooth.js */
@@ -716,6 +789,383 @@ void main(){
 })();
 
 </script>
+<script>/* caries.js */
+/* The Tooth Untold: the caries plate (the Caries dashboard).
+   Two teeth seen from above, a lower first molar and a lower canine, with decay drawn where occlusal caries begins: in the
+   pits and fissures, spreading outward. Six eras play in sequence as one lesion that grows and recedes; each finished era
+   leaves its outline behind. A click on a numbered mark, an outline or an era opens that era's detail.
+   The shaded area encodes the share of adults in the era with caries (data/layers.js, caries), not damage to one tooth.
+   The outlines are drawn from cusp lobes and the fissure pattern: illustration, not measurement.
+   window.CariesPlate.mount(el, data) fills el; it is safe to call again on the same element. */
+(function () {
+  "use strict";
+  const NS = "http://www.w3.org/2000/svg", TAU = Math.PI * 2, K = 360;
+  const REDUCED = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // Expanded scale: the whole record lies between 52.4 and 76.1%, so a rate of 51 shades 8% of the crown and 77 shades 80%.
+  // That magnifies every difference about 2.8 times and still leaves a rim of enamel at the top. The notes say so.
+  const LO = 51, HI = 77, A0 = 0.08, A1 = 0.80;
+  const frac = r => Math.max(0.03, Math.min(0.86, A0 + (A1 - A0) * (r - LO) / (HI - LO)));
+
+  // Context, not data: what was happening in each era and why it may have reached the teeth. The events are the team's
+  // (research/Human Correlations/timeline_events_display.csv); "hinge" events changed what the tooth could record.
+  // The numbers quoted in "why" are the era's own figures from data/layers.js.
+  const CONTEXT = {
+    "Pre-medieval": {
+      why: "Roman and late-antique diets were built on coarse, stone-ground grain. The flour carried grit from the millstones, which wore teeth down quickly but left little fermentable residue sitting in the fissures. Caries is already common, but the severe tail is thin: <b>only 2.9%</b> of adults carried ten or more carious teeth.",
+      ev: [["1–400", "Roman lead production peaks", "Industrial-scale mining and smelting; lead in plumbing, vessels, cosmetics and as a wine sweetener."],
+        ["1–400", "Water-powered milling spreads", "Mill density indexes how much of the population ate stone-ground flour rather than home-processed grain."],
+        ["1–300", "Sorghum and millet in the Roman diet", "Establishes the dietary baseline against which later change is measured."],
+        ["1–200", "Extraction becomes a trade", "Teeth removed from the record, at volume, for payment.", 1]] },
+    "Early medieval": {
+      why: "The decay pulls back. Long-distance trade and urban commerce had collapsed with the western empire, and with them the routes that carry refined carbohydrate. <b>44.5%</b> of adults reached death with no carious tooth at all, and this is the largest sample in the record.",
+      ev: [["400–700", "Lead exposure collapses after Rome", "Collapse of industrial-scale mining and smelting with the western empire."],
+        ["400–700", "The first plague pandemic", "Plague reaches Europe five centuries before the Black Death."],
+        ["700–1000", "Black pepper reaches central Italy", "Long-distance spice trade reaching non-elite populations."],
+        ["3000 BCE–1900", "Dairying established across Europe", "Milk consumption is continuous across the period rather than a change point."]] },
+    "High medieval": {
+      why: "The least decay in the record. Watermills and windmills had put stone-ground flour in front of most of Europe, and stone-ground flour is abrasive and coarse rather than sweet. Sugar was still a medicine, not a staple. <b>Only 0.5%</b> of adults carried ten or more carious teeth.",
+      ev: [["1086", "Domesday records thousands of watermills", "Mill density indexes how much of the population ate stone-ground flour rather than home-processed grain."],
+        ["1180–1250", "Windmills appear in northwest Europe", "Further extends stone-ground flour consumption; abrasive load unchanged."],
+        ["1200–1500", "Lead exposure exceeds the Roman peak", "Resumed mining, plus leaded glazes, pewter vessels and cosmetics in higher-status households."],
+        ["1000–1400", "Leprosy rises and then recedes", "A disease the record can be watched leaving, not only arriving."]] },
+    "Late medieval": {
+      why: "The turn. Twelve points of prevalence arrive in roughly two centuries and the decay spreads back past where it started, while the untouched share falls from 47.2% to <b>35.5%</b>. Urban commercial economies delivered refined flour and imported sugar to towns well before the countryside.",
+      ev: [["1300–1500", "Cities become worse for teeth than the countryside", "Urban commercial economies deliver refined flour and imported sugar to towns first."],
+        ["1100–1700", "Sugar and refined starch reshape the mouth", "Fermentable carbohydrate becomes a routine rather than an occasional exposure."],
+        ["1347–1351", "The Black Death", "A mortality event severe enough to change who ends up in the cemeteries being read."],
+        ["1100–1536", "Mercury used against leprosy and syphilis", "A chemical trace of human response to disease rather than of disease itself.", 1]] },
+    "Early modern": {
+      why: "The outline barely moves, and that is the point. Prevalence holds where the late medieval period left it, but the severity underneath it moves hard: the share carrying five or more carious teeth climbs from 15.3% to <b>23.2%</b>, and the worst tenth of affected mouths goes from seven teeth to nine. The same headline number now covers a worse distribution.",
+      ev: [["1500–1600", "New World crops reach European fields", "Expands the calorie base and the starch fraction of the diet."],
+        ["1600–1700", "Maize and potato appear in European mouths", "Direct evidence that New World crops had entered the diet of the urban poor."],
+        ["1650–1750", "Tea and sugar become everyday goods in Britain", "Sustained daily exposure to fermentable sucrose, including between meals."],
+        ["1495–1700", "Syphilis spreads through Europe", "New epidemic disease; drives the mercury treatment response."]] },
+    "Industrial": {
+      why: "Cheap sugar, roller-milled flour, and the removal of the grit that used to scour the fissures clean. Three-quarters of adults carried caries and <b>8.7%</b> carried ten or more carious teeth, seventeen times the high medieval share. This is also where the record begins to fail: once amalgam makes repair routine, a filled tooth is a lesion that has been concealed, and the tooth stops being able to report its own history.",
+      ev: [["1846", "Britain equalises sugar duties", "Price fall increases per-capita sugar consumption across income groups."],
+        ["1870–1890", "Roller mills; industrial food processing", "Eliminates the principal source of dietary grit while raising the share of refined, rapidly fermentable starch."],
+        ["1750–1900", "Industrial urbanisation", "Concentrates population in cities with commercial food supply and no fresh produce."],
+        ["1826–1900", "Amalgam makes tooth repair routine", "A filled tooth is a caries lesion that has been concealed. DMFT separates D, M and F precisely because disease can no longer be read from the tooth alone.", 1]] },
+  };
+  // severity bands, none to ten or more carious teeth: the page's neutral ramp, as in the wear chart
+  const BAND = ["#e2e0d9", "#b9b6ad", "#8f8b81", "#5e5b54", "#2b2925"];
+
+  // ------------------------------------------------------------------ geometry: a radial profile per tooth
+  function rng(seed) { let s = seed >>> 0; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
+  // sum of gaussian blobs [x, y, radius, weight] -> a scalar field
+  function field(lobes) {
+    return (x, y) => { let a = 0; for (const l of lobes) { const dx = x - l[0], dy = y - l[1]; a += l[3] * Math.exp(-(dx * dx + dy * dy) / (2 * l[2] * l[2])); } return a; };
+  }
+  // iso-contour of a field as a radial profile about the origin: bisect along each of K rays
+  function profile(F, iso, warp) {
+    const r = new Float64Array(K);
+    for (let k = 0; k < K; k++) {
+      const t = k / K * TAU, ux = Math.cos(t), uy = Math.sin(t);
+      let lo = 0.005, hi = 2.4;
+      for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; if (F(ux * m, uy * m) > iso) lo = m; else hi = m; }
+      r[k] = lo * (warp ? warp(t) : 1);
+    }
+    return r;
+  }
+  // the same contour for the decay, which is clipped to just inside the crown anyway: each ray only searches up to that
+  // limit (lim = the clip radius before the warp). Seeds are packed into one array, as this runs ~100k times per era.
+  function decayProfile(seeds, s, lim) {
+    const n = seeds.length, P = new Float64Array(n * 4);
+    seeds.forEach((q, i) => { P[i * 4] = q[0]; P[i * 4 + 1] = q[1]; P[i * 4 + 2] = 1 / (2 * q[2] * s * q[2] * s); P[i * 4 + 3] = q[3]; });
+    const F = (x, y) => { let a = 0; for (let i = 0; i < n * 4; i += 4) { const dx = x - P[i], dy = y - P[i + 1]; a += P[i + 3] * Math.exp(-(dx * dx + dy * dy) * P[i + 2]); } return a; };
+    const r = new Float64Array(K);
+    for (let k = 0; k < K; k++) {
+      const t = k / K * TAU, ux = Math.cos(t), uy = Math.sin(t), L = lim[k];
+      if (F(ux * L, uy * L) > 0.5) { r[k] = L; continue; }
+      let lo = 0.005, hi = L;
+      for (let i = 0; i < 12; i++) { const m = (lo + hi) / 2; if (F(ux * m, uy * m) > 0.5) lo = m; else hi = m; }
+      r[k] = lo;
+    }
+    return r;
+  }
+  // circular moving average: removes the spikes left by clipping to the crown
+  function smoothR(r, w) {
+    const o = new Float64Array(K);
+    for (let k = 0; k < K; k++) { let a = 0; for (let j = -w; j <= w; j++) a += r[(k + j + 2 * K) % K]; o[k] = a / (2 * w + 1); }
+    return o;
+  }
+  function areaOf(T, r) {
+    let a = 0;
+    for (let k = 0; k < K; k++) {
+      const j = (k + 1) % K, t1 = k / K * TAU, t2 = j / K * TAU;
+      a += Math.cos(t1) * r[k] * T.sx * Math.sin(t2) * r[j] * T.sy - Math.cos(t2) * r[j] * T.sx * Math.sin(t1) * r[k] * T.sy;
+    }
+    return Math.abs(a / 2);
+  }
+  const dOf = (T, r) => { let d = ""; for (let k = 0; k < K; k++) { const t = k / K * TAU; d += (k ? "L" : "M") + (T.cx + Math.cos(t) * r[k] * T.sx).toFixed(2) + " " + (T.cy - Math.sin(t) * r[k] * T.sy).toFixed(2); } return d + "Z"; };
+  const lineOf = (T, f) => f.map((q, i) => (i ? "L" : "M") + (T.cx + q[0] * T.sx).toFixed(1) + " " + (T.cy - q[1] * T.sy).toFixed(1)).join("");
+
+  // cusp lobes: five on the lower first molar (two lingual, three buccal) plus the central fossa; three on the canine plus a lingual one
+  const MOLAR_LOBES = [[-0.46, 0.36, 0.30, 1], [0.44, 0.34, 0.30, 1], [-0.48, -0.36, 0.30, 1], [0.30, -0.38, 0.29, 1], [0.68, -0.06, 0.24, 0.85], [0, 0, 0.46, 0.55]];
+  const CANINE_LOBES = [[0, -0.36, 0.26, 1], [-0.28, 0.06, 0.23, 0.95], [0.28, 0.04, 0.22, 0.95], [0, 0.34, 0.18, 0.72]];
+  // occlusal grooves: the molar's central fissure with its buccal, lingual and distobuccal branches and the fossae;
+  // the canine's labial ridge and its mesial and distal marginal ridges
+  const MOLAR_FISS = [[[-0.56, 0.05], [-0.24, -0.02], [0.10, 0.04], [0.44, -0.02], [0.74, -0.08]], [[-0.02, 0.02], [-0.03, 0.28], [-0.04, 0.56]],
+    [[-0.06, -0.01], [-0.07, -0.30], [-0.08, -0.56]], [[0.44, -0.02], [0.49, -0.28], [0.52, -0.50]],
+    [[-0.56, 0.05], [-0.70, 0.28]], [[-0.56, 0.05], [-0.72, -0.20]], [[0.74, -0.08], [0.86, 0.14]], [[0.74, -0.08], [0.84, -0.28]]];
+  const CANINE_FISS = [[[0, 0.07], [0.01, -0.26], [0.02, -0.56]], [[0, 0.07], [-0.24, 0.24], [-0.30, 0.34]], [[0, 0.07], [0.24, 0.22], [0.30, 0.32]], [[-0.20, 0.38], [0, 0.44], [0.20, 0.37]]];
+
+  function mkTooth(lobes, iso, fiss, cx, cy, sx, sy, no, cap, seed) {
+    const T = { cx, cy, sx, sy, no, cap, fiss }, nz = rng(seed);
+    // a small fixed ripple (mean zero) so neither the crown nor the decay reads as machined
+    const h = [[3, 0.030, nz() * TAU], [5, 0.020, nz() * TAU], [8, 0.012, nz() * TAU]];
+    T.warp = t => 1 + h.reduce((a, q) => a + q[1] * Math.sin(q[0] * t + q[2]), 0);
+    T.crown = profile(field(lobes), iso, T.warp);
+    T.area = areaOf(T, T.crown);
+    // decay seeds along the fissures, where occlusal caries starts, plus a few pits off them; fixed for all eras
+    const seeds = [];
+    for (const f of fiss) for (let i = 0; i < f.length - 1; i++) for (let s = 0; s < 3; s++) {
+      const u = (s + 0.5) / 3;
+      seeds.push([f[i][0] + (f[i + 1][0] - f[i][0]) * u + (nz() - 0.5) * 0.06, f[i][1] + (f[i + 1][1] - f[i][1]) * u + (nz() - 0.5) * 0.06, 0.055 + 0.055 * nz(), 0.75 + 0.55 * nz()]);
+    }
+    for (let i = 0; i < 6; i++) { const t = nz() * TAU, rr = 0.22 + 0.38 * nz(); seeds.push([Math.cos(t) * rr, Math.sin(t) * rr * 0.78, 0.045 + 0.045 * nz(), 0.55 + 0.4 * nz()]); }
+    T.seeds = seeds; T.core = seeds.filter((s, i) => i % 3 === 0);
+    return T;
+  }
+  // the extent is solved, not drawn: grow the seeds until the shaded share of the crown is the era's target
+  // (regula falsi with the Illinois step on the log of the seed-radius multiplier: the shaded share rises steadily with it;
+  // it stops within 0.3% of the target)
+  function decayAt(T, seedSet, target) {
+    if (!T.lim) T.lim = Float64Array.from(T.crown, (c, k) => c * 0.955 / T.warp(k / K * TAU));
+    const shade = u => {
+      const r = decayProfile(seedSet, Math.exp(u), T.lim);
+      for (let k = 0; k < K; k++) r[k] = Math.min(r[k] * T.warp(k / K * TAU), T.crown[k] * 0.955);
+      const sm = smoothR(r, 6);
+      for (let k = 0; k < K; k++) sm[k] = Math.min(sm[k], T.crown[k] * 0.955);
+      return { sm, f: areaOf(T, sm) / T.area - target };
+    };
+    let a = Math.log(0.25), b = Math.log(4.0), A = shade(a), B = shade(b), fa = A.f, fb = B.f, side = 0, best = Math.abs(fa) < Math.abs(fb) ? A : B;
+    if (fa >= 0) return A.sm;
+    if (fb <= 0) return B.sm;
+    for (let i = 0; i < 24 && Math.abs(best.f) > 0.003 * target; i++) {
+      const s = (a * fb - b * fa) / (fb - fa), C = shade(s);
+      if (Math.abs(C.f) < Math.abs(best.f)) best = C;
+      if (C.f > 0) { b = s; fb = C.f; if (side === -1) fa /= 2; side = -1; }
+      else { a = s; fa = C.f; if (side === 1) fb /= 2; side = 1; }
+    }
+    return best.sm;
+  }
+  // Profiles are solved one era at a time (about 0.1 s each) and kept, so the page never stalls on all six at once.
+  let TEETH = null, PROF = [], ERAS = [], BLANK = null, forRates = "";
+  function geometry(eras) {
+    if (!TEETH) TEETH = [mkTooth(MOLAR_LOBES, 0.62, MOLAR_FISS, 182, 196, 160, 160, "Fig. 1", "lower first molar, occlusal", 11),
+      mkTooth(CANINE_LOBES, 0.52, CANINE_FISS, 506, 196, 132, 192, "Fig. 2", "lower canine, incisal", 29)];
+    BLANK = BLANK || TEETH.map(() => { const z = new Float64Array(K).fill(0.015); return { out: z, mid: z, inn: z }; });
+    const key = eras.map(d => d.std).join();
+    if (key !== forRates) { PROF = []; ERAS = eras; forRates = key; }
+  }
+  // three layers per era: the whole lesion, the cavitated body and the deepest point (the inner two from a subset of seeds)
+  function era(i) {
+    const A = frac(ERAS[i].std);
+    return PROF[i] || (PROF[i] = TEETH.map(T => ({ out: decayAt(T, T.seeds, A), mid: decayAt(T, T.core, A * 0.50), inn: decayAt(T, T.core, A * 0.22) })));
+  }
+  const allEras = () => ERAS.forEach((d, i) => era(i));
+
+  // ------------------------------------------------------------------ the page
+  const NOTES = n => [
+    ["What the decay shows", "The shaded area is the share of adults in that era who carried at least one carious tooth, not the damage to one tooth. Its shape grows from the fissure pattern, where occlusal caries starts, and is the same shape in every era; only its extent changes."],
+    ["The scale is expanded", "The shaded share of the crown runs from 8% at a rate of 51% to 80% at a rate of 77%, because the whole record sits between 52.4% and 76.1%. That magnifies every difference about 2.8 times. Even so, eras 1, 4 and 5 lie within a point of one another (63.7, 64.5 and 64.0%), so their outlines all but coincide: that is the finding, not a fault in the drawing."],
+    ["One reference population", "Every rate is age-standardised to the pooled age distribution of all " + n.toLocaleString("en") + " adults (18–69), so no era reads higher merely because more of its people lived long enough to accumulate decay. It moves each value by at most 1.2 points and changes no ordering."],
+    ["The drawings", "Both outlines are built from cusp lobes, five on the lower first molar and three on the canine, with the occlusal groove pattern over them: drawn, not measured. Era spans are the 10th to 90th percentile of site dates, so they overlap. A ‘hinge’ marks an event that changed what the tooth could record rather than what it recorded."],
+    ["Source", "Global History of Health Project, European module, decoded for this project. Events and the ‘why’ text are context from the team's timeline, not data."]];
+  const HTML = "<div class='cp'>" +
+    "<div class='cp-fig'><svg class='cp-plate' viewBox='0 0 660 430' role='img' aria-label='A lower first molar and a lower canine seen from above, with the extent of carious decay drawn for six eras.'></svg></div>" +
+    "<div class='cp-foot'><span class='cp-hint'>Reading the record forward…</span><button class='btn cp-replay' type='button'>Replay</button></div>" +
+    "<div class='cp-rail'></div>" +
+    "<div class='cp-read'><p class='cp-era'></p><p class='cp-yrs'></p>" +
+    "<div class='cp-stats'><div><b class='cp-s1'></b><span>of adults carried caries</span></div><div><b class='cp-s2'></b><span>carious teeth, on average, in an affected mouth</span></div><div><b class='cp-s3'></b><span>or more, in the worst-affected tenth</span></div></div>" +
+    "<p class='cp-bh'>Teeth carious, per person</p><div class='cp-bar'></div><div class='cp-keys'></div></div>" +
+    "<div class='cp-detail' hidden><div class='cp-dtop'><p class='cp-dh'></p><button class='link cp-close' type='button'>Close</button></div>" +
+    "<p class='cp-h4'>What was happening</p><div class='cp-ev'></div><p class='cp-h4'>Why it may have reached the teeth</p><p class='cp-why'></p>" +
+    "<p class='cp-h4'>All six eras</p><div class='cp-cmp'></div></div>" +
+    "<div class='cp-notes'></div></div>";
+
+  function mount(el, data) {
+    if (!el || !data || !data.eras) return;
+    if (el.dataset.mounted) return;                // resize redraws must not restart the run
+    el.dataset.mounted = "1";
+    const PD = data.eras, N = PD.length;
+    geometry(PD);
+    el.innerHTML = HTML;
+    const q = s => el.querySelector(s), svg = q(".cp-plate");
+    const span = d => "c. " + d.lo + "–" + d.hi + " CE";
+    const live = [], ghostG = [], marks = [];
+
+    // ---- build the plate
+    const defs = document.createElementNS(NS, "defs");
+    defs.innerHTML = "<radialGradient id='cpEnamel' cx='46%' cy='42%' r='66%'><stop offset='0%' stop-color='#fbfaf6'/><stop offset='62%' stop-color='#f1efe9'/><stop offset='100%' stop-color='#d9d6cd'/></radialGradient>" +
+      "<radialGradient id='cpDecay' cx='48%' cy='46%' r='62%'><stop offset='0%' stop-color='#17140f'/><stop offset='55%' stop-color='#2c2619'/><stop offset='100%' stop-color='#4d4330'/></radialGradient>";
+    svg.appendChild(defs);
+    const mk = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+    TEETH.forEach((T, ti) => {
+      const g = mk("g", {}, svg);
+      mk("path", { class: "cp-enamel", d: dOf(T, T.crown) }, g);
+      T.fiss.forEach(f => mk("path", { class: "cp-fiss", d: lineOf(T, f) }, g));
+      ghostG[ti] = mk("g", {}, g);
+      const halo = mk("path", { class: "cp-halo" }, g), out = mk("path", { class: "cp-out" }, g), mid = mk("path", { class: "cp-mid" }, g), inn = mk("path", { class: "cp-in" }, g);
+      const dclip = mk("clipPath", { id: "cpClip" + ti }, defs), dcp = mk("path", {}, dclip);
+      const sp = mk("g", { class: "cp-speck", "clip-path": "url(#cpClip" + ti + ")" }, g), nz = rng(500 + ti * 37);
+      for (let i = 0; i < 190; i++) { const t = nz() * TAU, rr = Math.sqrt(nz()); mk("circle", { cx: (T.cx + Math.cos(t) * rr * T.sx * 0.9).toFixed(1), cy: (T.cy - Math.sin(t) * rr * T.sy * 0.9).toFixed(1), r: (0.6 + nz() * 1.5).toFixed(2) }, sp); }
+      T.fiss.forEach(f => mk("path", { class: "cp-fiss-deep", "clip-path": "url(#cpClip" + ti + ")", d: lineOf(T, f) }, g));   // the grooves read through the decay
+      ghostG[ti].over = mk("g", { "clip-path": "url(#cpClip" + ti + ")" }, g);   // the same outlines, pale, where they fall inside the live lesion
+      mk("text", { class: "cp-no", x: T.cx, y: 398, "text-anchor": "middle" }, g).textContent = T.no;
+      mk("text", { class: "cp-cap", x: T.cx, y: 416, "text-anchor": "middle" }, g).textContent = T.cap;
+      live[ti] = { halo, out, mid, inn, dcp };
+    });
+    // one numbered mark per era, on the molar
+    const mg = mk("g", {}, svg);
+    PD.forEach((d, i) => {
+      const g = mk("g", { class: "cp-mark", tabindex: 0, role: "button", "aria-label": "Era " + (i + 1) + ", " + d.p + ", " + d.std + " per cent" }, mg);
+      mk("circle", { r: 10 }, g); mk("text", { "text-anchor": "middle" }, g).textContent = i + 1;
+      g.addEventListener("click", () => pick(i));
+      g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(i); } });
+      marks[i] = g;
+    });
+
+    function paintShape(a, b, u) {
+      TEETH.forEach((T, ti) => {
+        const L = live[ti], A = a[ti], B = b[ti];
+        const mix = (p, r) => { const o = new Float64Array(K); for (let k = 0; k < K; k++) o[k] = p[k] + (r[k] - p[k]) * u; return o; };
+        const dOut = dOf(T, mix(A.out, B.out));
+        L.out.setAttribute("d", dOut); L.halo.setAttribute("d", dOut); L.dcp.setAttribute("d", dOut);
+        L.mid.setAttribute("d", dOf(T, mix(A.mid, B.mid))); L.inn.setAttribute("d", dOf(T, mix(A.inn, B.inn)));
+      });
+    }
+    // the outlines each finished era leaves behind; they are also click targets
+    function setGhosts(upto) {
+      TEETH.forEach((T, ti) => {
+        ghostG[ti].textContent = ""; ghostG[ti].over.textContent = "";
+        for (let i = 0; i <= upto; i++) {
+          const d = dOf(T, era(i)[ti].out);
+          mk("path", { class: "cp-ghost", d, opacity: (0.3 + 0.07 * i).toFixed(2) }, ghostG[ti]);
+          mk("path", { class: "cp-ghost cp-ghost-in", d, opacity: (0.4 + 0.07 * i).toFixed(2) }, ghostG[ti].over);
+          mk("path", { class: "cp-ghost-hit", d }, ghostG[ti]).addEventListener("click", () => pick(i));
+        }
+      });
+      placeMarks(upto);
+    }
+    // each mark sits on its own era's outline, at the candidate angle farthest from the marks already placed
+    function placeMarks(upto) {
+      const put = [], M = TEETH[0];
+      marks.forEach((m, i) => {
+        if (i > upto) { m.setAttribute("opacity", 0); m.style.pointerEvents = "none"; return; }
+        m.setAttribute("opacity", 1); m.style.pointerEvents = "";
+        let best = null, bestD = -1;
+        for (let c = 0; c < 48; c++) {
+          const k = Math.round(c / 48 * K) % K, t = k / K * TAU, r = era(i)[0].out[k];
+          const x = M.cx + Math.cos(t) * r * M.sx, y = M.cy - Math.sin(t) * r * M.sy;
+          let d = put.length ? Math.min(...put.map(p => Math.hypot(x - p[0], y - p[1]))) : 1e9 - c;
+          if (d > bestD) { bestD = d; best = [x, y]; }
+        }
+        put.push(best);
+        m.querySelector("circle").setAttribute("cx", best[0].toFixed(1)); m.querySelector("circle").setAttribute("cy", best[1].toFixed(1));
+        m.querySelector("text").setAttribute("x", best[0].toFixed(1)); m.querySelector("text").setAttribute("y", (best[1] + 3.5).toFixed(1));
+      });
+    }
+
+    // ---- the readout beside the figure: era, three figures, one severity bar
+    const bar = q(".cp-bar"), segs = data.bands.map((b, j) => {
+      const s = document.createElement("span"); s.style.background = BAND[j]; s.style.color = j >= 2 ? "#fbf8f1" : "#1a1a18"; bar.appendChild(s);
+      q(".cp-keys").insertAdjacentHTML("beforeend", "<span><i style='background:" + BAND[j] + "'></i>" + esc(b) + "</span>");
+      return s;
+    });
+    const chips = PD.map((d, i) => {
+      const b = document.createElement("button"); b.type = "button"; b.setAttribute("aria-pressed", "false");
+      b.innerHTML = "<span class='n'>" + (i + 1) + "</span>" + esc(d.p) + "<span class='y'>" + d.lo + "–" + d.hi + "</span>";
+      b.addEventListener("click", () => pick(i)); q(".cp-rail").appendChild(b); return b;
+    });
+    q(".cp-notes").innerHTML = NOTES(data.n).map(n => "<p class='ctxnote'><b>" + esc(n[0]) + "</b>" + esc(n[1]) + "</p>").join("");
+
+    function readout(i) {
+      const d = PD[i];
+      q(".cp-era").textContent = d.p; q(".cp-yrs").textContent = span(d);
+      q(".cp-s1").innerHTML = d.std.toFixed(1) + "<small>%</small>"; q(".cp-s2").textContent = d.aff; q(".cp-s3").textContent = d.p90;
+      d.sev.forEach((v, j) => { segs[j].style.width = v + "%"; segs[j].textContent = v >= 9 ? Math.round(v) : ""; });
+      chips.forEach((c, j) => c.setAttribute("aria-pressed", j === i ? "true" : "false"));
+      marks.forEach((m, j) => m.classList.toggle("on", j === i));
+    }
+    function openDetail(i) {
+      const d = PD[i], C = CONTEXT[d.p] || { why: "", ev: [] };
+      q(".cp-dh").innerHTML = esc(d.p) + "<em>" + esc(span(d)) + " · n = " + d.n.toLocaleString("en") + " adults · crude rate " + d.crude.toFixed(1) + "% · mean age at death " + d.age + "</em>";
+      q(".cp-why").innerHTML = C.why;                // trusted copy from CONTEXT above (it carries <b>)
+      q(".cp-ev").innerHTML = C.ev.map(e => "<div class='cp-e'><span class='y'>" + esc(e[0]) + "</span><div><p class='t'>" + esc(e[1]) + (e[3] ? "<span class='tag'>hinge</span>" : "") + "</p><p class='m'>" + esc(e[2]) + "</p></div></div>").join("");
+      q(".cp-cmp").innerHTML = PD.map((r, j) => "<button type='button' class='cp-row" + (j === i ? " on" : "") + "' data-i='" + j + "'><span class='nm'>" + esc(r.p) + "</span><span class='cb'>" +
+        r.sev.map((v, k) => "<span style='width:" + v + "%;background:" + BAND[k] + "'></span>").join("") + "</span><span class='v'>" + r.std.toFixed(1) + "%</span></button>").join("");
+      q(".cp-cmp").querySelectorAll(".cp-row").forEach(r => r.addEventListener("click", () => pick(+r.dataset.i)));
+      q(".cp-detail").hidden = false;
+    }
+
+    // ---- motion: one live lesion, interpolated between eras
+    let raf = null, timer = null, cur = N - 1;
+    const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+    const halt = () => { if (raf) cancelAnimationFrame(raf); if (timer) clearTimeout(timer); raf = timer = null; };
+    function animate(from, to, ms, done) {
+      const t0 = performance.now();
+      const tick = now => {
+        if (!svg.isConnected) { halt(); return; }    // the dashboard was closed
+        const u = Math.min(1, (now - t0) / ms);
+        paintShape(from, to, ease(u));
+        if (u < 1) raf = requestAnimationFrame(tick); else { raf = null; if (done) done(); }
+      };
+      raf = requestAnimationFrame(tick);
+    }
+    function pick(i) {
+      halt();
+      const from = PROF[cur] || BLANK; cur = i;
+      readout(i); setGhosts(N - 1);
+      if (REDUCED) { paintShape(era(i), era(i), 1); openDetail(i); }
+      else animate(from, era(i), 820, () => openDetail(i));
+      q(".cp-hint").textContent = "Era " + (i + 1) + ": " + PD[i].p + ".";
+    }
+    function run() {
+      halt();
+      q(".cp-detail").hidden = true; q(".cp-hint").textContent = "Reading the record forward…";
+      setGhosts(-1); paintShape(BLANK, BLANK, 0);
+      let i = 0;
+      const step = () => {
+        if (!svg.isConnected) { halt(); return; }
+        readout(i);
+        animate(i === 0 ? BLANK : era(i - 1), era(i), 1150, () => {
+          setGhosts(i); cur = i; i++;
+          if (i < N) timer = setTimeout(step, 520);
+          else { timer = null; q(".cp-hint").textContent = "Click a numbered mark, an outline or an era to open it."; }
+        });
+      };
+      timer = setTimeout(step, 300);
+    }
+    q(".cp-replay").addEventListener("click", () => { if (REDUCED) { pick(N - 1); return; } run(); });
+    q(".cp-close").addEventListener("click", () => { q(".cp-detail").hidden = true; });
+
+    // first paint is already a finished figure (the last era), so a thumbnail is never an empty tooth; the other eras are
+    // solved one per task after it, then their outlines appear and the run starts
+    readout(N - 1); setGhosts(-1); paintShape(era(N - 1), era(N - 1), 1);
+    let next = 0;
+    const prep = () => {
+      if (!svg.isConnected) return;
+      if (next < N - 1) { era(next++); timer = setTimeout(prep, 0); return; }
+      timer = null; setGhosts(N - 1);
+      if (!REDUCED) run(); else q(".cp-hint").textContent = "Click a numbered mark, an outline or an era to open it.";
+    };
+    timer = setTimeout(prep, 0);
+  }
+
+  // for checks in the console: shaded share of each crown per era, and how close the lesion is to the crown's shape
+  function check(data) {
+    geometry(data.eras);
+    const corr = (a, b) => { const n = a.length, ma = a.reduce((s, v) => s + v, 0) / n, mb = b.reduce((s, v) => s + v, 0) / n; let c = 0, va = 0, vb = 0; for (let k = 0; k < n; k++) { c += (a[k] - ma) * (b[k] - mb); va += (a[k] - ma) ** 2; vb += (b[k] - mb) ** 2; } return c / Math.sqrt(va * vb); };
+    return data.eras.map((d, i) => ({ era: d.p, target: +frac(d.std).toFixed(4), shaded: TEETH.map(T => +(areaOf(T, era(i)[TEETH.indexOf(T)].out) / T.area).toFixed(4)), corr: TEETH.map((T, ti) => +corr(Array.from(era(i)[ti].out), Array.from(T.crown)).toFixed(3)) }));
+  }
+  window.CariesPlate = { mount, check };
+})();
+
+</script>
 <script>/* app.js */
 /* The Tooth Untold: storyline build (v6).
    Intro: engraved jaw, closed, swings open on its hinge -> four teeth line up -> first molar and canine close in -> 2D becomes a 3D point cloud.
@@ -758,6 +1208,9 @@ void main(){
     { key: "metals", n: "03", name: "Metals", about: "lead in enamel, particles in tartar",
       human: "Human × metal correlations across time",
       events: [{ label: "Industrial Revolution", when: "Year–Year", img: "event-industrial" }] },
+    // the caries plate (caries.js) carries its own events, from the team's timeline, so this layer has no placeholder strip
+    { key: "caries", n: "04", name: "Caries", about: "decay, era by era",
+      human: "", events: [] },
   ];
   const layerOf = k => LAYERS.find(L => L.key === k);
 
@@ -869,10 +1322,10 @@ void main(){
   }
   // the renderer's inputs for one tooth; S.show keeps only one layer's traces
   function paramsFor(T) {
-    const SH = T.R.st.S, top = SH.top, L = S.show, shape = L === "all" || L === "morphology";
+    const SH = T.R.st.S, top = SH.top, L = S.show, shape = L === "all" || L === "morphology", decay = shape || L === "caries";
     const wear = shape && T.type === "molar" ? G.wear : null, leh = shape && T.type === "canine" ? G.leh : null;
     const wearY = wear != null ? top - (wear - 1) / 7 * 0.55 * top : top + 0.02;
-    const cr = shape && G.caries != null ? (0.015 + 0.7 * G.caries) * (SH.B[0] / 0.5) : 0;
+    const cr = decay && G.caries != null ? (0.015 + 0.7 * G.caries) * (SH.B[0] / 0.5) : 0;
     const cp = SH.cariesAt === "occlusal" ? [0.06, Math.min(wearY, SH.grooveY) - 0.005, -0.03] : [SH.B[0] * 0.97, 0.44 * top, -0.13];
     const pb = (L === "all" || L === "metals") && G.pb != null ? clamp(Math.log10(G.pb / 0.05) / Math.log10(10 / 0.05), 0, 1) : 0;
     const calc = G.calcRecs.some(r => L === "all" || (L === "pathogens" && r.kind !== "metal") || (L === "metals" && r.kind === "metal")) ? 1 : 0;
@@ -1151,7 +1604,7 @@ void main(){
     layersEl.innerHTML = ""; layersEl.classList.toggle("deck", deck());
     LAYERS.forEach((L, i) => {
       const b = document.createElement("button");
-      b.className = "sheet"; b.style.setProperty("--c", i - 1); b.setAttribute("aria-label", "Open the " + L.name.toLowerCase() + " layer");
+      b.className = "sheet"; b.style.setProperty("--c", i - (LAYERS.length - 1) / 2); b.setAttribute("aria-label", "Open the " + L.name.toLowerCase() + " layer");
       b.appendChild(GL ? sheetPicture(L, !deck()) : document.createElement("canvas"));
       b.insertAdjacentHTML("beforeend", "<span class='sl'><b>" + L.n + "</b>" + esc(L.name) + "<i>" + esc(L.about) + "</i></span>");
       b.onclick = () => openLayer(L.key);
@@ -1162,10 +1615,10 @@ void main(){
   }
   // side by side and turned, like an exploded drawing, when there is room; stacked like a deck on narrow screens
   function fitSheets() {
-    const W = pairEl.clientWidth, H = pairEl.clientHeight, sw = stage.clientWidth - 32, wide = !deck();
+    const W = pairEl.clientWidth, H = pairEl.clientHeight, sw = stage.clientWidth - 32, wide = !deck(), n = LAYERS.length;
     const ry = wide ? -24 : 0, cw = W * Math.cos(ry * Math.PI / 180);
-    const s = wide ? Math.min(0.6, 0.96 * sw / (3 * cw * 0.9)) : 0.64;
-    const v = wide ? { dx: s * cw * 0.9, dy: -0.05 * H, dz: -140, rx: 0, ry } : { dx: 0, dy: 0.2 * H, dz: 40, rx: 10, ry: 0 };
+    const s = wide ? Math.min(0.6, 0.96 * sw / (n * cw * 0.9)) : 0.64;
+    const v = wide ? { dx: s * cw * 0.9, dy: -0.05 * H, dz: -140, rx: 0, ry } : { dx: 0, dy: 0.4 * H / (n - 1), dz: 40, rx: 10, ry: 0 };
     Object.entries({ "--dx": v.dx + "px", "--dy": v.dy + "px", "--dz": v.dz + "px", "--rx": v.rx + "deg", "--ry": v.ry + "deg", "--s": s, "--bw": (1.1 / s) + "px", "--fs": (12 / s) + "px" })
       .forEach(([k, val]) => layersEl.style.setProperty(k, val));
   }
@@ -1226,7 +1679,9 @@ void main(){
       notes: ["Source: Kamenov et al. 2018, Table 1, via the team's particulates and metals dataset."] }],
   };
   function dashHTML(L) {
-    const ev = L.events.map((e, i) => "<figure class='ev' style='left:" + ((i + 1) / (L.events.length + 1) * 100).toFixed(1) + "%'><figcaption><b>" + esc(e.label) + "</b>" + esc(e.when) + "</figcaption>" +
+    if (L.key === "caries") return "<div class='dp'>" + (LD && LD.caries ? "<section><h3>Caries, read from the crown</h3><p class='sub'>Two teeth seen from above, with decay drawn where it begins, in the pits and fissures of the chewing surface, spreading outward. Six eras run in sequence; each leaves its outline behind.</p><div id='ch-caries'></div></section>" :
+      "<section><p class='sub'>The caries data in data/layers.js is missing: run build_layers.py.</p></section>") + "</div>";
+    const ev =L.events.map((e, i) => "<figure class='ev' style='left:" + ((i + 1) / (L.events.length + 1) * 100).toFixed(1) + "%'><figcaption><b>" + esc(e.label) + "</b>" + esc(e.when) + "</figcaption>" +
       (IMG[e.img] ? "<img src='" + IMG[e.img] + "' alt=''>" : "<div class='slot'>Image</div>") + "</figure>").join("");
     const charts = (CHARTS[L.key] || []).map(c => "<section><h3>" + esc(c.title) + "</h3><p class='sub'>" + esc(c.sub) + "</p><svg class='chart' id='ch-" + c.id + "' role='img' aria-label='" + esc(c.title) + "'></svg>" +
       c.notes.map(n => "<p class='ctxnote'>" + esc(n) + "</p>").join("") + "</section>").join("");
@@ -1236,6 +1691,7 @@ void main(){
   }
   function drawCharts(L) {
     if (!LD) return;
+    if (L.key === "caries") { if (window.CariesPlate) CariesPlate.mount(document.getElementById("ch-caries"), LD.caries); return; }
     (CHARTS[L.key] || []).forEach(c => {
       const svg = d3.select("#ch-" + c.id); if (svg.empty()) return;
       svg.selectAll("*").remove(); d3.select(svg.node().parentNode).selectAll(".keylist").remove();
