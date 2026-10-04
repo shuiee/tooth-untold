@@ -202,11 +202,13 @@ a{color:inherit}
 .cp-rail .y{margin-left:auto}
 .cp-rail button[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);background:var(--card)}
 .cp-rail button[aria-pressed="true"] .n{color:var(--ink);font-weight:600}
-.cp-read{border-top:1px solid var(--rule);padding-top:12px}
+.cp-read{padding-top:0}
 .cp-era{font-size:26px;line-height:1.1;margin:0}
 .cp-yrs{font-family:var(--label);font-size:11px;letter-spacing:.08em;color:var(--ink-3);margin:4px 0 0}
-.cp-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:16px;margin-top:16px}
-.cp-stats b{display:block;font-size:clamp(26px,3vw,36px);font-weight:500;line-height:1}
+.cp-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:14px;margin-top:16px}
+.cp-stats>div{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px 8px;min-width:0}
+.cp-stats>div>div{min-width:0;flex:1 1 74px}   /* beside its icons, or under them where the column is narrow */
+.cp-stats b{display:block;font-size:clamp(24px,2.6vw,34px);font-weight:500;line-height:1}
 .cp-stats small{font-size:.55em}
 .cp-stats span{display:block;font-size:12px;line-height:1.3;color:var(--ink-2);margin-top:6px}
 .cp-bh,.cp-h4{font-family:var(--label);font-size:10.5px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:18px 0 8px}
@@ -392,22 +394,75 @@ a{color:inherit}
 #ov .cp3-ring.on .dk{stroke:#1a1a18;stroke-width:1.8;stroke-dasharray:none;opacity:1}
 #ov .cp3-ring .hit{fill:none;stroke:transparent;stroke-width:12;pointer-events:stroke;cursor:pointer}
 #ov .cp3-ring:hover .dk{stroke-width:1.8}
-#ov .cp3-lab{pointer-events:auto;cursor:pointer}
-#ov .cp3-lab text{font-family:var(--label);font-size:11px;font-style:italic;fill:var(--ink-2);paint-order:stroke;stroke:var(--bg);stroke-width:3.5px;stroke-linejoin:round}
-#ov .cp3-lab .n{font-style:normal;font-weight:600;fill:var(--ink)}
-#ov .cp3-lab .lead{fill:none;stroke:var(--ink-2);stroke-width:.6}
-#ov .cp3-lab .lead-hit{fill:none;stroke:transparent;stroke-width:10}
-#ov .cp3-lab circle{fill:var(--ink)}
+#ov .cp3-ring.all .fl{fill:var(--c);fill-opacity:.16;stroke:none;pointer-events:none}
+#ov .cp3-ring.all .dk{stroke:var(--c);stroke-width:1.8;stroke-dasharray:none}
+#ov .cp3-ring.all:hover .dk{stroke-width:3}
 #ov .cp3-lab:hover text,#ov .cp3-lab.on text{fill:var(--ink)}
 #ov .cp3-lab.on text{font-weight:600}
 #ov .cp3-lab.on .lead{stroke:var(--ink);stroke-width:1}
 #ov .cp3-lab:focus{outline:none}
 #ov .cp3-lab:focus-visible text{text-decoration:underline}
+/* Section 1's era timeline, between the plate and the article (vertical; horizontal on narrow screens) */
+#stage.haspanel.eraline .scene{grid-template-columns:minmax(0,1.4fr) 150px minmax(320px,1fr)}
+.eraline{position:relative;min-height:0;cursor:pointer;touch-action:none;user-select:none;border-left:1px solid var(--rule)}
+.eraline[hidden]{display:none}
+.eraline:focus{outline:none}
+.eraline:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+.eraline svg{display:block;overflow:visible}
+.eraline text{font-family:var(--label)}
+.eraline .seg{stroke:var(--c);stroke-width:7;stroke-opacity:.6;transition:stroke-width .2s,stroke-opacity .2s}
+.eraline .no{font-size:20px;font-weight:600;fill:var(--c)}
+.eraline .nm{font-size:11px;fill:var(--ink-2)}
+.eraline .yr2{font-size:9.5px;fill:var(--ink-3)}
+.eraline .era.on .seg{stroke-width:11;stroke-opacity:1}
+.eraline .era.on .nm{fill:var(--ink);font-weight:600}
+.eraline .era:hover .nm{fill:var(--ink)}
+.eraline .era:hover .seg{stroke-opacity:.9}
+/* the caries readout's pictograms */
+.cp-stats .pg{display:block;flex:none;height:auto;margin-top:2px}
+.cp-stats .pg-people{width:54px}
+.cp-stats .pg-teeth{width:76px}
+.pg .pg-e{fill:none;stroke:var(--ink);stroke-width:1.1}
+.pg .pg-e.person{fill:#d9d7d0;stroke:none}
+.pg .pg-f{fill:var(--ink)}
+.cp-stats span i{display:block;font-style:normal;font-size:10px;color:var(--ink-3);margin-top:2px}
+/* Section 1, all six eras: the severity bars (C2B) and, behind a button, caries by age (C1B) */
+.cp-all[hidden],.cp-allsev[hidden],.cp-allage[hidden],.cp-read[hidden]{display:none}
+.cp-allh{font-size:26px;line-height:1.1;margin:0}
+.cp-ally{font-family:var(--label);font-size:11px;letter-spacing:.04em;color:var(--ink-3);margin:4px 0 14px}
+.cp-all svg{display:block;overflow:visible}
+.cp-all text{font-family:var(--label)}
+.cp-sevall .sv-row{cursor:pointer;outline:none}
+.cp-sevall .sv-no{font-size:18px;font-weight:600}
+.cp-sevall .sv-nm{font-size:11.5px;fill:var(--ink-2)}
+.cp-sevall .sv-v{font-size:10px;font-weight:600;text-anchor:middle}
+.cp-sevall .sv-frame{fill:none;stroke-width:0}
+.cp-sevall .sv-n,.cp-sevall .sv-ax,.cp-agech .ag-ax,.cp-agech .ag-lab{font-size:9.5px;fill:var(--ink-3)}
+.cp-sevall .sv-ax{text-anchor:middle}
+.cp-sevall .sv-row:hover .sv-nm,.cp-sevall .sv-row:focus-visible .sv-nm{fill:var(--ink);font-weight:600}
+.cp-sevall .sv-row:hover .sv-frame,.cp-sevall .sv-row:focus-visible .sv-frame{stroke-width:2.5}
+.cp-agech .ag-grid{stroke:var(--rule);stroke-width:.7}
+.cp-agech .ag-ln{cursor:pointer;outline:none}
+.cp-agech .ag-path{fill:none;stroke:var(--c);stroke-width:2.2;stroke-linejoin:round;transition:opacity .2s}
+.cp-agech .ag-hit{fill:none;stroke:transparent;stroke-width:12}
+.cp-agech circle{fill:var(--c);stroke:var(--bg);stroke-width:1.2}
+.cp-agech .ag-lead{stroke:var(--c);stroke-width:.8;opacity:.6}
+.cp-agech .ag-end{font-size:11px;fill:var(--ink-2)}
+.cp-agech .ag-no{font-size:13px;font-weight:600;fill:var(--c)}
+.cp-agech svg.hov .ag-ln:not(.hot){opacity:.25}
+.cp-agech .ag-ln.hot .ag-path,.cp-agech .ag-ln:focus-visible .ag-path{stroke-width:3.6}
+.cp-agech .ag-ln.hot .ag-end{fill:var(--ink);font-weight:600}
+.cp-agenote{font-size:12.5px;line-height:1.5;color:var(--ink-2);margin:10px 0 0;max-width:62ch}
+.cp-agebtn{display:block;margin-top:16px;font-family:var(--label);font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:transparent;border:1px solid var(--ink);padding:7px 14px;cursor:pointer;color:var(--ink)}
+.cp-agebtn:hover{background:var(--card)}
+.eraline.all .seg{stroke-opacity:1}
 #tip{position:fixed;pointer-events:none;z-index:50;background:var(--ink);color:var(--bg);font-size:12px;line-height:1.4;padding:7px 10px;max-width:300px}
 #tip .m{font-size:11px;color:#bdbcb6}
 .fallback{position:absolute;inset:0;display:grid;place-items:center;padding:30px;text-align:center;color:var(--ink-2)}
 
 @media (max-width:1100px){
+  #stage.haspanel.eraline .scene{grid-template-columns:minmax(0,1fr)}
+  .eraline{height:94px;border-left:0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
   #stage.dashboard .panel.twin{overflow:visible}
   .wl-box{flex:none;height:620px}
   .wl-box.min{height:44px}
@@ -481,6 +536,7 @@ a{color:inherit}
       <div class="views" id="views" hidden role="group" aria-label="View"><button data-v="top">Top</button><button data-v="side">Side</button><button data-v="section">Section</button><button data-v="perspective">Perspective</button><span class="zoom"><button data-z="-1" aria-label="Zoom out">−</button><button data-z="1" aria-label="Zoom in">+</button></span></div>
       <p class="tcap fade"><span id="when"></span></p>
     </section>
+    <nav class="eraline" id="eraLine" hidden tabindex="0" role="slider" aria-label="Era"></nav>
     <aside class="panel" id="panel" aria-live="polite" hidden></aside>
   </main>
 

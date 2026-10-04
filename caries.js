@@ -180,19 +180,45 @@
   const NOTES = n => [
     ["What the decay shows", "The shaded area is the share of adults in that era who carried at least one carious tooth, not the damage to one tooth. Its shape grows from the fissure pattern, where occlusal caries starts, and is the same shape in every era; only its extent changes."],
     ["The scale is expanded", "The shaded share of the crown runs from 8% at a rate of 51% to 80% at a rate of 77%, because the whole record sits between 52.4% and 76.1%. That magnifies every difference about 2.8 times. Even so, eras 1, 4 and 5 lie within a point of one another (63.7, 64.5 and 64.0%), so their outlines all but coincide: that is the finding, not a fault in the drawing."],
+    ["The pictograms", "The share of adults is drawn as ten figures, each a tenth of the period's adults. The counts of carious teeth are drawn on a mouth of 28, a full adult set without wisdom teeth: the record's adults had on average 17 to 20 teeth that could be scored, so the mouths show how many teeth were carious, not what share of the scored teeth that was."],
     ["One reference population", "Every rate is age-standardised to the pooled age distribution of all " + n.toLocaleString("en") + " adults (18–69), so no era reads higher merely because more of its people lived long enough to accumulate decay. It moves each value by at most 1.2 points and changes no ordering."],
     ["The drawing", "The outlines are grown from a drawing of a lower first molar's cusps and fissures and carved into the 3D molar's chewing surface, in three depths (the lesion, its cavitated body and its core) that are illustrative and exaggerated so the decay reads: drawn, not measured. The shaded share of the crown is the data; how deep it cuts is not. Era spans are the 10th to 90th percentile of site dates, so they overlap. A ‘hinge’ marks an event that changed what the tooth could record rather than what it recorded."],
     ["Source", "Global History of Health Project, European module, decoded for this project. Events and the ‘why’ text are context from the team's timeline, not data."]];
   const HTML = "<div class='cp'>" +
-    "<div class='cp-foot'><span class='cp-hint'>Reading the record forward…</span></div>" +
-    "<div class='cp-rail'></div>" +
     "<div class='cp-read'><p class='cp-era'></p><p class='cp-yrs'></p>" +
-    "<div class='cp-stats'><div><b class='cp-s1'></b><span>of adults carried caries</span></div><div><b class='cp-s2'></b><span>carious teeth, on average, in an affected mouth</span></div><div><b class='cp-s3'></b><span>or more, in the worst-affected tenth</span></div></div>" +
+    "<div class='cp-stats'>" +
+    "<div><svg class='pg pg-people' role='img'></svg><div><b class='cp-s1'></b><span>of adults carried caries <i>each figure is 10% of adults</i></span></div></div>" +
+    "<div><svg class='pg pg-teeth' role='img'></svg><div><b class='cp-s2'></b><span>carious teeth, on average, in an affected mouth <i>of 28</i></span></div></div>" +
+    "<div><svg class='pg pg-teeth' role='img'></svg><div><b class='cp-s3'></b><span>or more, in the worst-affected tenth of affected mouths <i>of 28</i></span></div></div></div>" +
     "<p class='cp-bh'>Teeth carious, per person</p><div class='cp-bar'></div><div class='cp-keys'></div></div>" +
-    "<div class='cp-detail' hidden><div class='cp-dtop'><p class='cp-dh'></p><button class='link cp-close' type='button'>Close</button></div>" +
+    "<div class='cp-detail' hidden><div class='cp-dtop'><button class='link cp-close' type='button'>Close</button></div>" +
     "<p class='cp-h4'>What was happening</p><div class='cp-ev'></div><p class='cp-h4'>Why it may have reached the teeth</p><p class='cp-why'></p>" +
     "<p class='cp-h4'>All six eras</p><div class='cp-cmp'></div></div>" +
+    "<div class='cp-all' hidden><p class='cp-allh'>All six eras</p><p class='cp-ally'></p>" +
+    "<div class='cp-allsev'><div class='cp-sevall'></div><div class='cp-keys cp-keys-all'></div></div>" +
+    "<div class='cp-allage' hidden><div class='cp-agech'></div><p class='cp-agenote'></p></div>" +
+    "<button type='button' class='cp-agebtn' aria-pressed='false'>Break down by age</button></div>" +
     "</div>";
+
+  // ---- the three figures as pictograms: people for the share of adults (ten figures, each 10%), a 28-tooth mouth for
+  // the counts of carious teeth. An icon is filled as far as the value reaches into it, so 3.2 shows three teeth and a
+  // fifth of a fourth. The mouth is schematic (a full adult set without wisdom teeth); see the notes.
+  const PERSON = "M6,0a3,3 0 1 1 0,6a3,3 0 1 1 0,-6zM3.2,7.2h5.6a2.2,2.2 0 0 1 2.2,2.2v8.2h-2.1v-6.1h-.5v18.5h-2.5v-10.3h-.8v10.3h-2.5v-18.5h-.5v6.1h-2.1v-8.2a2.2,2.2 0 0 1 2.2,-2.2z";
+  const TOOTH = "M4.2,1.2c1.6,0 2.4,.9 3.8,.9s2.2,-.9 3.8,-.9c2.4,0 3.7,2.1 3.4,4.7c-.3,2.4 -1.3,3.8 -1.7,6c-.4,2.3 -.5,5.6 -2,5.6c-1.4,0 -1.5,-3.1 -2,-4.7c-.3,-1.1 -1,-1.1 -1.3,0c-.5,1.6 -.6,4.7 -2,4.7c-1.5,0 -1.6,-3.3 -2,-5.6c-.4,-2.2 -1.4,-3.6 -1.7,-6c-.3,-2.6 1,-4.7 3.4,-4.7z";
+  let pgN = 0;
+  function pictos(svg, n, cols, kind) {
+    const NS = "http://www.w3.org/2000/svg", P = kind === "person" ? { d: PERSON, w: 12, h: 30, gx: 3, gy: 4 } : { d: TOOTH, w: 16, h: 18, gx: 3, gy: 3 };
+    const rows = Math.ceil(n / cols), W = cols * (P.w + P.gx) - P.gx, H = rows * (P.h + P.gy) - P.gy, id = "pg" + (++pgN) + "_";
+    svg.setAttribute("viewBox", "-1 -1 " + (W + 2) + " " + (H + 2));
+    const mk = (tag, a, par) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); par.appendChild(e); return e; };
+    const defs = mk("defs", {}, svg), clips = [];
+    for (let i = 0; i < n; i++) {
+      const x = (i % cols) * (P.w + P.gx), y = Math.floor(i / cols) * (P.h + P.gy), g = mk("g", { transform: "translate(" + x + "," + y + ")" }, svg);
+      const cp = mk("clipPath", { id: id + i }, defs); clips.push(mk("rect", { x: -1, y: -1, width: 0, height: P.h + 2 }, cp));
+      mk("path", { d: P.d, class: "pg-e " + kind }, g); mk("path", { d: P.d, class: "pg-f", "clip-path": "url(#" + id + i + ")" }, g);
+    }
+    return (v, label) => { clips.forEach((r, i) => r.setAttribute("width", (P.w + 2) * Math.max(0, Math.min(1, v - i)))); svg.setAttribute("aria-label", label); };
+  }
 
   // The page draws the lesion on the 3D molar; this module runs the eras and the readout beside it. opt.onFrame(state)
   // is called whenever the drawing changes: { lesion: { out, mid, inn } (radial profiles of K radii about the crown's
@@ -226,22 +252,18 @@
       q(".cp-keys").insertAdjacentHTML("beforeend", "<span><i style='background:" + BAND[j] + "'></i>" + esc(b) + "</span>");
       return s;
     });
-    const chips = PD.map((d, i) => {
-      const b = document.createElement("button"); b.type = "button"; b.setAttribute("aria-pressed", "false");
-      b.innerHTML = "<span class='n'>" + (i + 1) + "</span>" + esc(d.p) + "<span class='y'>" + d.lo + "–" + d.hi + "</span>";
-      b.addEventListener("click", () => pick(i)); q(".cp-rail").appendChild(b); return b;
-    });
+    const pgs = el.querySelectorAll(".pg"), people = pictos(pgs[0], 10, 5, "person"), avg = pictos(pgs[1], 28, 7, "tooth"), worst = pictos(pgs[2], 28, 7, "tooth");
     function readout(i) {
-      const d = PD[i]; sel = i;
-      q(".cp-era").textContent = d.p; q(".cp-yrs").textContent = span(d);
+      const d = PD[i]; sel = i; q(".cp-read").hidden = false; q(".cp-all").hidden = true;
+      q(".cp-era").textContent = d.p;
+      q(".cp-yrs").textContent = span(d) + " · n = " + d.n.toLocaleString("en") + " adults · crude rate " + d.crude.toFixed(1) + "% · mean age at death " + d.age;
       q(".cp-s1").innerHTML = d.std.toFixed(1) + "<small>%</small>"; q(".cp-s2").textContent = d.aff; q(".cp-s3").textContent = d.p90;
+      people(d.std / 10, d.std.toFixed(1) + "% of adults carried caries"); avg(d.aff, d.aff + " of 28 teeth carious, on average, in an affected mouth"); worst(d.p90, d.p90 + " or more of 28 teeth carious in the worst-affected tenth");
       d.sev.forEach((v, j) => { segs[j].style.width = v + "%"; segs[j].textContent = v >= 9 ? Math.round(v) : ""; });
-      chips.forEach((c, j) => c.setAttribute("aria-pressed", j === i ? "true" : "false"));
       emit();
     }
     function openDetail(i) {
       const d = PD[i], C = CONTEXT[d.p] || { why: "", ev: [] };
-      q(".cp-dh").innerHTML = esc(d.p) + "<em>" + esc(span(d)) + " · n = " + d.n.toLocaleString("en") + " adults · crude rate " + d.crude.toFixed(1) + "% · mean age at death " + d.age + "</em>";
       q(".cp-why").innerHTML = C.why;                // trusted copy from CONTEXT above (it carries <b>)
       q(".cp-ev").innerHTML = C.ev.map(e => "<div class='cp-e'><span class='y'>" + esc(e[0]) + "</span><div><p class='t'>" + esc(e[1]) + (e[3] ? "<span class='tag'>hinge</span>" : "") + "</p><p class='m'>" + esc(e[2]) + "</p></div></div>").join("");
       q(".cp-cmp").innerHTML = PD.map((r, j) => "<button type='button' class='cp-row" + (j === i ? " on" : "") + "' data-i='" + j + "'><span class='nm'>" + esc(r.p) + "</span><span class='cb'>" +
@@ -266,16 +288,16 @@
     }
     function pick(i) {
       if (!ready) return;
+      if (i === sel) { all(); return; }   // the era already open, picked again: all six eras
       halt();
-      const from = PROF[cur] || BLANK; cur = i;
+      const from = cur < 0 ? union() : PROF[cur] || BLANK; cur = i;
       readout(i); setGhosts(N - 1);
       if (REDUCED) { paintShape(era(i), era(i), 1); openDetail(i); }
       else animate(from, era(i), 820, () => openDetail(i));
-      q(".cp-hint").textContent = "Era " + (i + 1) + ": " + PD[i].p + ".";
     }
     function run() {
       halt();
-      q(".cp-detail").hidden = true; q(".cp-hint").textContent = "Reading the record forward…";
+      q(".cp-detail").hidden = true; q(".cp-all").hidden = true; q(".cp-read").hidden = false;
       setGhosts(-1); paintShape(BLANK, BLANK, 0);
       let i = 0;
       const step = () => {
@@ -284,12 +306,103 @@
         animate(i === 0 ? BLANK : era(i - 1), era(i), 1150, () => {
           setGhosts(i); cur = i; i++;
           if (i < N) timer = setTimeout(step, 520);
-          else { timer = null; q(".cp-hint").textContent = "Click an outline or its label on the molar, or an era, to open it."; }
+          else timer = null;
         });
       };
       timer = setTimeout(step, 300);
     }
     q(".cp-close").addEventListener("click", () => { q(".cp-detail").hidden = true; });
+
+    // ---- all six eras at once: the team's severity figure (C2B) as one stacked bar per era, and, behind a button, their
+    // caries-by-age figure (C1B) as one line per era. The eras carry the timeline's colours (opt.colors); a click on an
+    // era's bar, line or label opens it. The molar shows every era's outline and no single lesion.
+    const COLS = opt.colors || PD.map(() => "#1a1a18"), byAge = opt.byAge, AGES = opt.ages || [];
+    let ageOn = false;
+    const NS = "http://www.w3.org/2000/svg";
+    const svgEl = (W, H) => { const v = document.createElementNS(NS, "svg"); v.setAttribute("viewBox", "0 0 " + W + " " + H); v.setAttribute("width", W); v.setAttribute("height", H); return v; };
+    const keyAct = (node, i) => { node.setAttribute("tabindex", 0); node.setAttribute("role", "button");
+      node.addEventListener("click", () => pick(i)); node.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); pick(i); } }); };
+    q(".cp-keys-all").innerHTML = data.bands.map((b, j) => "<span><i style='background:" + BAND[j] + "'></i>" + esc(b) + "</span>").join("");
+    function drawSev() {
+      const box = q(".cp-sevall"), W = Math.max(280, box.clientWidth), LW = Math.min(150, W * 0.3), NW = 52, RH = 26, G = 9, top = 4;
+      const H = top + N * (RH + G) + 22, x = v => LW + (W - LW - NW) * v / 100, v = svgEl(W, H);
+      let h = "";
+      PD.forEach((d, i) => {
+        const y = top + i * (RH + G);
+        h += "<g class='sv-row' data-i='" + i + "' aria-label='" + esc(d.p) + ": " + d.sev.map((s, j) => s + "% " + data.bands[j]).join(", ") + "'>" +
+          "<text class='sv-no' x='0' y='" + (y + RH / 2 + 6) + "' fill='" + COLS[i] + "'>" + (i + 1) + "</text>" +
+          "<text class='sv-nm' x='20' y='" + (y + RH / 2 + 4) + "'>" + esc(d.p) + "</text>";
+        let l = 0;
+        d.sev.forEach((s, j) => {
+          h += "<rect x='" + x(l) + "' y='" + y + "' width='" + Math.max(0, x(l + s) - x(l)) + "' height='" + RH + "' fill='" + BAND[j] + "'/>";
+          if (s >= 6) h += "<text class='sv-v' x='" + (x(l) + x(l + s)) / 2 + "' y='" + (y + RH / 2 + 3.5) + "' fill='" + (j >= 2 ? "#fbf8f1" : "#1a1a18") + "'>" + Math.round(s) + "</text>";
+          l += s;
+        });
+        h += "<rect class='sv-frame' x='" + x(0) + "' y='" + y + "' width='" + (x(100) - x(0)) + "' height='" + RH + "' stroke='" + COLS[i] + "'/>" +
+          "<text class='sv-n' x='" + (W - NW + 8) + "' y='" + (y + RH / 2 + 3.5) + "'>n = " + d.n.toLocaleString("en") + "</text></g>";
+      });
+      const yb = top + N * (RH + G) + 2;
+      [0, 25, 50, 75, 100].forEach(t => { h += "<text class='sv-ax' x='" + x(t) + "' y='" + (yb + 10) + "'>" + t + "%</text>"; });
+      v.innerHTML = h; box.replaceChildren(v);
+      v.querySelectorAll(".sv-row").forEach(g => keyAct(g, +g.dataset.i));
+    }
+    function drawAge() {
+      const box = q(".cp-agech"), W = Math.max(280, box.clientWidth), short = W < 440, RW = short ? 58 : 150,   // narrow: the lines end in their numbers alone
+        L = 38, T = 10, B = 40, H = Math.round(Math.min(340, Math.max(240, W * 0.62)));
+      const X = [21.5, 27.5, 32.5, 37.5, 42.5, 47.5, 55, 65];   // the age bands' midpoints, spaced as in the team's figure
+      const vals = PD.map(d => AGES.map(a => byAge[d.p] && byAge[d.p][a] ? byAge[d.p][a][0] : null));
+      const flat = vals.flat().filter(v => v != null), y0 = Math.floor(Math.min(...flat) / 10) * 10, y1 = Math.ceil(Math.max(...flat) / 10) * 10;
+      const sx = t => L + (W - L - RW) * (t - X[0]) / (X[X.length - 1] - X[0]), sy = v => T + (H - T - B) * (1 - (v - y0) / (y1 - y0));
+      const v = svgEl(W, H); let h = "";
+      for (let g = y0; g <= y1; g += 10) h += "<line class='ag-grid' x1='" + L + "' x2='" + (W - RW) + "' y1='" + sy(g) + "' y2='" + sy(g) + "'/><text class='ag-ax' x='" + (L - 6) + "' y='" + (sy(g) + 3) + "' text-anchor='end'>" + g + "%</text>";
+      AGES.forEach((a, k) => { h += "<text class='ag-ax' x='" + sx(X[k]) + "' y='" + (H - B + 16) + "' text-anchor='middle'>" + esc(a) + "</text>"; });
+      h += "<text class='ag-lab' x='" + ((L + W - RW) / 2) + "' y='" + (H - 6) + "' text-anchor='middle'>age at death</text>";
+      // end labels, spread so none overlap
+      const ends = vals.map((r, i) => ({ i, y: sy(r[r.length - 1]) })).sort((a, b) => a.y - b.y);
+      for (let k = 1; k < ends.length; k++) ends[k].y = Math.max(ends[k].y, ends[k - 1].y + 15);
+      const endY = []; ends.forEach(e => { endY[e.i] = e.y; });
+      vals.forEach((r, i) => {
+        const pts = r.map((val, k) => val == null ? null : [sx(X[k]), sy(val)]).filter(Boolean), last = pts[pts.length - 1];
+        h += "<g class='ag-ln' data-i='" + i + "' style='--c:" + COLS[i] + "' aria-label='" + esc(PD[i].p) + ": " + AGES.map((a, k) => esc(a) + " " + r[k] + "%").join(", ") + "'>" +
+          "<path class='ag-hit' d='M" + pts.map(p => p.join(",")).join("L") + "'/><path class='ag-path' d='M" + pts.map(p => p.join(",")).join("L") + "'/>" +
+          pts.map((p, k) => "<circle cx='" + p[0] + "' cy='" + p[1] + "' r='3'><title>" + esc(PD[i].p) + ", " + esc(AGES[k]) + ": " + r[k] + "% (n = " + byAge[PD[i].p][AGES[k]][1] + ")</title></circle>").join("") +
+          "<line class='ag-lead' x1='" + (last[0] + 4) + "' y1='" + last[1] + "' x2='" + (last[0] + 14) + "' y2='" + endY[i] + "'/>" +
+          "<text class='ag-end' x='" + (last[0] + 18) + "' y='" + (endY[i] + 4) + "'><tspan class='ag-no'>" + (i + 1) + "</tspan> " + (short ? "" : esc(PD[i].p) + " ") + Math.round(r[r.length - 1]) + "%</text></g>";
+      });
+      v.innerHTML = h; box.replaceChildren(v);
+      v.querySelectorAll(".ag-ln").forEach(g => { keyAct(g, +g.dataset.i);
+        g.addEventListener("pointerenter", () => { v.classList.add("hov"); g.classList.add("hot"); });
+        g.addEventListener("pointerleave", () => { v.classList.remove("hov"); g.classList.remove("hot"); }); });
+      // the young end, the comparison the team's figure makes: computed from the same cells
+      const A0 = AGES[0], hm = byAge["High medieval"] && byAge["High medieval"][A0], ind = byAge["Industrial"] && byAge["Industrial"][A0];
+      q(".cp-agenote").textContent = hm && ind ? "At " + A0 + ", " + Math.round(100 - hm[0]) + "% of high-medieval young adults still had no caries at all; by the industrial era only " + Math.round(100 - ind[0]) + "% did. Every point has at least " + d3min(byAge) + " adults." : "";
+    }
+    const d3min = B => Math.min(...Object.values(B).flatMap(r => Object.values(r).map(c => c[1])));
+    function drawAll() { if (ageOn) drawAge(); else drawSev(); }
+    function setAge(on) {
+      ageOn = on; q(".cp-allsev").hidden = on; q(".cp-allage").hidden = !on;
+      const b = q(".cp-agebtn"); b.setAttribute("aria-pressed", on ? "true" : "false"); b.textContent = on ? "Back to severity" : "Break down by age";
+      q(".cp-ally").textContent = on ? "Share of adults with at least one carious tooth, by age at death" : "Every adult in the record, by how many of their own teeth were carious";
+      drawAll();
+    }
+    q(".cp-agebtn").addEventListener("click", () => setAge(!ageOn));
+    if (!byAge) q(".cp-agebtn").hidden = true;
+    // all six lesions overlapped: at each radius the furthest any era reached, so the molar carries every era's decay at
+    // once and the page lays each era's outline over it
+    let UNION = null;
+    const union = () => UNION || (UNION = era(0).map((_, t) => {
+      const u = key => { const o = new Float64Array(K); for (let k = 0; k < K; k++) o[k] = Math.max(...PD.map((d, i) => era(i)[t][key][k])); return o; };
+      return { out: u("out"), mid: u("mid"), inn: u("inn") };
+    }));
+    function all() {
+      if (!ready || (sel < 0 && !timer && !raf)) return;
+      halt(); sel = -1;
+      const from = PROF[cur] || BLANK; cur = -1;
+      q(".cp-read").hidden = true; q(".cp-detail").hidden = true; q(".cp-all").hidden = false; setAge(ageOn);
+      setGhosts(N - 1);
+      if (REDUCED) paintShape(union(), union(), 1); else animate(from, union(), 600);
+    }
+    if (window.ResizeObserver) { let w0 = 0; new ResizeObserver(() => { const w = el.clientWidth; if (w !== w0 && !q(".cp-all").hidden) drawAll(); w0 = w; }).observe(el); }
 
     // first paint is already a finished figure (the last era), so a thumbnail is never an empty tooth; the other eras are
     // solved one per task after it, then their outlines appear and the run starts
@@ -299,11 +412,11 @@
       if (!el.isConnected) return;
       if (next < N - 1) { era(next++); timer = setTimeout(prep, 0); return; }
       timer = null; ready = true; setGhosts(N - 1);
-      if (!REDUCED) run(); else q(".cp-hint").textContent = "Click an outline or its label on the molar, or an era, to open it.";
+      if (!REDUCED) run();
     };
     timer = setTimeout(prep, 0);
     // replay(): the plate's Replay button runs the eras again
-    const api = { pick, ring: i => era(i)[0].out, crown: T.crown, K, N, replay: () => { if (!ready) return; if (REDUCED) pick(N - 1); else run(); } };
+    const api = { pick, all, ring: i => era(i)[0].out, crown: T.crown, K, N, replay: () => { if (!ready) return; if (REDUCED) pick(N - 1); else run(); } };
     el._cp = api;
     return api;
   }
