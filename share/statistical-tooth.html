@@ -506,6 +506,18 @@ a{color:inherit}
   #stage.dashboard .panel{padding:12px 0 0;border-left:0;box-shadow:none;border-top:1px solid var(--rule)}
 }
 @media (max-width:700px){
+  /* phones (not the priority; the web layout is): the view buttons wrap, Replay sits under the plate clear of the tooth
+     names, and the wear landscape's labels shrink to its smaller cells */
+  .views{gap:6px;flex-wrap:wrap}
+  .views button{min-width:0;padding:6px 9px;font-size:10.5px}
+  .views .zoom button{min-width:30px}
+  .wl-replay:not([hidden]){position:static;display:block;margin:8px auto 0}
+  .dp svg text.wl-rl{font-size:9.5px}
+  .dp svg .wl-floor text.wl-rl:is(:nth-of-type(2),:nth-of-type(4),:nth-of-type(5)){display:none}   /* three periods named at rest */
+  .dp svg .wl-floor:has(.wl-rl.hi,.wl-rl.sel) text.wl-rl{display:none}   /* while one plays or is picked, only its name */
+  .dp svg .wl-floor text.wl-rl:is(.hi,.sel){display:block}
+  .dp svg text.wl-v{font-size:8px}
+  .dp svg text.wl-v.sel{font-size:8.5px}
   #stage{padding-inline:16px}
   #pair{height:min(118vw,540px);grid-template-columns:0 minmax(0,1fr) minmax(0,1fr) 0}
   #introText{left:16px;right:16px}
