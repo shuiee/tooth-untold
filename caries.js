@@ -1,14 +1,15 @@
-/* The Tooth Untold: the caries plate (the Caries dashboard).
-   Two teeth seen from above, a lower first molar and a lower canine, with decay drawn where occlusal caries begins: in the
-   pits and fissures, spreading outward. Six eras play in sequence as one lesion that grows and recedes; each finished era
-   leaves its outline behind. A click on a numbered mark, an outline or an era opens that era's detail.
-   The shaded area encodes the share of adults in the era with caries (data/layers.js, caries), not damage to one tooth.
-   The outlines are drawn from cusp lobes and the fissure pattern: illustration, not measurement.
-   window.CariesPlate.mount(el, data) fills el; it is safe to call again on the same element. CariesPlate.notes(data)
-   gives the figure's notes for the page to set under its caption. */
+/* The Tooth Untold: the caries plate (Section 1's figure).
+   The decay is drawn on the 3D molar, seen from above: where occlusal caries begins, in the pits and fissures, spreading
+   outward. Six eras play in sequence as one lesion that grows and recedes; each finished era leaves its outline behind,
+   with a numbered mark. This module solves each era's lesion (the shaded share of the crown is the share of adults in the
+   era with caries, data/layers.js caries.plate, on an expanded scale), runs the eras, and fills the readout beside the
+   plate: era, three figures, a severity bar and, on request, the era's events and text. The page lays the outlines onto
+   the molar (app.js, drawCariesOverlay()) and sends clicks on them back through pick().
+   window.CariesPlate.mount(el, data, { onFrame }) fills el and returns its api; CariesPlate.notes(data) gives the
+   figure's notes for the page to set under its caption. */
 (function () {
   "use strict";
-  const NS = "http://www.w3.org/2000/svg", TAU = Math.PI * 2, K = 360;
+  const TAU = Math.PI * 2, K = 360;
   const REDUCED = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -108,8 +109,6 @@
     }
     return Math.abs(a / 2);
   }
-  const dOf = (T, r) => { let d = ""; for (let k = 0; k < K; k++) { const t = k / K * TAU; d += (k ? "L" : "M") + (T.cx + Math.cos(t) * r[k] * T.sx).toFixed(2) + " " + (T.cy - Math.sin(t) * r[k] * T.sy).toFixed(2); } return d + "Z"; };
-  const lineOf = (T, f) => f.map((q, i) => (i ? "L" : "M") + (T.cx + q[0] * T.sx).toFixed(1) + " " + (T.cy - q[1] * T.sy).toFixed(1)).join("");
 
   // cusp lobes: five on the lower first molar (two lingual, three buccal) plus the central fossa; three on the canine plus a lingual one
   const MOLAR_LOBES = [[-0.46, 0.36, 0.30, 1], [0.44, 0.34, 0.30, 1], [-0.48, -0.36, 0.30, 1], [0.30, -0.38, 0.29, 1], [0.68, -0.06, 0.24, 0.85], [0, 0, 0.46, 0.55]];
@@ -182,11 +181,10 @@
     ["What the decay shows", "The shaded area is the share of adults in that era who carried at least one carious tooth, not the damage to one tooth. Its shape grows from the fissure pattern, where occlusal caries starts, and is the same shape in every era; only its extent changes."],
     ["The scale is expanded", "The shaded share of the crown runs from 8% at a rate of 51% to 80% at a rate of 77%, because the whole record sits between 52.4% and 76.1%. That magnifies every difference about 2.8 times. Even so, eras 1, 4 and 5 lie within a point of one another (63.7, 64.5 and 64.0%), so their outlines all but coincide: that is the finding, not a fault in the drawing."],
     ["One reference population", "Every rate is age-standardised to the pooled age distribution of all " + n.toLocaleString("en") + " adults (18–69), so no era reads higher merely because more of its people lived long enough to accumulate decay. It moves each value by at most 1.2 points and changes no ordering."],
-    ["The drawings", "Both outlines are built from cusp lobes, five on the lower first molar and three on the canine, with the occlusal groove pattern over them: drawn, not measured. Era spans are the 10th to 90th percentile of site dates, so they overlap. A ‘hinge’ marks an event that changed what the tooth could record rather than what it recorded."],
+    ["The drawing", "The outlines are grown from a drawing of a lower first molar's cusps and fissures and carved into the 3D molar's chewing surface, in three depths (the lesion, its cavitated body and its core) that are illustrative and exaggerated so the decay reads: drawn, not measured. The shaded share of the crown is the data; how deep it cuts is not. Era spans are the 10th to 90th percentile of site dates, so they overlap. A ‘hinge’ marks an event that changed what the tooth could record rather than what it recorded."],
     ["Source", "Global History of Health Project, European module, decoded for this project. Events and the ‘why’ text are context from the team's timeline, not data."]];
   const HTML = "<div class='cp'>" +
-    "<div class='cp-fig'><svg class='cp-plate' viewBox='0 0 660 430' role='img' aria-label='A lower first molar and a lower canine seen from above, with the extent of carious decay drawn for six eras.'></svg></div>" +
-    "<div class='cp-foot'><span class='cp-hint'>Reading the record forward…</span><button class='btn cp-replay' type='button'>Replay</button></div>" +
+    "<div class='cp-foot'><span class='cp-hint'>Reading the record forward…</span></div>" +
     "<div class='cp-rail'></div>" +
     "<div class='cp-read'><p class='cp-era'></p><p class='cp-yrs'></p>" +
     "<div class='cp-stats'><div><b class='cp-s1'></b><span>of adults carried caries</span></div><div><b class='cp-s2'></b><span>carious teeth, on average, in an affected mouth</span></div><div><b class='cp-s3'></b><span>or more, in the worst-affected tenth</span></div></div>" +
@@ -196,90 +194,33 @@
     "<p class='cp-h4'>All six eras</p><div class='cp-cmp'></div></div>" +
     "</div>";
 
-  function mount(el, data) {
-    if (!el || !data || !data.eras) return;
-    if (el.dataset.mounted) return;                // resize redraws must not restart the run
+  // The page draws the lesion on the 3D molar; this module runs the eras and the readout beside it. opt.onFrame(state)
+  // is called whenever the drawing changes: { lesion: { out, mid, inn } (radial profiles of K radii about the crown's
+  // centre, in the units of crown), upto (the last era whose outline is left behind), sel (the era being read) }. The returned api has pick(i),
+  // ring(i) (era i's outline), replay(), crown, K and N.
+  function mount(el, data, opt) {
+    opt = opt || {};
+    if (!el || !data || !data.eras) return null;
+    if (el.dataset.mounted && el._cp) return el._cp;   // resize redraws must not restart the run
     el.dataset.mounted = "1";
     const PD = data.eras, N = PD.length;
     geometry(PD);
+    const T = TEETH[0];
     el.innerHTML = HTML;
-    const q = s => el.querySelector(s), svg = q(".cp-plate");
+    const q = s => el.querySelector(s);
     const span = d => "c. " + d.lo + "–" + d.hi + " CE";
-    const live = [], ghostG = [], marks = [];
-
-    // ---- build the plate
-    const defs = document.createElementNS(NS, "defs");
-    defs.innerHTML = "<radialGradient id='cpEnamel' cx='46%' cy='42%' r='66%'><stop offset='0%' stop-color='#fbfaf6'/><stop offset='62%' stop-color='#f1efe9'/><stop offset='100%' stop-color='#d9d6cd'/></radialGradient>" +
-      "<radialGradient id='cpDecay' cx='48%' cy='46%' r='62%'><stop offset='0%' stop-color='#17140f'/><stop offset='55%' stop-color='#2c2619'/><stop offset='100%' stop-color='#4d4330'/></radialGradient>";
-    svg.appendChild(defs);
-    const mk = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
-    TEETH.forEach((T, ti) => {
-      const g = mk("g", {}, svg);
-      mk("path", { class: "cp-enamel", d: dOf(T, T.crown) }, g);
-      T.fiss.forEach(f => mk("path", { class: "cp-fiss", d: lineOf(T, f) }, g));
-      ghostG[ti] = mk("g", {}, g);
-      const halo = mk("path", { class: "cp-halo" }, g), out = mk("path", { class: "cp-out" }, g), mid = mk("path", { class: "cp-mid" }, g), inn = mk("path", { class: "cp-in" }, g);
-      const dclip = mk("clipPath", { id: "cpClip" + ti }, defs), dcp = mk("path", {}, dclip);
-      const sp = mk("g", { class: "cp-speck", "clip-path": "url(#cpClip" + ti + ")" }, g), nz = rng(500 + ti * 37);
-      for (let i = 0; i < 190; i++) { const t = nz() * TAU, rr = Math.sqrt(nz()); mk("circle", { cx: (T.cx + Math.cos(t) * rr * T.sx * 0.9).toFixed(1), cy: (T.cy - Math.sin(t) * rr * T.sy * 0.9).toFixed(1), r: (0.6 + nz() * 1.5).toFixed(2) }, sp); }
-      T.fiss.forEach(f => mk("path", { class: "cp-fiss-deep", "clip-path": "url(#cpClip" + ti + ")", d: lineOf(T, f) }, g));   // the grooves read through the decay
-      ghostG[ti].over = mk("g", { "clip-path": "url(#cpClip" + ti + ")" }, g);   // the same outlines, pale, where they fall inside the live lesion
-      mk("text", { class: "cp-no", x: T.cx, y: 398, "text-anchor": "middle" }, g).textContent = T.no;
-      mk("text", { class: "cp-cap", x: T.cx, y: 416, "text-anchor": "middle" }, g).textContent = T.cap;
-      live[ti] = { halo, out, mid, inn, dcp };
-    });
-    // one numbered mark per era, on the molar
-    const mg = mk("g", {}, svg);
-    PD.forEach((d, i) => {
-      const g = mk("g", { class: "cp-mark", tabindex: 0, role: "button", "aria-label": "Era " + (i + 1) + ", " + d.p + ", " + d.std + " per cent" }, mg);
-      mk("circle", { r: 10 }, g); mk("text", { "text-anchor": "middle" }, g).textContent = i + 1;
-      g.addEventListener("click", () => pick(i));
-      g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(i); } });
-      marks[i] = g;
-    });
+    let lesion = null, upto = -1, sel = N - 1;
+    const emit = () => { if (opt.onFrame && el.isConnected) opt.onFrame({ lesion, upto, sel }); };
 
     function paintShape(a, b, u) {
-      TEETH.forEach((T, ti) => {
-        const L = live[ti], A = a[ti], B = b[ti];
-        const mix = (p, r) => { const o = new Float64Array(K); for (let k = 0; k < K; k++) o[k] = p[k] + (r[k] - p[k]) * u; return o; };
-        const dOut = dOf(T, mix(A.out, B.out));
-        L.out.setAttribute("d", dOut); L.halo.setAttribute("d", dOut); L.dcp.setAttribute("d", dOut);
-        L.mid.setAttribute("d", dOf(T, mix(A.mid, B.mid))); L.inn.setAttribute("d", dOf(T, mix(A.inn, B.inn)));
-      });
+      const A = a[0], B = b[0], mix = (p, r) => { const o = new Float64Array(K); for (let k = 0; k < K; k++) o[k] = p[k] + (r[k] - p[k]) * u; return o; };
+      lesion = { out: mix(A.out, B.out), mid: mix(A.mid, B.mid), inn: mix(A.inn, B.inn) };
+      emit();
     }
-    // the outlines each finished era leaves behind; they are also click targets
-    function setGhosts(upto) {
-      TEETH.forEach((T, ti) => {
-        ghostG[ti].textContent = ""; ghostG[ti].over.textContent = "";
-        for (let i = 0; i <= upto; i++) {
-          const d = dOf(T, era(i)[ti].out);
-          mk("path", { class: "cp-ghost", d, opacity: (0.3 + 0.07 * i).toFixed(2) }, ghostG[ti]);
-          mk("path", { class: "cp-ghost cp-ghost-in", d, opacity: (0.4 + 0.07 * i).toFixed(2) }, ghostG[ti].over);
-          mk("path", { class: "cp-ghost-hit", d }, ghostG[ti]).addEventListener("click", () => pick(i));
-        }
-      });
-      placeMarks(upto);
-    }
-    // each mark sits on its own era's outline, at the candidate angle farthest from the marks already placed
-    function placeMarks(upto) {
-      const put = [], M = TEETH[0];
-      marks.forEach((m, i) => {
-        if (i > upto) { m.setAttribute("opacity", 0); m.style.pointerEvents = "none"; return; }
-        m.setAttribute("opacity", 1); m.style.pointerEvents = "";
-        let best = null, bestD = -1;
-        for (let c = 0; c < 48; c++) {
-          const k = Math.round(c / 48 * K) % K, t = k / K * TAU, r = era(i)[0].out[k];
-          const x = M.cx + Math.cos(t) * r * M.sx, y = M.cy - Math.sin(t) * r * M.sy;
-          let d = put.length ? Math.min(...put.map(p => Math.hypot(x - p[0], y - p[1]))) : 1e9 - c;
-          if (d > bestD) { bestD = d; best = [x, y]; }
-        }
-        put.push(best);
-        m.querySelector("circle").setAttribute("cx", best[0].toFixed(1)); m.querySelector("circle").setAttribute("cy", best[1].toFixed(1));
-        m.querySelector("text").setAttribute("x", best[0].toFixed(1)); m.querySelector("text").setAttribute("y", (best[1] + 3.5).toFixed(1));
-      });
-    }
+    // the outlines each finished era leaves behind
+    function setGhosts(n) { upto = n; emit(); }
 
-    // ---- the readout beside the figure: era, three figures, one severity bar
+    // ---- the readout: era, three figures, one severity bar
     const bar = q(".cp-bar"), segs = data.bands.map((b, j) => {
       const s = document.createElement("span"); s.style.background = BAND[j]; s.style.color = j >= 2 ? "#fbf8f1" : "#1a1a18"; bar.appendChild(s);
       q(".cp-keys").insertAdjacentHTML("beforeend", "<span><i style='background:" + BAND[j] + "'></i>" + esc(b) + "</span>");
@@ -290,14 +231,13 @@
       b.innerHTML = "<span class='n'>" + (i + 1) + "</span>" + esc(d.p) + "<span class='y'>" + d.lo + "–" + d.hi + "</span>";
       b.addEventListener("click", () => pick(i)); q(".cp-rail").appendChild(b); return b;
     });
-
     function readout(i) {
-      const d = PD[i];
+      const d = PD[i]; sel = i;
       q(".cp-era").textContent = d.p; q(".cp-yrs").textContent = span(d);
       q(".cp-s1").innerHTML = d.std.toFixed(1) + "<small>%</small>"; q(".cp-s2").textContent = d.aff; q(".cp-s3").textContent = d.p90;
       d.sev.forEach((v, j) => { segs[j].style.width = v + "%"; segs[j].textContent = v >= 9 ? Math.round(v) : ""; });
       chips.forEach((c, j) => c.setAttribute("aria-pressed", j === i ? "true" : "false"));
-      marks.forEach((m, j) => m.classList.toggle("on", j === i));
+      emit();
     }
     function openDetail(i) {
       const d = PD[i], C = CONTEXT[d.p] || { why: "", ev: [] };
@@ -311,13 +251,13 @@
     }
 
     // ---- motion: one live lesion, interpolated between eras
-    let raf = null, timer = null, cur = N - 1;
+    let raf = null, timer = null, cur = N - 1, ready = false;
     const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
     const halt = () => { if (raf) cancelAnimationFrame(raf); if (timer) clearTimeout(timer); raf = timer = null; };
     function animate(from, to, ms, done) {
       const t0 = performance.now();
       const tick = now => {
-        if (!svg.isConnected) { halt(); return; }    // the dashboard was closed
+        if (!el.isConnected) { halt(); return; }     // the section was closed
         const u = Math.min(1, (now - t0) / ms);
         paintShape(from, to, ease(u));
         if (u < 1) raf = requestAnimationFrame(tick); else { raf = null; if (done) done(); }
@@ -325,6 +265,7 @@
       raf = requestAnimationFrame(tick);
     }
     function pick(i) {
+      if (!ready) return;
       halt();
       const from = PROF[cur] || BLANK; cur = i;
       readout(i); setGhosts(N - 1);
@@ -338,17 +279,16 @@
       setGhosts(-1); paintShape(BLANK, BLANK, 0);
       let i = 0;
       const step = () => {
-        if (!svg.isConnected) { halt(); return; }
+        if (!el.isConnected) { halt(); return; }
         readout(i);
         animate(i === 0 ? BLANK : era(i - 1), era(i), 1150, () => {
           setGhosts(i); cur = i; i++;
           if (i < N) timer = setTimeout(step, 520);
-          else { timer = null; q(".cp-hint").textContent = "Click a numbered mark, an outline or an era to open it."; }
+          else { timer = null; q(".cp-hint").textContent = "Click an outline or its label on the molar, or an era, to open it."; }
         });
       };
       timer = setTimeout(step, 300);
     }
-    q(".cp-replay").addEventListener("click", () => { if (REDUCED) { pick(N - 1); return; } run(); });
     q(".cp-close").addEventListener("click", () => { q(".cp-detail").hidden = true; });
 
     // first paint is already a finished figure (the last era), so a thumbnail is never an empty tooth; the other eras are
@@ -356,12 +296,16 @@
     readout(N - 1); setGhosts(-1); paintShape(era(N - 1), era(N - 1), 1);
     let next = 0;
     const prep = () => {
-      if (!svg.isConnected) return;
+      if (!el.isConnected) return;
       if (next < N - 1) { era(next++); timer = setTimeout(prep, 0); return; }
-      timer = null; setGhosts(N - 1);
-      if (!REDUCED) run(); else q(".cp-hint").textContent = "Click a numbered mark, an outline or an era to open it.";
+      timer = null; ready = true; setGhosts(N - 1);
+      if (!REDUCED) run(); else q(".cp-hint").textContent = "Click an outline or its label on the molar, or an era, to open it.";
     };
     timer = setTimeout(prep, 0);
+    // replay(): the plate's Replay button runs the eras again
+    const api = { pick, ring: i => era(i)[0].out, crown: T.crown, K, N, replay: () => { if (!ready) return; if (REDUCED) pick(N - 1); else run(); } };
+    el._cp = api;
+    return api;
   }
 
   // for checks in the console: shaded share of each crown per era, and how close the lesion is to the crown's shape

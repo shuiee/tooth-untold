@@ -263,32 +263,8 @@ a{color:inherit}
 .ev .slot{display:grid;place-items:center;border:1px solid var(--rule);background:repeating-linear-gradient(135deg,transparent 0 6px,rgba(26,26,24,.06) 6px 7px);font-family:var(--label);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
 .axis{display:flex;justify-content:space-between;border-top:1px solid var(--ink);padding-top:4px;font-family:var(--label);font-size:10px;color:var(--ink-3)}
 .ctxnote{font-size:10.5px;color:var(--ink-3);letter-spacing:.03em;margin:0}
-/* the caries plate (caries.js): figure, era rail, readout of three figures and one bar; detail only on request */
+/* the caries plate (caries.js): era rail, readout of three figures and one bar beside the molar; detail only on request */
 .cp{display:flex;flex-direction:column;gap:14px}
-.cp-fig{border:1px solid var(--rule);background:var(--card);padding:8px 8px 2px}
-.cp-plate{display:block;width:100%;height:auto}
-.cp-enamel{fill:url(#cpEnamel);stroke:#3b3a35;stroke-width:1.6}
-.cp-fiss{fill:none;stroke:#6f6d66;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;opacity:.6}
-.cp-fiss-deep{fill:none;stroke:#0e0d0b;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round;opacity:.55}
-.cp-ghost{fill:none;stroke:#55544f;stroke-width:1;pointer-events:none}
-.cp-ghost-in{stroke:#e9e8e4;stroke-dasharray:3 2}
-.cp-ghost-hit{fill:none;stroke:#000;stroke-width:14;stroke-opacity:0;cursor:pointer}
-.cp-out{fill:url(#cpDecay);stroke:#211e18;stroke-width:1.3;pointer-events:none}
-.cp-mid{fill:#2c2619;opacity:.78;pointer-events:none}
-.cp-in{fill:#141109;opacity:.86;pointer-events:none}
-.cp-halo{fill:none;stroke:#7d776a;stroke-width:5;opacity:.22;pointer-events:none}
-.cp-speck{pointer-events:none}
-.cp-speck circle{fill:#0b0a08;opacity:.5}
-.cp-plate text{font-family:var(--label)}
-.cp-no{font-size:12px;font-weight:600;letter-spacing:.08em;fill:var(--ink)}
-.cp-cap{font-size:12px;font-style:italic;fill:var(--ink-2)}
-.cp-mark{cursor:pointer}
-.cp-mark circle{fill:var(--card);stroke:var(--ink);stroke-width:1.1}
-.cp-mark text{font-size:10px;font-weight:600;fill:var(--ink)}
-.cp-mark.on circle{fill:var(--ink)}
-.cp-mark.on text{fill:var(--card)}
-.cp-mark:focus{outline:none}
-.cp-mark:focus-visible circle{stroke-width:2.6}
 .cp-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:-6px}
 .cp-hint{font-size:12.5px;font-style:italic;color:var(--ink-3)}
 .cp-rail{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px}
@@ -343,6 +319,8 @@ a{color:inherit}
 .views button{font-family:var(--label);font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:transparent;border:1px solid var(--ink);padding:7px 0;min-width:92px;cursor:pointer}
 .views button:hover{background:var(--card)}
 .views button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.views .zoom{display:flex;gap:4px}
+.views .zoom button{min-width:34px;font-size:15px;line-height:1;padding:6px 0}
 #stage.dashboard .panel.twin{overflow:hidden}
 .dp.wl{flex:1;min-height:0;display:flex;flex-direction:column;gap:14px;padding-bottom:6px}
 /* each panel minimizes to its title bar (contents keep their width, just clipped) and the other takes the column */
@@ -357,6 +335,9 @@ a{color:inherit}
 /* first act: the molar and its panel alone; the canine and the LEH panel come in after */
 #pair .tooth canvas{transition:opacity .9s ease}
 #pair.molar-only #tCanine canvas{opacity:0}
+/* caries, pathogens and metals: the molar alone, centred */
+#pair.solo #tCanine{display:none}
+#pair.solo #tMolar{grid-column:2 / 4}
 .dp.wl.wear-only #wlLehBox{display:none}
 #wlLehBox{animation:dpIn .7s ease both}
 .wl-box{position:relative;flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-gutter:stable;border:1px solid var(--ink);background:var(--card);padding:12px 14px 14px}
@@ -477,6 +458,23 @@ a{color:inherit}
 @keyframes lfWiggle{0%,100%{transform:translate(0,0)}25%{transform:translate(-1.6px,.8px) rotate(-6deg)}75%{transform:translate(1.6px,-.8px) rotate(6deg)}}
 .lf-fly{position:absolute;z-index:5;pointer-events:none}
 @media (prefers-reduced-motion:reduce){.lf-c8col.wig .lf-dot circle{animation:none}}
+/* the caries plate's decay on the 3D molar (app.js, drawCariesOverlay()) */
+#ov .cp3-ring .lt{fill:none;stroke:#fbf8f1;stroke-width:2.4;stroke-opacity:.45}
+#ov .cp3-ring .dk{fill:none;stroke:#3b3a35;stroke-width:1;stroke-dasharray:4 2}
+#ov .cp3-ring.on .dk{stroke:#1a1a18;stroke-width:1.8;stroke-dasharray:none;opacity:1}
+#ov .cp3-ring .hit{fill:none;stroke:transparent;stroke-width:12;pointer-events:stroke;cursor:pointer}
+#ov .cp3-ring:hover .dk{stroke-width:1.8}
+#ov .cp3-lab{pointer-events:auto;cursor:pointer}
+#ov .cp3-lab text{font-family:var(--label);font-size:11px;font-style:italic;fill:var(--ink-2);paint-order:stroke;stroke:var(--bg);stroke-width:3.5px;stroke-linejoin:round}
+#ov .cp3-lab .n{font-style:normal;font-weight:600;fill:var(--ink)}
+#ov .cp3-lab .lead{fill:none;stroke:var(--ink-2);stroke-width:.6}
+#ov .cp3-lab .lead-hit{fill:none;stroke:transparent;stroke-width:10}
+#ov .cp3-lab circle{fill:var(--ink)}
+#ov .cp3-lab:hover text,#ov .cp3-lab.on text{fill:var(--ink)}
+#ov .cp3-lab.on text{font-weight:600}
+#ov .cp3-lab.on .lead{stroke:var(--ink);stroke-width:1}
+#ov .cp3-lab:focus{outline:none}
+#ov .cp3-lab:focus-visible text{text-decoration:underline}
 #tip{position:fixed;pointer-events:none;z-index:50;background:var(--ink);color:var(--bg);font-size:12px;line-height:1.4;padding:7px 10px;max-width:300px}
 #tip .m{font-size:11px;color:#bdbcb6}
 .fallback{position:absolute;inset:0;display:grid;place-items:center;padding:30px;text-align:center;color:var(--ink-2)}
@@ -542,7 +540,7 @@ a{color:inherit}
         <svg id="ov"></svg>
       </div>
       <button class="btn wl-replay" id="wlReplay" type="button" hidden>Replay</button>
-      <div class="views" id="views" hidden role="group" aria-label="View"><button data-v="top">Top</button><button data-v="side">Side</button><button data-v="section">Section</button><button data-v="perspective">Perspective</button></div>
+      <div class="views" id="views" hidden role="group" aria-label="View"><button data-v="top">Top</button><button data-v="side">Side</button><button data-v="section">Section</button><button data-v="perspective">Perspective</button><span class="zoom"><button data-z="-1" aria-label="Zoom out">−</button><button data-z="1" aria-label="Zoom in">+</button></span></div>
       <p class="tcap fade"><span id="capText"></span><span id="when"></span></p>
     </section>
     <aside class="panel" id="panel" aria-live="polite" hidden></aside>
@@ -719,6 +717,10 @@ uniform float uWearY, uCutX, uCalc, uPb, uWearAmp;
 uniform vec4 uCapTint;
 // the worn-away crown in layers: layer k is gone by Smith stage uCapS[k] and drawn in uCapC[k] (uCapN = 0: one colour)
 uniform float uCapS[8]; uniform vec3 uCapC[8]; uniform int uCapN;
+// carious decay carved into the chewing surface (the caries plate): three nested outlines (outer lesion, cavitated
+// body, core), 64 radii each packed four to a vec4, about the crown's centre; uCavC = (centre x, centre z, x and z
+// scale from tooth units to the outlines' units); uCavD = how deep each layer cuts in. uCavOn = 0: no carving.
+uniform vec4 uCavC; uniform vec4 uCavR[48]; uniform vec3 uCavD; uniform float uCavOn;
 uniform vec4 uLeh, uLehY;
 uniform vec4 uCaries;
 uniform vec3 uBoxMin, uBoxMax;
@@ -792,6 +794,16 @@ float ridgeF(float y,float yb){ float u=(y-yb)/.022+1.7; return exp(-u*u); }
 float crownMask(float y){ return smoothstep(.03,.12,y)*(1.-smoothstep(uTop-.14,uTop-.03,y)); }
 float lehAt(float y,float s,float yb){ return s*(bandF(y,yb)-.55*ridgeF(y,yb)); }
 float lehD(vec3 p){ float y=p.y+lehWave(p); return crownMask(p.y)*(lehAt(y,uLeh.x,uLehY.x)+lehAt(y,uLeh.y,uLehY.y)+lehAt(y,uLeh.z,uLehY.z)+lehAt(y,uLeh.w,uLehY.w)); }
+float cavR(int layer,float a){ float f=a*64.; int i=int(floor(f))%64; int j=(i+1)%64; int bi=layer*64+i, bj=layer*64+j;
+  return mix(uCavR[bi/4][bi%4],uCavR[bj/4][bj%4],fract(f)); }
+// how far the surface is carved in at p: each layer's depth, faded across its outline and towards the crown's sides
+float cavDepth(vec3 p){
+  if(uCavOn<=0.) return 0.;
+  vec2 q=vec2((p.x-uCavC.x)/uCavC.z,-(p.z-uCavC.y)/uCavC.w);
+  float rho=length(q), a=fract(atan(q.y,q.x)/6.2831853+1.), w=.12;
+  float m=uCavD.x*smoothstep(-w,w,cavR(0,a)-rho)+uCavD.y*smoothstep(-w,w,cavR(1,a)-rho)+uCavD.z*smoothstep(-w,w,cavR(2,a)-rho);
+  return m*smoothstep(uTop*.5,uTop*.8,p.y);
+}
 float lehInk(vec3 p){ float y=p.y+lehWave(p); return max(max(uLeh.x*bandF(y,uLehY.x),uLeh.y*bandF(y,uLehY.y)),max(uLeh.z*bandF(y,uLehY.z),uLeh.w*bandF(y,uLehY.w))); }
 float crownW(vec3 p){ if(uMesh==1 && volOut(p)<=0.) return smoothstep(.35,.65,texture(uVol,volTC(p)).g)*smoothstep(-.03,.02,p.y); return smoothstep(-.005,.2,p.y); }
 float enamT(vec3 p){ return uEnamel*crownW(p)*(.75+.35*smoothstep(.45,.95,p.y/uTop)); }
@@ -826,7 +838,7 @@ float gumD(vec3 p,float dU){
   return smax(smin(band,skin,.06),-(dU-.004),.008);
 }
 float mapAll(vec3 p,out float dU,out float dC,out float dT,out float dB,out float dG){
-  dU=outerU(p)+.03*lehD(p);
+  dU=outerU(p)+.03*lehD(p)+cavDepth(p);
   float d=smax(dU,p.y-wearH(p),.008);
   if(uCaries.w>0.) d=smax(d,-carD(p),.012);
   dC=calcD(p,dU); dT=min(d,dC);
@@ -863,7 +875,7 @@ void main(){
       float st=d;
       if(worn){ float cap=max(max(dU,wearH(p)-p.y),p.z-uCutX); if(cap<0.){ if(!capIn) capY=p.y; capIn=true; } else minCap=min(minCap,cap/t); st=min(d,abs(cap)+.006); }
       if(d<.0006*t){ hit=true; break; }
-      t+=st*(uLeh.x+uLeh.y+uLeh.z+uLeh.w>0.?.55:.75); if(t>tf) break;   // the grooves bend the distance field: smaller steps
+      t+=st*(uLeh.x+uLeh.y+uLeh.z+uLeh.w>0.||uCavOn>0.?.55:.75); if(t>tf) break;   // grooves and decay bend the distance field: smaller steps
     }
   }
   if(hit){
@@ -895,6 +907,7 @@ void main(){
         vec3 base=enamel?ENAM:(p.y<0.?mix(DENT,ROOTC,.2):DENT);
         if(dp<0.) base=PULP;
         if(cr<.028) base=CAV;
+        if(uCavOn>0. && cavDepth(p)>.004 && dU>-.03) base=mix(DENTX,CAV,.75);   // the decayed rim under a carved surface
         if(dC<0. && dU>0.) base=CALC;
         float ink=0.;
         if(enamel){ float bl=lehInk(p); ink=clamp(bl*1.7,0.,.9);
@@ -916,6 +929,8 @@ void main(){
       if(isBone) base=BONE; if(isGum) base=GUM;
       if(isCalc) base=CALC;
       if(cr<.012) base=CAV;
+      float cv=uCavOn>0.?cavDepth(p)/(uCavD.x+uCavD.y+uCavD.z):0.;   // decayed surface: browner the deeper
+      if(cv>.06) base=mix(mix(DENTX,CAV,.35),CAV,smoothstep(.06,.9,cv));
       float dD=dU+enamT(p);
       if(facet) base=dD<0.?DENTX:ENAM;
       float pw=pxw/max(dot(n,-rd),.3);
@@ -981,7 +996,8 @@ void main(){
     function camBasis() {
       const c = st.cam, cp = Math.cos(c.pitch);
       const dir = [Math.sin(c.yaw) * cp, Math.sin(c.pitch), Math.cos(c.yaw) * cp];
-      const ro = [c.target[0] + dir[0] * c.dist, c.target[1] + dir[1] * c.dist, c.target[2] + dir[2] * c.dist];
+      const d = c.dist * (c.zoom || 1);                  // zoom: the page sets cam.zoom (1 = the framed view)
+      const ro = [c.target[0] + dir[0] * d, c.target[1] + dir[1] * d, c.target[2] + dir[2] * d];
       const fw = [-dir[0], -dir[1], -dir[2]];
       let rt = [fw[2], 0, -fw[0]]; const rl = Math.hypot(rt[0], rt[2]) || 1; rt = [-rt[0] / rl, 0, -rt[2] / rl];
       const upv = [rt[1] * fw[2] - rt[2] * fw[1], rt[2] * fw[0] - rt[0] * fw[2], rt[0] * fw[1] - rt[1] * fw[0]];
@@ -1026,6 +1042,7 @@ void main(){
       gl.uniform4fv(u("uRootA"), ra); gl.uniform4fv(u("uRootB"), rb); gl.uniform1i(u("uNR"), S.mesh ? 0 : S.roots.length);
       gl.uniform3fv(u("uPulpC"), S.pulpC); gl.uniform3fv(u("uPulpR"), S.pulpR);
       gl.uniform1f(u("uWearY"), P.wearY); gl.uniform1f(u("uWearAmp"), P.wearAmp || 0); gl.uniform4fv(u("uCapTint"), P.capTint || [0, 0, 0, 0]);
+      gl.uniform1f(u("uCavOn"), P.cav ? 1 : 0); if (P.cav) { gl.uniform4fv(u("uCavC"), P.cav.c); gl.uniform4fv(u("uCavR"), P.cav.r); gl.uniform3fv(u("uCavD"), P.cav.d); }
       gl.uniform1i(u("uCapN"), P.capS ? 8 : 0); if (P.capS) { gl.uniform1fv(u("uCapS"), P.capS); gl.uniform3fv(u("uCapC"), P.capC); } gl.uniform1f(u("uCutX"), P.cutX); gl.uniform1f(u("uCalc"), P.calc); gl.uniform1f(u("uPb"), P.pb);
       gl.uniform4fv(u("uLeh"), pad4(P.leh, 0)); gl.uniform4fv(u("uLehY"), pad4(P.lehY, -9)); gl.uniform4fv(u("uCaries"), P.caries);
       gl.uniform3fv(u("uBoxMin"), S.rbMin); gl.uniform3fv(u("uBoxMax"), S.rbMax);
@@ -1529,17 +1546,18 @@ void main(){
 
 <!-- 4c · caries plate (section 1) -->
 <script>
-/* The Tooth Untold: the caries plate (the Caries dashboard).
-   Two teeth seen from above, a lower first molar and a lower canine, with decay drawn where occlusal caries begins: in the
-   pits and fissures, spreading outward. Six eras play in sequence as one lesion that grows and recedes; each finished era
-   leaves its outline behind. A click on a numbered mark, an outline or an era opens that era's detail.
-   The shaded area encodes the share of adults in the era with caries (data/layers.js, caries), not damage to one tooth.
-   The outlines are drawn from cusp lobes and the fissure pattern: illustration, not measurement.
-   window.CariesPlate.mount(el, data) fills el; it is safe to call again on the same element. CariesPlate.notes(data)
-   gives the figure's notes for the page to set under its caption. */
+/* The Tooth Untold: the caries plate (Section 1's figure).
+   The decay is drawn on the 3D molar, seen from above: where occlusal caries begins, in the pits and fissures, spreading
+   outward. Six eras play in sequence as one lesion that grows and recedes; each finished era leaves its outline behind,
+   with a numbered mark. This module solves each era's lesion (the shaded share of the crown is the share of adults in the
+   era with caries, data/layers.js caries.plate, on an expanded scale), runs the eras, and fills the readout beside the
+   plate: era, three figures, a severity bar and, on request, the era's events and text. The page lays the outlines onto
+   the molar (app.js, drawCariesOverlay()) and sends clicks on them back through pick().
+   window.CariesPlate.mount(el, data, { onFrame }) fills el and returns its api; CariesPlate.notes(data) gives the
+   figure's notes for the page to set under its caption. */
 (function () {
   "use strict";
-  const NS = "http://www.w3.org/2000/svg", TAU = Math.PI * 2, K = 360;
+  const TAU = Math.PI * 2, K = 360;
   const REDUCED = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -1639,8 +1657,6 @@ void main(){
     }
     return Math.abs(a / 2);
   }
-  const dOf = (T, r) => { let d = ""; for (let k = 0; k < K; k++) { const t = k / K * TAU; d += (k ? "L" : "M") + (T.cx + Math.cos(t) * r[k] * T.sx).toFixed(2) + " " + (T.cy - Math.sin(t) * r[k] * T.sy).toFixed(2); } return d + "Z"; };
-  const lineOf = (T, f) => f.map((q, i) => (i ? "L" : "M") + (T.cx + q[0] * T.sx).toFixed(1) + " " + (T.cy - q[1] * T.sy).toFixed(1)).join("");
 
   // cusp lobes: five on the lower first molar (two lingual, three buccal) plus the central fossa; three on the canine plus a lingual one
   const MOLAR_LOBES = [[-0.46, 0.36, 0.30, 1], [0.44, 0.34, 0.30, 1], [-0.48, -0.36, 0.30, 1], [0.30, -0.38, 0.29, 1], [0.68, -0.06, 0.24, 0.85], [0, 0, 0.46, 0.55]];
@@ -1713,11 +1729,10 @@ void main(){
     ["What the decay shows", "The shaded area is the share of adults in that era who carried at least one carious tooth, not the damage to one tooth. Its shape grows from the fissure pattern, where occlusal caries starts, and is the same shape in every era; only its extent changes."],
     ["The scale is expanded", "The shaded share of the crown runs from 8% at a rate of 51% to 80% at a rate of 77%, because the whole record sits between 52.4% and 76.1%. That magnifies every difference about 2.8 times. Even so, eras 1, 4 and 5 lie within a point of one another (63.7, 64.5 and 64.0%), so their outlines all but coincide: that is the finding, not a fault in the drawing."],
     ["One reference population", "Every rate is age-standardised to the pooled age distribution of all " + n.toLocaleString("en") + " adults (18–69), so no era reads higher merely because more of its people lived long enough to accumulate decay. It moves each value by at most 1.2 points and changes no ordering."],
-    ["The drawings", "Both outlines are built from cusp lobes, five on the lower first molar and three on the canine, with the occlusal groove pattern over them: drawn, not measured. Era spans are the 10th to 90th percentile of site dates, so they overlap. A ‘hinge’ marks an event that changed what the tooth could record rather than what it recorded."],
+    ["The drawing", "The outlines are grown from a drawing of a lower first molar's cusps and fissures and carved into the 3D molar's chewing surface, in three depths (the lesion, its cavitated body and its core) that are illustrative and exaggerated so the decay reads: drawn, not measured. The shaded share of the crown is the data; how deep it cuts is not. Era spans are the 10th to 90th percentile of site dates, so they overlap. A ‘hinge’ marks an event that changed what the tooth could record rather than what it recorded."],
     ["Source", "Global History of Health Project, European module, decoded for this project. Events and the ‘why’ text are context from the team's timeline, not data."]];
   const HTML = "<div class='cp'>" +
-    "<div class='cp-fig'><svg class='cp-plate' viewBox='0 0 660 430' role='img' aria-label='A lower first molar and a lower canine seen from above, with the extent of carious decay drawn for six eras.'></svg></div>" +
-    "<div class='cp-foot'><span class='cp-hint'>Reading the record forward…</span><button class='btn cp-replay' type='button'>Replay</button></div>" +
+    "<div class='cp-foot'><span class='cp-hint'>Reading the record forward…</span></div>" +
     "<div class='cp-rail'></div>" +
     "<div class='cp-read'><p class='cp-era'></p><p class='cp-yrs'></p>" +
     "<div class='cp-stats'><div><b class='cp-s1'></b><span>of adults carried caries</span></div><div><b class='cp-s2'></b><span>carious teeth, on average, in an affected mouth</span></div><div><b class='cp-s3'></b><span>or more, in the worst-affected tenth</span></div></div>" +
@@ -1727,90 +1742,33 @@ void main(){
     "<p class='cp-h4'>All six eras</p><div class='cp-cmp'></div></div>" +
     "</div>";
 
-  function mount(el, data) {
-    if (!el || !data || !data.eras) return;
-    if (el.dataset.mounted) return;                // resize redraws must not restart the run
+  // The page draws the lesion on the 3D molar; this module runs the eras and the readout beside it. opt.onFrame(state)
+  // is called whenever the drawing changes: { lesion: { out, mid, inn } (radial profiles of K radii about the crown's
+  // centre, in the units of crown), upto (the last era whose outline is left behind), sel (the era being read) }. The returned api has pick(i),
+  // ring(i) (era i's outline), replay(), crown, K and N.
+  function mount(el, data, opt) {
+    opt = opt || {};
+    if (!el || !data || !data.eras) return null;
+    if (el.dataset.mounted && el._cp) return el._cp;   // resize redraws must not restart the run
     el.dataset.mounted = "1";
     const PD = data.eras, N = PD.length;
     geometry(PD);
+    const T = TEETH[0];
     el.innerHTML = HTML;
-    const q = s => el.querySelector(s), svg = q(".cp-plate");
+    const q = s => el.querySelector(s);
     const span = d => "c. " + d.lo + "–" + d.hi + " CE";
-    const live = [], ghostG = [], marks = [];
-
-    // ---- build the plate
-    const defs = document.createElementNS(NS, "defs");
-    defs.innerHTML = "<radialGradient id='cpEnamel' cx='46%' cy='42%' r='66%'><stop offset='0%' stop-color='#fbfaf6'/><stop offset='62%' stop-color='#f1efe9'/><stop offset='100%' stop-color='#d9d6cd'/></radialGradient>" +
-      "<radialGradient id='cpDecay' cx='48%' cy='46%' r='62%'><stop offset='0%' stop-color='#17140f'/><stop offset='55%' stop-color='#2c2619'/><stop offset='100%' stop-color='#4d4330'/></radialGradient>";
-    svg.appendChild(defs);
-    const mk = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
-    TEETH.forEach((T, ti) => {
-      const g = mk("g", {}, svg);
-      mk("path", { class: "cp-enamel", d: dOf(T, T.crown) }, g);
-      T.fiss.forEach(f => mk("path", { class: "cp-fiss", d: lineOf(T, f) }, g));
-      ghostG[ti] = mk("g", {}, g);
-      const halo = mk("path", { class: "cp-halo" }, g), out = mk("path", { class: "cp-out" }, g), mid = mk("path", { class: "cp-mid" }, g), inn = mk("path", { class: "cp-in" }, g);
-      const dclip = mk("clipPath", { id: "cpClip" + ti }, defs), dcp = mk("path", {}, dclip);
-      const sp = mk("g", { class: "cp-speck", "clip-path": "url(#cpClip" + ti + ")" }, g), nz = rng(500 + ti * 37);
-      for (let i = 0; i < 190; i++) { const t = nz() * TAU, rr = Math.sqrt(nz()); mk("circle", { cx: (T.cx + Math.cos(t) * rr * T.sx * 0.9).toFixed(1), cy: (T.cy - Math.sin(t) * rr * T.sy * 0.9).toFixed(1), r: (0.6 + nz() * 1.5).toFixed(2) }, sp); }
-      T.fiss.forEach(f => mk("path", { class: "cp-fiss-deep", "clip-path": "url(#cpClip" + ti + ")", d: lineOf(T, f) }, g));   // the grooves read through the decay
-      ghostG[ti].over = mk("g", { "clip-path": "url(#cpClip" + ti + ")" }, g);   // the same outlines, pale, where they fall inside the live lesion
-      mk("text", { class: "cp-no", x: T.cx, y: 398, "text-anchor": "middle" }, g).textContent = T.no;
-      mk("text", { class: "cp-cap", x: T.cx, y: 416, "text-anchor": "middle" }, g).textContent = T.cap;
-      live[ti] = { halo, out, mid, inn, dcp };
-    });
-    // one numbered mark per era, on the molar
-    const mg = mk("g", {}, svg);
-    PD.forEach((d, i) => {
-      const g = mk("g", { class: "cp-mark", tabindex: 0, role: "button", "aria-label": "Era " + (i + 1) + ", " + d.p + ", " + d.std + " per cent" }, mg);
-      mk("circle", { r: 10 }, g); mk("text", { "text-anchor": "middle" }, g).textContent = i + 1;
-      g.addEventListener("click", () => pick(i));
-      g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(i); } });
-      marks[i] = g;
-    });
+    let lesion = null, upto = -1, sel = N - 1;
+    const emit = () => { if (opt.onFrame && el.isConnected) opt.onFrame({ lesion, upto, sel }); };
 
     function paintShape(a, b, u) {
-      TEETH.forEach((T, ti) => {
-        const L = live[ti], A = a[ti], B = b[ti];
-        const mix = (p, r) => { const o = new Float64Array(K); for (let k = 0; k < K; k++) o[k] = p[k] + (r[k] - p[k]) * u; return o; };
-        const dOut = dOf(T, mix(A.out, B.out));
-        L.out.setAttribute("d", dOut); L.halo.setAttribute("d", dOut); L.dcp.setAttribute("d", dOut);
-        L.mid.setAttribute("d", dOf(T, mix(A.mid, B.mid))); L.inn.setAttribute("d", dOf(T, mix(A.inn, B.inn)));
-      });
+      const A = a[0], B = b[0], mix = (p, r) => { const o = new Float64Array(K); for (let k = 0; k < K; k++) o[k] = p[k] + (r[k] - p[k]) * u; return o; };
+      lesion = { out: mix(A.out, B.out), mid: mix(A.mid, B.mid), inn: mix(A.inn, B.inn) };
+      emit();
     }
-    // the outlines each finished era leaves behind; they are also click targets
-    function setGhosts(upto) {
-      TEETH.forEach((T, ti) => {
-        ghostG[ti].textContent = ""; ghostG[ti].over.textContent = "";
-        for (let i = 0; i <= upto; i++) {
-          const d = dOf(T, era(i)[ti].out);
-          mk("path", { class: "cp-ghost", d, opacity: (0.3 + 0.07 * i).toFixed(2) }, ghostG[ti]);
-          mk("path", { class: "cp-ghost cp-ghost-in", d, opacity: (0.4 + 0.07 * i).toFixed(2) }, ghostG[ti].over);
-          mk("path", { class: "cp-ghost-hit", d }, ghostG[ti]).addEventListener("click", () => pick(i));
-        }
-      });
-      placeMarks(upto);
-    }
-    // each mark sits on its own era's outline, at the candidate angle farthest from the marks already placed
-    function placeMarks(upto) {
-      const put = [], M = TEETH[0];
-      marks.forEach((m, i) => {
-        if (i > upto) { m.setAttribute("opacity", 0); m.style.pointerEvents = "none"; return; }
-        m.setAttribute("opacity", 1); m.style.pointerEvents = "";
-        let best = null, bestD = -1;
-        for (let c = 0; c < 48; c++) {
-          const k = Math.round(c / 48 * K) % K, t = k / K * TAU, r = era(i)[0].out[k];
-          const x = M.cx + Math.cos(t) * r * M.sx, y = M.cy - Math.sin(t) * r * M.sy;
-          let d = put.length ? Math.min(...put.map(p => Math.hypot(x - p[0], y - p[1]))) : 1e9 - c;
-          if (d > bestD) { bestD = d; best = [x, y]; }
-        }
-        put.push(best);
-        m.querySelector("circle").setAttribute("cx", best[0].toFixed(1)); m.querySelector("circle").setAttribute("cy", best[1].toFixed(1));
-        m.querySelector("text").setAttribute("x", best[0].toFixed(1)); m.querySelector("text").setAttribute("y", (best[1] + 3.5).toFixed(1));
-      });
-    }
+    // the outlines each finished era leaves behind
+    function setGhosts(n) { upto = n; emit(); }
 
-    // ---- the readout beside the figure: era, three figures, one severity bar
+    // ---- the readout: era, three figures, one severity bar
     const bar = q(".cp-bar"), segs = data.bands.map((b, j) => {
       const s = document.createElement("span"); s.style.background = BAND[j]; s.style.color = j >= 2 ? "#fbf8f1" : "#1a1a18"; bar.appendChild(s);
       q(".cp-keys").insertAdjacentHTML("beforeend", "<span><i style='background:" + BAND[j] + "'></i>" + esc(b) + "</span>");
@@ -1821,14 +1779,13 @@ void main(){
       b.innerHTML = "<span class='n'>" + (i + 1) + "</span>" + esc(d.p) + "<span class='y'>" + d.lo + "–" + d.hi + "</span>";
       b.addEventListener("click", () => pick(i)); q(".cp-rail").appendChild(b); return b;
     });
-
     function readout(i) {
-      const d = PD[i];
+      const d = PD[i]; sel = i;
       q(".cp-era").textContent = d.p; q(".cp-yrs").textContent = span(d);
       q(".cp-s1").innerHTML = d.std.toFixed(1) + "<small>%</small>"; q(".cp-s2").textContent = d.aff; q(".cp-s3").textContent = d.p90;
       d.sev.forEach((v, j) => { segs[j].style.width = v + "%"; segs[j].textContent = v >= 9 ? Math.round(v) : ""; });
       chips.forEach((c, j) => c.setAttribute("aria-pressed", j === i ? "true" : "false"));
-      marks.forEach((m, j) => m.classList.toggle("on", j === i));
+      emit();
     }
     function openDetail(i) {
       const d = PD[i], C = CONTEXT[d.p] || { why: "", ev: [] };
@@ -1842,13 +1799,13 @@ void main(){
     }
 
     // ---- motion: one live lesion, interpolated between eras
-    let raf = null, timer = null, cur = N - 1;
+    let raf = null, timer = null, cur = N - 1, ready = false;
     const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
     const halt = () => { if (raf) cancelAnimationFrame(raf); if (timer) clearTimeout(timer); raf = timer = null; };
     function animate(from, to, ms, done) {
       const t0 = performance.now();
       const tick = now => {
-        if (!svg.isConnected) { halt(); return; }    // the dashboard was closed
+        if (!el.isConnected) { halt(); return; }     // the section was closed
         const u = Math.min(1, (now - t0) / ms);
         paintShape(from, to, ease(u));
         if (u < 1) raf = requestAnimationFrame(tick); else { raf = null; if (done) done(); }
@@ -1856,6 +1813,7 @@ void main(){
       raf = requestAnimationFrame(tick);
     }
     function pick(i) {
+      if (!ready) return;
       halt();
       const from = PROF[cur] || BLANK; cur = i;
       readout(i); setGhosts(N - 1);
@@ -1869,17 +1827,16 @@ void main(){
       setGhosts(-1); paintShape(BLANK, BLANK, 0);
       let i = 0;
       const step = () => {
-        if (!svg.isConnected) { halt(); return; }
+        if (!el.isConnected) { halt(); return; }
         readout(i);
         animate(i === 0 ? BLANK : era(i - 1), era(i), 1150, () => {
           setGhosts(i); cur = i; i++;
           if (i < N) timer = setTimeout(step, 520);
-          else { timer = null; q(".cp-hint").textContent = "Click a numbered mark, an outline or an era to open it."; }
+          else { timer = null; q(".cp-hint").textContent = "Click an outline or its label on the molar, or an era, to open it."; }
         });
       };
       timer = setTimeout(step, 300);
     }
-    q(".cp-replay").addEventListener("click", () => { if (REDUCED) { pick(N - 1); return; } run(); });
     q(".cp-close").addEventListener("click", () => { q(".cp-detail").hidden = true; });
 
     // first paint is already a finished figure (the last era), so a thumbnail is never an empty tooth; the other eras are
@@ -1887,12 +1844,16 @@ void main(){
     readout(N - 1); setGhosts(-1); paintShape(era(N - 1), era(N - 1), 1);
     let next = 0;
     const prep = () => {
-      if (!svg.isConnected) return;
+      if (!el.isConnected) return;
       if (next < N - 1) { era(next++); timer = setTimeout(prep, 0); return; }
-      timer = null; setGhosts(N - 1);
-      if (!REDUCED) run(); else q(".cp-hint").textContent = "Click a numbered mark, an outline or an era to open it.";
+      timer = null; ready = true; setGhosts(N - 1);
+      if (!REDUCED) run(); else q(".cp-hint").textContent = "Click an outline or its label on the molar, or an era, to open it.";
     };
     timer = setTimeout(prep, 0);
+    // replay(): the plate's Replay button runs the eras again
+    const api = { pick, ring: i => era(i)[0].out, crown: T.crown, K, N, replay: () => { if (!ready) return; if (REDUCED) pick(N - 1); else run(); } };
+    el._cp = api;
+    return api;
   }
 
   // for checks in the console: shaded share of each crown per era, and how close the lesion is to the crown's shape
@@ -2372,8 +2333,8 @@ window.startStatisticalTooth = (function () {
   //          "aerial"  the crown from above, out of its jaw, for the chewing surface (wear)
   const LAYERS = [
     { key: "caries", n: 1, name: "Caries", dek: "Decay in adults of six periods, read from the crown",
-      view: { molar: "cut", canine: "cut" },
-      plate: "cut open to show how far decay reaches into the tooth; the cavity grows with the share of teeth that were carious.",
+      view: { molar: "aerial", canine: "aerial" }, byPeriod: true,
+      plate: "the first molar from above, with decay drawn where it begins, in the pits and fissures of the chewing surface, as the six periods play; each leaves its outline, labelled at the side on a hairline leader, and a click on either opens its period. The decay is carved into the surface, so the crown loses height where it decays; its depths are illustrative.",
       human: "Human × caries correlations across time",
       events: [] },   // the caries plate carries each period's events itself
     { key: "pathogens", n: 2, name: "Pathogens", dek: "Disease DNA recovered from European teeth, 100–1800 CE",
@@ -2491,12 +2452,14 @@ window.startStatisticalTooth = (function () {
   let G = null;
   const pairEl = $("#pair"), ov = d3.select("#ov");
 
+  let fixedNameY = null;                              // the tooth names' baseline for the current framing (see drawLabels)
   function setShapes() {
     if (!GL) return;
     TEETH.forEach(T => { T.R.setShape(window.ToothGL.shape(T.type, S.jaw), true); T.parts.clear(); });
     refit();
   }
   function refit() {
+    fixedNameY = null;                                  // the names' baseline is found again for the new framing
     if (!GL) return;
     const top = d3.max(TEETH, T => T.R.st.S.top), bottom = d3.min(TEETH, T => T.R.st.S.bottom);
     const f = TEETH[0].R.st.cam.focal;
@@ -2518,19 +2481,27 @@ window.startStatisticalTooth = (function () {
     const wl = S.scene === "layer" && S.layer === "wear" ? S.wl : null;
     const wear = wearOn && T.type === "molar" ? (wl ? wl.wear : G.wear) : null, leh = wearOn && T.type === "canine" ? (wl ? lehBands(wl) : G.leh) : null;
     const wearY = wear != null ? top - (wear - 1) / 7 * 0.55 * top : top + 0.02;
-    const cr = decay && G.caries != null ? (0.015 + 0.7 * G.caries) * (SH.B[0] / 0.5) : 0;
+    // on the caries plate the decay is carved into the molar's chewing surface (cavityOf()) instead of the pooled cavity
+    const cariesPlate = S.scene === "layer" && S.layer === "caries";
+    const cr = decay && !cariesPlate && G.caries != null ? (0.015 + 0.7 * G.caries) * (SH.B[0] / 0.5) : 0;
+    const cav = cariesPlate && T.type === "molar" ? cavityOf(T) : null;
     const cp = SH.cariesAt === "occlusal" ? [0.06, Math.min(wearY, SH.grooveY) - 0.005, -0.03] : [SH.B[0] * 0.97, 0.44 * top, -0.13];
     const pb = (L === "all" || L === "metals") && G.pb != null ? clamp(Math.log10(G.pb / 0.05) / Math.log10(10 / 0.05), 0, 1) : 0;
     const calc = G.calcRecs.some(r => L === "all" || (L === "pathogens" && r.kind !== "metal") || (L === "metals" && r.kind === "metal")) ? 1 : 0;
     const wearAmp = wl && wear != null ? 0.035 * clamp((wear - 1) / 4, 0, 1) : 0, capTint = wl && T.type === "molar" ? [0.2, 0.36, 0.85, 0.72] : [0, 0, 0, 0];
     const strata = wl && T.type === "molar" && wl.strata ? wl.strata : null;
-    return { wearY, wearAmp, capTint, capS: strata && strata.s, capC: strata && strata.c, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: leh && leh.length > 2 ? [0.44, 0.31, 0.56, 0.66].map(f => f * top) : [0.36 * top, 0.54 * top], calc, pb, cutX: viewOf(T) === "cut" ? 0 : 5, jaw: viewOf(T) === "cut" };
+    return { cav, wearY, wearAmp, capTint, capS: strata && strata.s, capC: strata && strata.c, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: leh && leh.length > 2 ? [0.44, 0.31, 0.56, 0.66].map(f => f * top) : [0.36 * top, 0.54 * top], calc, pb, cutX: viewOf(T) === "cut" ? 0 : 5, jaw: viewOf(T) === "cut" && S.scene !== "layer" };   // the plates show the teeth out of the jaw
   }
   // the view a tooth is drawn in: cut everywhere except on a section's plate, where the section decides
-  // The Wear and LEH section adds four views (S.viewMode, the buttons under its plate): top, side (its default),
-  // section and perspective.
+  // Every section's plate has four views (S.viewMode, the buttons under it): top, side, section (cut open) and
+  // perspective. Each section opens in the view its record suits (LAYERS[].view, as defView()); turning the teeth by hand
+  // from top or side moves the choice to perspective.
   const VIEWMODE = { top: "aerial", side: "whole", section: "cut", perspective: "whole" };
-  const viewOf = T => !(S.scene === "layer" && layerOf(S.layer)) ? "cut" : S.layer === "wear" && S.viewMode ? VIEWMODE[S.viewMode] : layerOf(S.layer).view[T.key];
+  const defView = L => ({ cut: "section", whole: "side", aerial: "top" })[L.view.molar] || "side";
+  const viewOf = T => !(S.scene === "layer" && layerOf(S.layer)) ? "cut" : S.viewMode ? VIEWMODE[S.viewMode] : layerOf(S.layer).view[T.key];
+  // caries, pathogens and metals show the molar alone (their records are not tooth-specific; the molar is the larger)
+  const SOLO = new Set(["caries", "pathogens", "metals"]);
+  const solo = () => S.scene === "layer" && SOLO.has(S.layer);
   // camera and framing for each view; "aerial" looks down on the crown and frames the jaw's footprint
   function frameView() {
     if (!GL) return;
@@ -2541,7 +2512,7 @@ window.startStatisticalTooth = (function () {
         const r = T.el.getBoundingClientRect(), half = Math.max(-SH.boxMin[0], SH.boxMax[0], -SH.boxMin[2], SH.boxMax[2]) * 0.95;
         Object.assign(cam, { yaw: 0.35, pitch: 1.36, target: [0, SH.top * 0.8, 0], dist: half * cam.focal / Math.min(0.8, 0.8 * r.width / Math.max(1, r.height)) });
       } else if (v === "whole") Object.assign(cam, { yaw: T.key === "canine" ? 1.0 : 0.4, pitch: 0.12 });   // the canine turned to show its cusp in profile
-      if (S.layer === "wear" && S.viewMode === "perspective") Object.assign(cam, { yaw: VIEW.yaw, pitch: 0.38 });
+      if (S.viewMode === "perspective") Object.assign(cam, { yaw: VIEW.yaw, pitch: 0.38 });
     });
   }
   const NEUTRAL = SH => ({ wearY: SH.top + 0.02, caries: [0, 0, 0, 0], leh: [0, 0], lehY: [0, 0], calc: 0, pb: 0, cutX: 5, jaw: false });
@@ -2558,8 +2529,9 @@ window.startStatisticalTooth = (function () {
     const now = performance.now(), dense = everything();
     TEETH.forEach((T, ti) => {
       const want = new Map();
-      G.path.forEach(r => { if (showsRec(r) && hash(r.id) % 2 === ti) want.set(r.id, r); });
-      G.calcRecs.forEach(r => { if (r.kind !== "metagenome" && showsRec(r) && hash(r.id + "c") % 2 === ti) want.set(r.id, r); });
+      const mine = h => solo() ? ti === 0 : h % 2 === ti;   // split between the teeth, or all on the molar when it is alone
+      G.path.forEach(r => { if (showsRec(r) && mine(hash(r.id))) want.set(r.id, r); });
+      G.calcRecs.forEach(r => { if (r.kind !== "metagenome" && showsRec(r) && mine(hash(r.id + "c"))) want.set(r.id, r); });
       T.parts.forEach((q, id) => { if (!want.has(id) && !q.dead) q.dead = now; });
       const placed = [...T.parts.values()].filter(q => !q.dead && q.face).map(q => q.p);
       let k = 0;
@@ -2660,15 +2632,16 @@ window.startStatisticalTooth = (function () {
   }
 
   // in the Wear and LEH section's first act only the molar is shown
-  const wlHidden = T => S.scene === "layer" && S.layer === "wear" && S.wlStage === "wear" && T.key === "canine";
+  const wlHidden = T => T.key === "canine" && (solo() || (S.scene === "layer" && S.layer === "wear" && S.wlStage === "wear"));
   // the tooth names are the only lettering beside the teeth
   function drawLabels() {
     gLabels.selectAll("*").remove();
+    drawCariesOverlay();
     if (!GL || !liveTeeth()) return;
     ov.attr("viewBox", "0 0 " + pairEl.clientWidth + " " + pairEl.clientHeight);
     if (S.scene === "layer") plateLabels();
-    const y = nameY();
-    if (S.layer === "wear" && !replayEl.hidden) replayEl.style.top = (pairEl.offsetTop + y - 11) + "px";   // level with the names' tops
+    const y = fixedNameY != null ? fixedNameY : (fixedNameY = nameY());   // set when a view is framed, then held while the teeth turn
+    if (!replayEl.hidden) replayEl.style.top = (pairEl.offsetTop + y - 11) + "px";   // level with the names' tops
     TEETH.filter(T => !wlHidden(T)).forEach(T => gLabels.append("text").attr("class", "tname").attr("x", toPair(T, [0, 0, 0])[0]).attr("y", y).attr("text-anchor", "middle").text(T.label));
   }
   // Atlas-style labels on a section's plate: the anatomy and the traces the section shows, each on a hairline
@@ -2695,9 +2668,9 @@ window.startStatisticalTooth = (function () {
         add("dentine", edge(top * 0.2, 0.13));
         if (solid([SH.pulpC[0], SH.pulpC[1], z])) add("pulp", [SH.pulpC[0], SH.pulpC[1], z]);
         add("root", edge(SH.rootMin * 0.55, 0.03));
-        const bone = [left ? SH.jawMin[0] + 0.12 : SH.jawMax[0] - 0.12, SH.bottom * 0.72, z]; if (!solid(bone)) add("bone", bone);
+        const bone = [left ? SH.jawMin[0] + 0.12 : SH.jawMax[0] - 0.12, SH.bottom * 0.72, z]; if (P.jaw && !solid(bone)) add("bone", bone);
         if (L === "caries" && P.caries[3] > 0) add("cavity", P.caries[2] < -0.05 ? seen(P.caries.slice(0, 3)) : P.caries.slice(0, 3));   // a cavity behind the cut: point at where it shows
-        if (L === "metals" && !left && P.pb > 0) add("lead in enamel", edge(top * 0.55, 0.015));
+        if (L === "metals" && (!left || solo()) && P.pb > 0) add("lead in enamel", edge(top * 0.55, 0.015));
         if ((L === "metals" || L === "pathogens") && P.calc) { const h = T.R.march([left ? -2 : 2, 0.1, -0.2], [left ? 1 : -1, 0, 0], 3); if (h) add("tartar", h.p); }
       } else if (v === "aerial") {
         add(P.wearY < top ? "worn chewing surface" : "chewing surface", seen([0.02, top * 0.5, 0.02]));
@@ -2724,8 +2697,128 @@ window.startStatisticalTooth = (function () {
       });
     });
   }
-  // one baseline for both names, a little above the taller crown
-  const nameY = () => Math.max(14, d3.min(TEETH, T => toPair(T, [0, T.R.st.S.top, 0])[1]) - 34);
+  // one baseline for the names, a little above the highest point of any crown on screen (its top, or from above its rim)
+  const nameY = () => Math.max(14, d3.min(TEETH.filter(T => !wlHidden(T)), T => { const SH = T.R.st.S, y = SH.top * 0.8;
+    return d3.min([[0, SH.top, 0], [SH.boxMin[0], y, SH.boxMin[2]], [SH.boxMax[0], y, SH.boxMin[2]], [SH.boxMin[0], y, SH.boxMax[2]], [SH.boxMax[0], y, SH.boxMax[2]]], p => toPair(T, p)[1]); }) - 34);
+  // ------------------------------------------------------------------ Section 1: the decay on the molar's chewing surface
+  // caries.js runs the eras and solves each era's lesion as a radial profile about the crown's centre; here the profiles
+  // are laid onto the 3D molar: each point is placed on the crown's footprint and lifted to the chewing surface (a height
+  // map marched once from above), then projected like everything else on the plate, so the decay turns with the tooth.
+  // The outlines and their labels (on leaders to the right edge) open their era in the panel. Hidden in the Section view,
+  // where the tooth is cut open and keeps its own cavity.
+  let cpApi = null, cpState = null, toothPixels = null;
+  const gCar = ov.insert("g", ":first-child").attr("class", "cp3");
+  function chewingSurface(T) {
+    const SH = T.R.st.S; if (T.hm && T.hm.S === SH) return T.hm;
+    const n = 44, x0 = SH.boxMin[0], x1 = SH.boxMax[0], z0 = SH.boxMin[2], z1 = SH.boxMax[2], hm = new Float64Array(n * n).fill(NaN);
+    const P0 = T.R.st.P; T.R.setParams(NEUTRAL(SH));             // the whole, unworn tooth
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+      const x = x0 + (x1 - x0) * i / (n - 1), z = z0 + (z1 - z0) * j / (n - 1), hit = T.R.march([x, SH.top + 0.4, z], [0, -1, 0], SH.top + 0.4 - SH.rootMin);
+      if (hit && hit.p[1] > SH.top * 0.4) hm[j * n + i] = hit.p[1];
+    }
+    T.R.setParams(P0);
+    // the crown's footprint: where the surface stands high
+    let xa = 1e9, xb = -1e9, za = 1e9, zb = -1e9;
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) if (hm[j * n + i] > SH.top * 0.62) {
+      const x = x0 + (x1 - x0) * i / (n - 1), z = z0 + (z1 - z0) * j / (n - 1); xa = Math.min(xa, x); xb = Math.max(xb, x); za = Math.min(za, z); zb = Math.max(zb, z); }
+    const get = (i, j) => { i = clamp(i, 0, n - 1); j = clamp(j, 0, n - 1); const v = hm[j * n + i]; return v === v ? v : null; };
+    const at = (x, z) => {
+      const fi = (x - x0) / (x1 - x0) * (n - 1), fj = (z - z0) / (z1 - z0) * (n - 1), i = Math.floor(fi), j = Math.floor(fj), u = fi - i, v = fj - j;
+      const q = [[get(i, j), (1 - u) * (1 - v)], [get(i + 1, j), u * (1 - v)], [get(i, j + 1), (1 - u) * v], [get(i + 1, j + 1), u * v]].filter(p => p[0] != null);
+      const w = d3.sum(q, p => p[1]); return w > 0 ? d3.sum(q, p => p[0] * p[1]) / w : SH.top;
+    };
+    return (T.hm = { S: SH, at, cx: (xa + xb) / 2, cz: (za + zb) / 2, ax: (xb - xa) / 2 * 0.94, az: (zb - za) / 2 * 0.94 });
+  }
+  // the lesion as the renderer's carving: the three outlines resampled to 64 radii, the crown's centre and scale, and the
+  // depths (illustrative, exaggerated so the decay reads: outer lesion, cavitated body, core). cavDepthJS() mirrors
+  // cavDepth() in the shader so the outlines sit on the carved surface.
+  const CAV_D = [0.03, 0.045, 0.06];
+  function cavityOf(T) {
+    if (!cpApi || !cpState || !cpState.lesion || !T.R.st.S) return null;
+    const H = chewingSurface(T), C = cpApi.crown, K = cpApi.K;
+    if (!cpApi.ux) { cpApi.ux = d3.max(C, (r, k) => Math.abs(Math.cos(k / K * 2 * Math.PI) * r)); cpApi.uy = d3.max(C, (r, k) => Math.abs(Math.sin(k / K * 2 * Math.PI) * r)); }
+    const L = cpState.lesion, r = new Float32Array(192);
+    [L.out, L.mid, L.inn].forEach((R, l) => { for (let i = 0; i < 64; i++) r[l * 64 + i] = R[Math.round(i * K / 64) % K]; });
+    return { c: [H.cx, H.cz, H.ax / cpApi.ux, H.az / cpApi.uy], r, d: CAV_D };
+  }
+  function cavDepthJS(cav, top, x, y, z) {
+    const u = (x - cav.c[0]) / cav.c[2], v = -(z - cav.c[1]) / cav.c[3], rho = Math.hypot(u, v), a = ((Math.atan2(v, u) / (2 * Math.PI)) % 1 + 1) % 1;
+    const R = l => { const f = a * 64, i = Math.floor(f) % 64, j = (i + 1) % 64; return cav.r[l * 64 + i] + (cav.r[l * 64 + j] - cav.r[l * 64 + i]) * (f - Math.floor(f)); };
+    const ss = (e0, e1, t) => { const k = clamp((t - e0) / (e1 - e0), 0, 1); return k * k * (3 - 2 * k); };
+    const m = cav.d[0] * ss(-0.12, 0.12, R(0) - rho) + cav.d[1] * ss(-0.12, 0.12, R(1) - rho) + cav.d[2] * ss(-0.12, 0.12, R(2) - rho);
+    return m * ss(top * 0.5, top * 0.8, y);
+  }
+  function drawCariesOverlay() {
+    gCar.selectAll("*").remove();
+    if (!GL || S.scene !== "layer" || S.layer !== "caries" || !cpApi || !cpState || !cpState.lesion) return;
+    const T = TEETH[0]; if (!T.R.st.basis || viewOf(T) === "cut") return;
+    const H = chewingSurface(T), C = cpApi.crown, K = cpApi.K, cav = T.R.st.P && T.R.st.P.cav, top = T.R.st.S.top;
+    if (!cpApi.ux) return;
+    // a point of an outline: on the crown's footprint, lifted to the (carved) chewing surface, projected; w is its place
+    // on the tooth, and up says whether the chewing surface there faces the camera (the camera is above it)
+    const B = T.R.st.basis;
+    const P3 = (r, k) => { const t = k / K * 2 * Math.PI, x = H.cx + Math.cos(t) * r / cpApi.ux * H.ax, z = H.cz - Math.sin(t) * r / cpApi.uy * H.az, y0 = H.at(x, z);
+      const w = [x, y0 - (cav ? cavDepthJS(cav, top, x, y0, z) : 0) + 0.004, z]; return { s: toPair(T, w), w, up: B.ro[1] > w[1] + 0.02 }; };
+    // an outline drawn only where it faces the camera, so none of it shows through the tooth when it is turned
+    const path = r => { let d = "", on = false; for (let k = 0; k <= K; k += 2) { const q = P3(r[k % K], k % K);
+      if (q.up) { d += (on ? "L" : "M") + q.s[0].toFixed(1) + "," + q.s[1].toFixed(1); on = true; } else on = false; } return d || "M0,0"; };
+    for (let i = 0; i <= cpState.upto; i++) {
+      const d = path(cpApi.ring(i)), g = gCar.append("g").attr("class", "cp3-ring" + (i === cpState.sel ? " on" : ""));
+      g.append("path").attr("class", "lt").attr("d", d); g.append("path").attr("class", "dk").attr("d", d).attr("opacity", (0.45 + 0.08 * i).toFixed(2));
+      g.append("path").attr("class", "hit").attr("d", d).on("click", () => cpApi.pick(i)).on("pointerdown", ev => ev.stopPropagation());
+    }
+    // Each era's label at the plate's right edge, on a hairline leader to its outline. Recomputed on every redraw, so the
+    // labels follow the tooth as it turns. Anchors: a point of each outline that the camera can actually see (it faces the
+    // camera and nothing of the tooth is in front of it), as far right as possible and spread apart. Every leader bends at
+    // one shared column just outside the tooth's silhouette, so its level part never crosses the tooth; labels run in the
+    // anchors' order, and any two leaders that still cross trade label slots until none do.
+    const eras = LD.caries.plate.eras, W = pairEl.clientWidth, Hp = pairEl.clientHeight, lx = W - 6, labs = [];
+    if (cpState.upto < 0) return;
+    const cands = []; for (let i = 0; i <= cpState.upto; i++) { const r = cpApi.ring(i), q = []; for (let k = 0; k < K; k += 4) { const p = P3(r[k], k); if (p.up) q.push(p); } cands.push(q); }
+    const all = cands.flat(); if (!all.length) return;   // the chewing surface faces away: no outline to point at
+    const cxs = d3.mean(all, p => p.s[0]), put = [], seen = new Map();
+    const canSee = p => { const key = p.w.join(); if (!seen.has(key)) seen.set(key, T.R.visible(p.w)); return seen.get(key); };
+    for (let i = cpState.upto; i >= 0; i--) {                  // the latest era first: it is the one being read
+      const right = cands[i].filter(p => p.s[0] >= cxs), pool = right.length ? right : cands[i]; if (!pool.length) continue;
+      const score = p => p.s[0] + 1.6 * Math.min(put.length ? d3.min(put, q => Math.hypot(p.s[0] - q[0], p.s[1] - q[1])) : 0, 60);
+      const ranked = pool.slice().sort((a, b) => score(b) - score(a));
+      const best = ranked.slice(0, 8).find(canSee) || ranked[0];
+      put.push(best.s); labs.push({ i, p: best.s });
+    }
+    if (!labs.length) return;
+    labs.sort((a, b) => a.p[1] - b.p[1]);
+    let last = -1e9; labs.forEach(l => { l.y = Math.min(Hp - 8, Math.max(l.p[1], last + 18, 16)); last = l.y; });
+    for (let k = labs.length - 2; k >= 0; k--) labs[k].y = Math.min(labs[k].y, labs[k + 1].y - 18);   // pushed up again if the last ones hit the bottom
+    const texts = labs.map(l => { const t = gCar.append("text").attr("class", "cp3-tmp").attr("x", lx).attr("text-anchor", "end").text((l.i + 1) + "  " + eras[l.i].p); const w = t.node().getComputedTextLength(); t.remove(); return w; });
+    // the tooth's right edge on screen, read from the renderer's own pixels along each label's row, so the shared bend
+    // clears the silhouette wherever the labels sit
+    const cv = T.canvas, cr = cv.getBoundingClientRect(), pr = pairEl.getBoundingClientRect(), sx = cv.width / Math.max(1, cr.width);
+    const off = toothPixels || (toothPixels = document.createElement("canvas"));
+    off.width = cv.width; off.height = cv.height; const c2 = off.getContext("2d", { willReadFrequently: true }); c2.clearRect(0, 0, off.width, off.height); c2.drawImage(cv, 0, 0);
+    const px = c2.getImageData(0, 0, off.width, off.height).data;
+    const rowRight = yPair => { let best = -1e9; const y0 = Math.round((yPair - 4 + pr.top - cr.top) * sx), y1 = Math.round((yPair + 4 + pr.top - cr.top) * sx);
+      for (let yy = Math.max(0, y0); yy <= Math.min(off.height - 1, y1); yy += 2) for (let xx = off.width - 1; xx >= 0; xx -= 2) if (px[(yy * off.width + xx) * 4 + 3] > 24) { best = Math.max(best, xx / sx + cr.left - pr.left); break; }
+      return best; };
+    const silR = d3.max(labs, l => rowRight(l.y));
+    const elbow = Math.min(Math.max(silR + 10, d3.max(labs, l => l.p[0]) + 12), d3.min(texts, w => lx - w - 14));
+    const cross = (a, b) => { const o = (p, q, r) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]));
+      const A = [elbow, a.y], B = a.p, C2 = [elbow, b.y], D = b.p; return o(A, B, C2) !== o(A, B, D) && o(C2, D, A) !== o(C2, D, B); };
+    for (let pass = 0; pass < 30; pass++) {
+      let swapped = false;
+      for (let x = 0; x < labs.length; x++) for (let y = x + 1; y < labs.length; y++) if (cross(labs[x], labs[y])) { const t = labs[x].y; labs[x].y = labs[y].y; labs[y].y = t; swapped = true; }
+      if (!swapped) break;
+    }
+    labs.forEach((l, n) => {
+      const g = gCar.append("g").attr("class", "cp3-lab" + (l.i === cpState.sel ? " on" : "")).attr("tabindex", 0).attr("role", "button")
+        .attr("aria-label", "Era " + (l.i + 1) + ", " + eras[l.i].p).on("click", () => cpApi.pick(l.i)).on("pointerdown", ev => ev.stopPropagation())
+        .on("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); cpApi.pick(l.i); } });
+      const t = g.append("text").attr("x", lx).attr("y", l.y + 3.5).attr("text-anchor", "end");
+      t.append("tspan").attr("class", "n").text((l.i + 1) + "  "); t.append("tspan").text(eras[l.i].p);
+      const x0 = lx - t.node().getComputedTextLength() - 6, d = "M" + x0.toFixed(1) + "," + l.y.toFixed(1) + "H" + elbow.toFixed(1) + "L" + l.p[0].toFixed(1) + "," + l.p[1].toFixed(1);
+      g.append("path").attr("class", "lead").attr("d", d); g.append("path").attr("class", "lead-hit").attr("d", d);
+      g.append("circle").attr("cx", l.p[0]).attr("cy", l.p[1]).attr("r", 2.2);
+    });
+  }
 
   // rendering
   let scheduled = false, settleT = null;
@@ -2744,6 +2837,18 @@ window.startStatisticalTooth = (function () {
     if (busy || walking) requestAnimationFrame(loop); else looping = false;
   }
 
+  // zoom both teeth together: the wheel over them (on narrow screens, where it scrolls the page, ctrl+wheel or a pinch),
+  // or the - and + buttons beside the views
+  S.zoom = 1;
+  function setZoom(z) { S.zoom = clamp(z, 0.35, 3); TEETH.forEach(T => { if (T.R) T.R.st.cam.zoom = 1 / S.zoom; }); }
+  TEETH.forEach(T => T.el.addEventListener("wheel", e => {
+    if (!GL || !liveTeeth()) return;
+    if (matchMedia("(max-width:1100px)").matches && !e.ctrlKey) return;   // narrow screens: the wheel scrolls the page
+    e.preventDefault();
+    setZoom(S.zoom * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)));
+    requestRender(true);
+  }, { passive: false }));
+  document.querySelectorAll("#views [data-z]").forEach(b => { b.onclick = () => { setZoom(S.zoom * (+b.dataset.z > 0 ? 1.25 : 0.8)); requestRender(false); }; });
   // drag to orbit both teeth together
   (function orbit() {
     let drag = null;
@@ -2752,6 +2857,7 @@ window.startStatisticalTooth = (function () {
       T.el.addEventListener("pointermove", e => {
         if (!drag || !GL) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.moved += Math.abs(dx) + Math.abs(dy); drag.x = e.clientX; drag.y = e.clientY;
         if (drag.moved < 5) return;
+        if (S.scene === "layer" && (S.viewMode === "top" || S.viewMode === "side")) { S.viewMode = "perspective"; setViewButtons(); TEETH.forEach(U => U.R.setParams(paramsFor(U))); }
         TEETH.forEach(U => { U.R.st.cam.yaw -= dx * 0.009; U.R.st.cam.pitch = clamp(U.R.st.cam.pitch + dy * 0.007, -0.4, 1.45); });
         requestRender(true);
       });
@@ -2876,10 +2982,11 @@ window.startStatisticalTooth = (function () {
     const L = layerOf(k); if (!L) return;
     clearTimeout(layersTimer); pause();
     if (k !== "wear" || S.layer !== "wear") leaveWear();
-    if (k === "wear" && !S.viewMode) S.viewMode = "side";
+    if (S.layer !== k || !S.viewMode) S.viewMode = defView(L);   // a new section opens in its own view
+    pairEl.classList.toggle("solo", SOLO.has(k));
     S.scene = "layer"; S.layer = k; S.show = k; S.t = T_ALL; G = composite(T_ALL); readout();
     leaveRadial(); stage.classList.add("dashboard", "haspanel");
-    panelEl.hidden = false; panelEl.classList.toggle("twin", k === "wear"); viewsEl.hidden = replayEl.hidden = k !== "wear"; setViewButtons();
+    panelEl.hidden = false; panelEl.classList.toggle("twin", k === "wear"); viewsEl.hidden = false; replayEl.hidden = k !== "wear" && k !== "caries"; setViewButtons();
     panelEl.innerHTML = dashHTML(L); panelEl.scrollTop = 0; setPage();
     requestAnimationFrame(() => {
       if (S.scene !== "layer") return;
@@ -2892,7 +2999,7 @@ window.startStatisticalTooth = (function () {
   const CHARTS = {
     // the caries plate (caries.js): a figure of its own, with its own era rail, readout and era detail
     caries: [{ id: "cplate", html: true, title: "Caries, read from the crown",
-      sub: "Two teeth seen from above, with decay drawn where it begins, in the pits and fissures of the chewing surface, spreading outward. Six periods run in sequence; each leaves its outline behind. Click a numbered mark, an outline or a period to open it.",
+      sub: "Each period's figures, read alongside the plate, where the decay on the molar's chewing surface spreads and recedes period by period: the shaded share of the crown is the share of adults with caries. Click an outline or its label on the plate, or a period here, to open it.",
       notes: () => window.CariesPlate ? CariesPlate.notes(LD.caries.plate) : [] }],
     pathogens: [{ id: "pmatrix", title: "Which disease dominated the record, century by century",
       sub: "Each cell is the share of that century's recovered genomes that belong to one organism, so each column adds up to 100%. The bar on top shows how many genomes that is.",
@@ -2933,7 +3040,7 @@ window.startStatisticalTooth = (function () {
     if (!LD) return;
     if (L.key === "wear") { wearMount(); return; }
     (CHARTS[L.key] || []).forEach(c => {
-      if (c.id === "cplate") { if (window.CariesPlate && LD.caries.plate) CariesPlate.mount(document.getElementById("ch-cplate"), LD.caries.plate); return; }
+      if (c.id === "cplate") { if (window.CariesPlate && LD.caries.plate) cpApi = CariesPlate.mount(document.getElementById("ch-cplate"), LD.caries.plate, { onFrame: st => { cpState = st; if (GL) TEETH.forEach(T => T.R.setParams(paramsFor(T))); requestRender(true); } }); return; }
       const svg = d3.select("#ch-" + c.id); if (svg.empty()) return;
       svg.selectAll("*").remove(); d3.select(svg.node().parentNode).selectAll(".keylist").remove();
       ({ repair: drawRepair, pmatrix: drawPathogenMatrix, lead: drawLead, elements: drawElements })[c.id](svg, svg.node().clientWidth || 600);
@@ -2946,17 +3053,21 @@ window.startStatisticalTooth = (function () {
   // has its events and two breakdowns (lehView). Events are the team's timeline: context.
   const viewsEl = $("#views"), replayEl = $("#wlReplay");
   // Replay runs the whole section again: both acts, the peaks and the bars (the views and minimized panels stay)
-  replayEl.onclick = () => { if (S.layer !== "wear") return; if (wl) wl.done = false; openLayer("wear"); };
+  // (on the caries plate it runs the eras on the molar again)
+  replayEl.onclick = () => {
+    if (S.layer === "caries") { if (cpApi) cpApi.replay(); return; }
+    if (S.layer !== "wear") return; if (wl) wl.done = false; openLayer("wear");
+  };
   let wl = null;                                         // { run, timer, raf, done, peaks, c10, c9, c8, lehK, lehView }
   function setViewButtons() { viewsEl.querySelectorAll("[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === S.viewMode ? "true" : "false")); }
   viewsEl.querySelectorAll("[data-v]").forEach(b => { b.onclick = () => {
-    S.viewMode = b.dataset.v; setViewButtons();
-    if (!GL || S.layer !== "wear") return;
+    S.viewMode = b.dataset.v; setViewButtons(); setZoom(1);
+    if (!GL || S.scene !== "layer") return;
     frameView(); TEETH.forEach(T => T.R.setParams(paramsFor(T))); requestRender(false);
   }; });
   function leaveWear() {
     if (wl) { wl.run = -1; clearTimeout(wl.timer); cancelAnimationFrame(wl.raf); }
-    wl = null; S.wl = null; S.viewMode = null; S.wlStage = null; pairEl.classList.remove("molar-only");
+    wl = null; S.wl = null; S.wlStage = null; pairEl.classList.remove("molar-only", "solo");
     panelEl.classList.remove("twin"); viewsEl.hidden = replayEl.hidden = true;
   }
   const spanTxt = e => e.span[0] + "–" + e.span[1] + " CE";

@@ -154,6 +154,10 @@ uniform float uWearY, uCutX, uCalc, uPb, uWearAmp;
 uniform vec4 uCapTint;
 // the worn-away crown in layers: layer k is gone by Smith stage uCapS[k] and drawn in uCapC[k] (uCapN = 0: one colour)
 uniform float uCapS[8]; uniform vec3 uCapC[8]; uniform int uCapN;
+// carious decay carved into the chewing surface (the caries plate): three nested outlines (outer lesion, cavitated
+// body, core), 64 radii each packed four to a vec4, about the crown's centre; uCavC = (centre x, centre z, x and z
+// scale from tooth units to the outlines' units); uCavD = how deep each layer cuts in. uCavOn = 0: no carving.
+uniform vec4 uCavC; uniform vec4 uCavR[48]; uniform vec3 uCavD; uniform float uCavOn;
 uniform vec4 uLeh, uLehY;
 uniform vec4 uCaries;
 uniform vec3 uBoxMin, uBoxMax;
@@ -227,6 +231,16 @@ float ridgeF(float y,float yb){ float u=(y-yb)/.022+1.7; return exp(-u*u); }
 float crownMask(float y){ return smoothstep(.03,.12,y)*(1.-smoothstep(uTop-.14,uTop-.03,y)); }
 float lehAt(float y,float s,float yb){ return s*(bandF(y,yb)-.55*ridgeF(y,yb)); }
 float lehD(vec3 p){ float y=p.y+lehWave(p); return crownMask(p.y)*(lehAt(y,uLeh.x,uLehY.x)+lehAt(y,uLeh.y,uLehY.y)+lehAt(y,uLeh.z,uLehY.z)+lehAt(y,uLeh.w,uLehY.w)); }
+float cavR(int layer,float a){ float f=a*64.; int i=int(floor(f))%64; int j=(i+1)%64; int bi=layer*64+i, bj=layer*64+j;
+  return mix(uCavR[bi/4][bi%4],uCavR[bj/4][bj%4],fract(f)); }
+// how far the surface is carved in at p: each layer's depth, faded across its outline and towards the crown's sides
+float cavDepth(vec3 p){
+  if(uCavOn<=0.) return 0.;
+  vec2 q=vec2((p.x-uCavC.x)/uCavC.z,-(p.z-uCavC.y)/uCavC.w);
+  float rho=length(q), a=fract(atan(q.y,q.x)/6.2831853+1.), w=.12;
+  float m=uCavD.x*smoothstep(-w,w,cavR(0,a)-rho)+uCavD.y*smoothstep(-w,w,cavR(1,a)-rho)+uCavD.z*smoothstep(-w,w,cavR(2,a)-rho);
+  return m*smoothstep(uTop*.5,uTop*.8,p.y);
+}
 float lehInk(vec3 p){ float y=p.y+lehWave(p); return max(max(uLeh.x*bandF(y,uLehY.x),uLeh.y*bandF(y,uLehY.y)),max(uLeh.z*bandF(y,uLehY.z),uLeh.w*bandF(y,uLehY.w))); }
 float crownW(vec3 p){ if(uMesh==1 && volOut(p)<=0.) return smoothstep(.35,.65,texture(uVol,volTC(p)).g)*smoothstep(-.03,.02,p.y); return smoothstep(-.005,.2,p.y); }
 float enamT(vec3 p){ return uEnamel*crownW(p)*(.75+.35*smoothstep(.45,.95,p.y/uTop)); }
@@ -261,7 +275,7 @@ float gumD(vec3 p,float dU){
   return smax(smin(band,skin,.06),-(dU-.004),.008);
 }
 float mapAll(vec3 p,out float dU,out float dC,out float dT,out float dB,out float dG){
-  dU=outerU(p)+.03*lehD(p);
+  dU=outerU(p)+.03*lehD(p)+cavDepth(p);
   float d=smax(dU,p.y-wearH(p),.008);
   if(uCaries.w>0.) d=smax(d,-carD(p),.012);
   dC=calcD(p,dU); dT=min(d,dC);
@@ -298,7 +312,7 @@ void main(){
       float st=d;
       if(worn){ float cap=max(max(dU,wearH(p)-p.y),p.z-uCutX); if(cap<0.){ if(!capIn) capY=p.y; capIn=true; } else minCap=min(minCap,cap/t); st=min(d,abs(cap)+.006); }
       if(d<.0006*t){ hit=true; break; }
-      t+=st*(uLeh.x+uLeh.y+uLeh.z+uLeh.w>0.?.55:.75); if(t>tf) break;   // the grooves bend the distance field: smaller steps
+      t+=st*(uLeh.x+uLeh.y+uLeh.z+uLeh.w>0.||uCavOn>0.?.55:.75); if(t>tf) break;   // grooves and decay bend the distance field: smaller steps
     }
   }
   if(hit){
@@ -330,6 +344,7 @@ void main(){
         vec3 base=enamel?ENAM:(p.y<0.?mix(DENT,ROOTC,.2):DENT);
         if(dp<0.) base=PULP;
         if(cr<.028) base=CAV;
+        if(uCavOn>0. && cavDepth(p)>.004 && dU>-.03) base=mix(DENTX,CAV,.75);   // the decayed rim under a carved surface
         if(dC<0. && dU>0.) base=CALC;
         float ink=0.;
         if(enamel){ float bl=lehInk(p); ink=clamp(bl*1.7,0.,.9);
@@ -351,6 +366,8 @@ void main(){
       if(isBone) base=BONE; if(isGum) base=GUM;
       if(isCalc) base=CALC;
       if(cr<.012) base=CAV;
+      float cv=uCavOn>0.?cavDepth(p)/(uCavD.x+uCavD.y+uCavD.z):0.;   // decayed surface: browner the deeper
+      if(cv>.06) base=mix(mix(DENTX,CAV,.35),CAV,smoothstep(.06,.9,cv));
       float dD=dU+enamT(p);
       if(facet) base=dD<0.?DENTX:ENAM;
       float pw=pxw/max(dot(n,-rd),.3);
@@ -416,7 +433,8 @@ void main(){
     function camBasis() {
       const c = st.cam, cp = Math.cos(c.pitch);
       const dir = [Math.sin(c.yaw) * cp, Math.sin(c.pitch), Math.cos(c.yaw) * cp];
-      const ro = [c.target[0] + dir[0] * c.dist, c.target[1] + dir[1] * c.dist, c.target[2] + dir[2] * c.dist];
+      const d = c.dist * (c.zoom || 1);                  // zoom: the page sets cam.zoom (1 = the framed view)
+      const ro = [c.target[0] + dir[0] * d, c.target[1] + dir[1] * d, c.target[2] + dir[2] * d];
       const fw = [-dir[0], -dir[1], -dir[2]];
       let rt = [fw[2], 0, -fw[0]]; const rl = Math.hypot(rt[0], rt[2]) || 1; rt = [-rt[0] / rl, 0, -rt[2] / rl];
       const upv = [rt[1] * fw[2] - rt[2] * fw[1], rt[2] * fw[0] - rt[0] * fw[2], rt[0] * fw[1] - rt[1] * fw[0]];
@@ -461,6 +479,7 @@ void main(){
       gl.uniform4fv(u("uRootA"), ra); gl.uniform4fv(u("uRootB"), rb); gl.uniform1i(u("uNR"), S.mesh ? 0 : S.roots.length);
       gl.uniform3fv(u("uPulpC"), S.pulpC); gl.uniform3fv(u("uPulpR"), S.pulpR);
       gl.uniform1f(u("uWearY"), P.wearY); gl.uniform1f(u("uWearAmp"), P.wearAmp || 0); gl.uniform4fv(u("uCapTint"), P.capTint || [0, 0, 0, 0]);
+      gl.uniform1f(u("uCavOn"), P.cav ? 1 : 0); if (P.cav) { gl.uniform4fv(u("uCavC"), P.cav.c); gl.uniform4fv(u("uCavR"), P.cav.r); gl.uniform3fv(u("uCavD"), P.cav.d); }
       gl.uniform1i(u("uCapN"), P.capS ? 8 : 0); if (P.capS) { gl.uniform1fv(u("uCapS"), P.capS); gl.uniform3fv(u("uCapC"), P.capC); } gl.uniform1f(u("uCutX"), P.cutX); gl.uniform1f(u("uCalc"), P.calc); gl.uniform1f(u("uPb"), P.pb);
       gl.uniform4fv(u("uLeh"), pad4(P.leh, 0)); gl.uniform4fv(u("uLehY"), pad4(P.lehY, -9)); gl.uniform4fv(u("uCaries"), P.caries);
       gl.uniform3fv(u("uBoxMin"), S.rbMin); gl.uniform3fv(u("uBoxMax"), S.rbMax);

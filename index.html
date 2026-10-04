@@ -189,32 +189,8 @@ a{color:inherit}
 .ev .slot{display:grid;place-items:center;border:1px solid var(--rule);background:repeating-linear-gradient(135deg,transparent 0 6px,rgba(26,26,24,.06) 6px 7px);font-family:var(--label);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
 .axis{display:flex;justify-content:space-between;border-top:1px solid var(--ink);padding-top:4px;font-family:var(--label);font-size:10px;color:var(--ink-3)}
 .ctxnote{font-size:10.5px;color:var(--ink-3);letter-spacing:.03em;margin:0}
-/* the caries plate (caries.js): figure, era rail, readout of three figures and one bar; detail only on request */
+/* the caries plate (caries.js): era rail, readout of three figures and one bar beside the molar; detail only on request */
 .cp{display:flex;flex-direction:column;gap:14px}
-.cp-fig{border:1px solid var(--rule);background:var(--card);padding:8px 8px 2px}
-.cp-plate{display:block;width:100%;height:auto}
-.cp-enamel{fill:url(#cpEnamel);stroke:#3b3a35;stroke-width:1.6}
-.cp-fiss{fill:none;stroke:#6f6d66;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;opacity:.6}
-.cp-fiss-deep{fill:none;stroke:#0e0d0b;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round;opacity:.55}
-.cp-ghost{fill:none;stroke:#55544f;stroke-width:1;pointer-events:none}
-.cp-ghost-in{stroke:#e9e8e4;stroke-dasharray:3 2}
-.cp-ghost-hit{fill:none;stroke:#000;stroke-width:14;stroke-opacity:0;cursor:pointer}
-.cp-out{fill:url(#cpDecay);stroke:#211e18;stroke-width:1.3;pointer-events:none}
-.cp-mid{fill:#2c2619;opacity:.78;pointer-events:none}
-.cp-in{fill:#141109;opacity:.86;pointer-events:none}
-.cp-halo{fill:none;stroke:#7d776a;stroke-width:5;opacity:.22;pointer-events:none}
-.cp-speck{pointer-events:none}
-.cp-speck circle{fill:#0b0a08;opacity:.5}
-.cp-plate text{font-family:var(--label)}
-.cp-no{font-size:12px;font-weight:600;letter-spacing:.08em;fill:var(--ink)}
-.cp-cap{font-size:12px;font-style:italic;fill:var(--ink-2)}
-.cp-mark{cursor:pointer}
-.cp-mark circle{fill:var(--card);stroke:var(--ink);stroke-width:1.1}
-.cp-mark text{font-size:10px;font-weight:600;fill:var(--ink)}
-.cp-mark.on circle{fill:var(--ink)}
-.cp-mark.on text{fill:var(--card)}
-.cp-mark:focus{outline:none}
-.cp-mark:focus-visible circle{stroke-width:2.6}
 .cp-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:-6px}
 .cp-hint{font-size:12.5px;font-style:italic;color:var(--ink-3)}
 .cp-rail{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px}
@@ -269,6 +245,8 @@ a{color:inherit}
 .views button{font-family:var(--label);font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:transparent;border:1px solid var(--ink);padding:7px 0;min-width:92px;cursor:pointer}
 .views button:hover{background:var(--card)}
 .views button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.views .zoom{display:flex;gap:4px}
+.views .zoom button{min-width:34px;font-size:15px;line-height:1;padding:6px 0}
 #stage.dashboard .panel.twin{overflow:hidden}
 .dp.wl{flex:1;min-height:0;display:flex;flex-direction:column;gap:14px;padding-bottom:6px}
 /* each panel minimizes to its title bar (contents keep their width, just clipped) and the other takes the column */
@@ -283,6 +261,9 @@ a{color:inherit}
 /* first act: the molar and its panel alone; the canine and the LEH panel come in after */
 #pair .tooth canvas{transition:opacity .9s ease}
 #pair.molar-only #tCanine canvas{opacity:0}
+/* caries, pathogens and metals: the molar alone, centred */
+#pair.solo #tCanine{display:none}
+#pair.solo #tMolar{grid-column:2 / 4}
 .dp.wl.wear-only #wlLehBox{display:none}
 #wlLehBox{animation:dpIn .7s ease both}
 .wl-box{position:relative;flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-gutter:stable;border:1px solid var(--ink);background:var(--card);padding:12px 14px 14px}
@@ -403,6 +384,23 @@ a{color:inherit}
 @keyframes lfWiggle{0%,100%{transform:translate(0,0)}25%{transform:translate(-1.6px,.8px) rotate(-6deg)}75%{transform:translate(1.6px,-.8px) rotate(6deg)}}
 .lf-fly{position:absolute;z-index:5;pointer-events:none}
 @media (prefers-reduced-motion:reduce){.lf-c8col.wig .lf-dot circle{animation:none}}
+/* the caries plate's decay on the 3D molar (app.js, drawCariesOverlay()) */
+#ov .cp3-ring .lt{fill:none;stroke:#fbf8f1;stroke-width:2.4;stroke-opacity:.45}
+#ov .cp3-ring .dk{fill:none;stroke:#3b3a35;stroke-width:1;stroke-dasharray:4 2}
+#ov .cp3-ring.on .dk{stroke:#1a1a18;stroke-width:1.8;stroke-dasharray:none;opacity:1}
+#ov .cp3-ring .hit{fill:none;stroke:transparent;stroke-width:12;pointer-events:stroke;cursor:pointer}
+#ov .cp3-ring:hover .dk{stroke-width:1.8}
+#ov .cp3-lab{pointer-events:auto;cursor:pointer}
+#ov .cp3-lab text{font-family:var(--label);font-size:11px;font-style:italic;fill:var(--ink-2);paint-order:stroke;stroke:var(--bg);stroke-width:3.5px;stroke-linejoin:round}
+#ov .cp3-lab .n{font-style:normal;font-weight:600;fill:var(--ink)}
+#ov .cp3-lab .lead{fill:none;stroke:var(--ink-2);stroke-width:.6}
+#ov .cp3-lab .lead-hit{fill:none;stroke:transparent;stroke-width:10}
+#ov .cp3-lab circle{fill:var(--ink)}
+#ov .cp3-lab:hover text,#ov .cp3-lab.on text{fill:var(--ink)}
+#ov .cp3-lab.on text{font-weight:600}
+#ov .cp3-lab.on .lead{stroke:var(--ink);stroke-width:1}
+#ov .cp3-lab:focus{outline:none}
+#ov .cp3-lab:focus-visible text{text-decoration:underline}
 #tip{position:fixed;pointer-events:none;z-index:50;background:var(--ink);color:var(--bg);font-size:12px;line-height:1.4;padding:7px 10px;max-width:300px}
 #tip .m{font-size:11px;color:#bdbcb6}
 .fallback{position:absolute;inset:0;display:grid;place-items:center;padding:30px;text-align:center;color:var(--ink-2)}
@@ -466,7 +464,7 @@ a{color:inherit}
         <svg id="ov"></svg>
       </div>
       <button class="btn wl-replay" id="wlReplay" type="button" hidden>Replay</button>
-      <div class="views" id="views" hidden role="group" aria-label="View"><button data-v="top">Top</button><button data-v="side">Side</button><button data-v="section">Section</button><button data-v="perspective">Perspective</button></div>
+      <div class="views" id="views" hidden role="group" aria-label="View"><button data-v="top">Top</button><button data-v="side">Side</button><button data-v="section">Section</button><button data-v="perspective">Perspective</button><span class="zoom"><button data-z="-1" aria-label="Zoom out">−</button><button data-z="1" aria-label="Zoom in">+</button></span></div>
       <p class="tcap fade"><span id="capText"></span><span id="when"></span></p>
     </section>
     <aside class="panel" id="panel" aria-live="polite" hidden></aside>
