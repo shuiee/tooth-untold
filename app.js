@@ -492,6 +492,7 @@
       const R = T.R, SH = R.st.S, cam = Object.assign({}, R.st.cam);
       R.setParams(Object.assign(NEUTRAL(SH), { cutX: 5, jaw: false })); Object.assign(R.st.cam, RADIAL_VIEW[T.key]); R.st.quality = 1; R.render();
       const cw = T.canvas.width, ch = T.canvas.height, src = document.createElement("canvas");
+      if (cw < 60 || ch < 60) { Object.assign(R.st.cam, cam); return; }   // too small to draw yet (a window still opening): no picture
       src.width = cw; src.height = ch;
       const sx = src.getContext("2d"); sx.drawImage(T.canvas, 0, 0);
       const px = sx.getImageData(0, 0, cw, ch).data;
@@ -1209,7 +1210,7 @@
   // ------------------------------------------------------------------ start
   let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => {
     if (S.scene === "main") { setShapes(); setT(S.t); }
-    else if (S.scene === "radial") { if (radial) radial.resize(); }
+    else if (S.scene === "radial") enterRadial(false);   // the teeth pictures are made again at the new size
     else if (S.scene === "layer") openLayer(S.layer);
   }, 150); });
   (async function start() {

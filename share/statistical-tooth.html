@@ -1110,7 +1110,8 @@ void main(){
       if (svg) svg.remove();
       const W = Math.max(280, host.clientWidth), H = Math.max(320, host.clientHeight);
       const val = v => typeof v === "function" ? v() : v;
-      const padTop = Math.max(24, val(opts.padTop) || 0), padBottom = Math.max(24, val(opts.padBottom) || 0);
+      let padTop = Math.max(24, val(opts.padTop) || 0), padBottom = Math.max(24, val(opts.padBottom) || 0);
+      if (H - padTop - padBottom < H * 0.4) padTop = padBottom = 24;   // the page is not laid out yet: use plain margins
       const narrow = W < 640, nameSize = narrow ? 15 : 20, pad = narrow ? 10 : 24;
       const C = [W / 2, H / 2];   // the centre point: the centre of the page
       svg = el("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, class: "rd", role: "group",
@@ -1856,6 +1857,7 @@ window.startStatisticalTooth = (function () {
       const R = T.R, SH = R.st.S, cam = Object.assign({}, R.st.cam);
       R.setParams(Object.assign(NEUTRAL(SH), { cutX: 5, jaw: false })); Object.assign(R.st.cam, RADIAL_VIEW[T.key]); R.st.quality = 1; R.render();
       const cw = T.canvas.width, ch = T.canvas.height, src = document.createElement("canvas");
+      if (cw < 60 || ch < 60) { Object.assign(R.st.cam, cam); return; }   // too small to draw yet (a window still opening): no picture
       src.width = cw; src.height = ch;
       const sx = src.getContext("2d"); sx.drawImage(T.canvas, 0, 0);
       const px = sx.getImageData(0, 0, cw, ch).data;
@@ -2573,7 +2575,7 @@ window.startStatisticalTooth = (function () {
   // ------------------------------------------------------------------ start
   let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => {
     if (S.scene === "main") { setShapes(); setT(S.t); }
-    else if (S.scene === "radial") { if (radial) radial.resize(); }
+    else if (S.scene === "radial") enterRadial(false);   // the teeth pictures are made again at the new size
     else if (S.scene === "layer") openLayer(S.layer);
   }, 150); });
   (async function start() {

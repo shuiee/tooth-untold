@@ -82,7 +82,8 @@
       if (svg) svg.remove();
       const W = Math.max(280, host.clientWidth), H = Math.max(320, host.clientHeight);
       const val = v => typeof v === "function" ? v() : v;
-      const padTop = Math.max(24, val(opts.padTop) || 0), padBottom = Math.max(24, val(opts.padBottom) || 0);
+      let padTop = Math.max(24, val(opts.padTop) || 0), padBottom = Math.max(24, val(opts.padBottom) || 0);
+      if (H - padTop - padBottom < H * 0.4) padTop = padBottom = 24;   // the page is not laid out yet: use plain margins
       const narrow = W < 640, nameSize = narrow ? 15 : 20, pad = narrow ? 10 : 24;
       const C = [W / 2, H / 2];   // the centre point: the centre of the page
       svg = el("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, class: "rd", role: "group",
