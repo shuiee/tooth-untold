@@ -1,5 +1,5 @@
-**[Open the interactive prototype →](https://claude.ai/artifact/2jJTu4Df7f89QhhRgtPsJF)**  
-<sub>The live page is a private Claude artifact: ask the owner to share it with you. Without access, open `share/statistical-tooth.html` from this repository in a browser.</sub>
+**[Open the interactive prototype →](https://shuiee.github.io/tooth-untold-prototype/)**  
+<sub>Hosted on GitHub Pages from the public repository [shuiee/tooth-untold-prototype](https://github.com/shuiee/tooth-untold-prototype), which holds only the page. This repository, with the code and datasets, stays private.</sub>
 
 # The Tooth Untold
 
@@ -13,10 +13,11 @@ Harvard MDE data-visualisation prototype. The page itself is still titled *The S
 
 | I want to… | Do this |
 |---|---|
-| **See it** | Open `share/statistical-tooth.html` in Chrome, Safari or Firefox (internet needed for the font and two libraries; WebGL2 needed for the teeth). |
+| **See it** | Open the [live page](https://shuiee.github.io/tooth-untold-prototype/), or open `share/statistical-tooth.html` in Chrome, Safari or Firefox (internet needed for the font and two libraries; WebGL2 needed for the teeth). |
 | **Edit the page** | In this folder run `python3 -m http.server 8000`, open http://localhost:8000, edit `index.html`, `app.js` or `tooth.js`, and refresh. |
 | **Rebuild the data** | `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`, then `python3 build_data.py`, `python3 build_models.py` and `python3 prepare_jaw.py`. `python3 build_layers.py` (the dashboard charts) needs no packages. |
 | **Make the single-file versions** | `python3 bundle.py` writes `dist/` and `data/images.js`; `python3 share.py` writes `share/`. |
+| **Update the live page** | After `share.py`, copy `share/statistical-tooth.html` to `index.html` in [shuiee/tooth-untold-prototype](https://github.com/shuiee/tooth-untold-prototype) and push. GitHub Pages republishes it within a minute or two. |
 
 Serve the folder rather than double-clicking `index.html`. Browsers block some loading from `file://`. `share/statistical-tooth.html` works either way because everything is inside it.
 
@@ -153,7 +154,7 @@ GHHP skeletal sites are weighted by the share of their date range inside the win
 - [ ] **Model credit and licence.** The ZBrush models in `source/teeth models/` arrived without author or licence information. Confirm both before public release and add the credit line to `limitsHTML()`.
 - [ ] **Before making the repository public**, remove the journal articles in `research/` (they are copyrighted; keep citations instead) and check the terms of each dataset.
 - [ ] **Jaw engraving credit.** Name the source of the engraving in `source/jaw engraving/` in `limitsHTML()`. Its lower arch is a mirrored copy of the upper one; a real lower-jaw engraving could replace it.
-- [ ] **GHHP terms.** Check the Global History of Health Project's terms before publishing the page outside the team, because it contains per-site figures derived from GHHP data.
+- [ ] **GHHP terms.** The page is now public on GitHub Pages. Check the Global History of Health Project's terms, because it contains per-site figures derived from GHHP data.
 - [ ] **Upper molar section.** With three roots, the z = 0 cut shows little root. Revisit when the molar model arrives.
 
 ---
