@@ -259,8 +259,9 @@
     TEETH.forEach((T, ti) => {
       const want = new Map();
       const mine = h => solo() ? ti === 0 : h % 2 === ti;   // split between the teeth, or all on the molar when it is alone
-      G.path.forEach(r => { if (showsRec(r) && mine(hash(r.id))) want.set(r.id, r); });
-      G.calcRecs.forEach(r => { if (r.kind !== "metagenome" && showsRec(r) && mine(hash(r.id + "c"))) want.set(r.id, r); });
+      const reached = r => !PSEQ.on || r.year < PSEQ.upto;   // while Section 2 plays, only the centuries reached so far
+      G.path.forEach(r => { if (showsRec(r) && reached(r) && mine(hash(r.id))) want.set(r.id, r); });
+      G.calcRecs.forEach(r => { if (r.kind !== "metagenome" && showsRec(r) && reached(r) && mine(hash(r.id + "c"))) want.set(r.id, r); });
       T.parts.forEach((q, id) => { if (!want.has(id) && !q.dead) q.dead = now; });
       const placed = [...T.parts.values()].filter(q => !q.dead && q.face).map(q => q.p);
       let k = 0;
@@ -713,7 +714,7 @@
   function enterRadial(animate) {
     clearTimeout(layersTimer); pause();
     if (S.scene === "intro") { endIntro(); drawCloud(0, 0); pairEl.style.transform = ""; }
-    leaveWear(); S.scene = "radial"; S.layer = null; S.show = "all"; S.t = T_ALL; G = composite(T_ALL); readout();
+    leaveWear(); stopPseq(); S.scene = "radial"; S.layer = null; S.show = "all"; S.t = T_ALL; G = composite(T_ALL); readout();
     stage.classList.remove("dashboard", "haspanel"); panelEl.hidden = true; panelEl.innerHTML = "";
     gParts.selectAll("*").remove(); gLabels.selectAll("*").remove(); setPage();
     requestAnimationFrame(() => {
@@ -742,17 +743,43 @@
     if (k !== "wear" || S.layer !== "wear") leaveWear();
     if (S.layer !== k || !S.viewMode) S.viewMode = defView(L);   // a new section opens in its own view
     pairEl.classList.toggle("solo", SOLO.has(k));
-    if (S.scene !== "layer" || S.layer !== k) { strandSel = null; strandShown = false; }   // a fresh visit, not a resize
+    const fresh = S.scene !== "layer" || S.layer !== k;   // a fresh visit, not a resize
+    if (fresh) { strandSel = null; strandShown = false; stopPseq(); }
     S.scene = "layer"; S.layer = k; S.show = k; S.t = T_ALL; G = composite(T_ALL); readout();
     leaveRadial(); stage.classList.add("dashboard", "haspanel");
-    panelEl.hidden = false; panelEl.classList.toggle("twin", k === "wear"); viewsEl.hidden = false; replayEl.hidden = k !== "wear" && k !== "caries"; setViewButtons();
+    panelEl.hidden = false; panelEl.classList.toggle("twin", k === "wear"); viewsEl.hidden = false; replayEl.hidden = k !== "wear" && k !== "caries" && k !== "pathogens"; setViewButtons();
     eraEl.hidden = k !== "caries"; stage.classList.toggle("eraline", k === "caries");
     panelEl.innerHTML = dashHTML(L); panelEl.scrollTop = 0; setPage();
     requestAnimationFrame(() => {
       if (S.scene !== "layer") return;
       frameView(); TEETH.forEach(T => { T.parts.clear(); T.R.setParams(paramsFor(T)); });
-      drawCharts(L); updateParticles(!REDUCED); requestRender(false);
+      drawCharts(L);
+      if (fresh && k === "pathogens") startPseq(); else updateParticles(!REDUCED);
+      requestRender(false);
     });
+  }
+  // Section 2 opens by playing the pathogen record onto the teeth, slower than the overview: a century at a time, each
+  // century's genomes rising up the canal and staying, until every century is in. The year shows under the plate;
+  // Replay runs it again.
+  const PSEQ = { on: false, upto: Infinity, timer: 0, STEP: 1150 };
+  const P_YEARS = d3.extent(D.pathogens, r => r.year);
+  function stopPseq() { clearTimeout(PSEQ.timer); PSEQ.on = false; PSEQ.upto = Infinity; stage.classList.remove("pseq"); if (strandNow) strandNow(null); }
+  function startPseq() {
+    stopPseq();
+    if (REDUCED || STILL || !GL) { updateParticles(false); return; }
+    PSEQ.on = true; PSEQ.upto = Math.floor(P_YEARS[0] / 100) * 100 + 100; stage.classList.add("pseq");
+    TEETH.forEach(T => T.parts.clear());
+    const step = () => {
+      if (!PSEQ.on || S.scene !== "layer" || S.layer !== "pathogens") return;
+      $("#when").textContent = (PSEQ.upto - 100) + "s CE"; if (strandNow) strandNow(PSEQ.upto - 100);
+      updateParticles(true);
+      if (PSEQ.upto > P_YEARS[1]) {   // the last century is in: everything stays, labelled as pooled
+        PSEQ.timer = setTimeout(() => { PSEQ.on = false; PSEQ.upto = Infinity; $("#when").textContent = P_YEARS[0] + "–" + P_YEARS[1] + " CE, every century"; if (strandNow) strandNow(null); }, PSEQ.STEP);
+        return;
+      }
+      PSEQ.upto += 100; PSEQ.timer = setTimeout(step, PSEQ.STEP);
+    };
+    step();
   }
   // each section's figures, in order; their numbers are given in dashHTML (n.2, n.3 ... after the plate n.1)
   const pct0 = v => Math.round(v) + "%";
@@ -821,6 +848,7 @@
   // (on the caries plate it runs the eras on the molar again)
   replayEl.onclick = () => {
     if (S.layer === "caries") { if (cpApi) cpApi.replay(); return; }
+    if (S.layer === "pathogens") { startPseq(); return; }
     if (S.layer !== "wear") return; if (wl) wl.done = false; openLayer("wear");
   };
   let wl = null;                                         // { run, timer, raf, done, peaks, c10, c9, c8, lehK, lehView }
@@ -1133,6 +1161,7 @@
   const strandUnnamed = () => { const P = LD.pathogens; return P.centuries.filter(c => P.genomes[c] != null).map(c => ({ c, n: P.genomes[c],
     k: P.genomes[c] - d3.sum(P.taxa, t => t.cells[c] ? t.cells[c][0] : 0) })).filter(u => u.k > 0); };
   let strandSel = null, strandShown = false;   // the chosen organism; whether the strand has assembled on this visit
+  let strandNow = null;                          // lights one century's rung while the plate plays the record (startPseq)
   function drawPathogenStrand(svg, W) {
     const P = LD.pathogens, cents = P.centuries, KINDS = ["bacteria", "virus", "parasite", "other", "unnamed"];
     const lanes = [];
@@ -1184,6 +1213,13 @@
     });
     dots.sort((a, b) => a.z - b.z);
 
+    // the century the plate is playing: a soft band behind its rung, and its label in ink
+    const nowG = svg.append("g"), nowBand = nowG.append("rect").attr("x", 0).attr("width", W).attr("height", pitch).attr("class", "nowband").attr("opacity", 0);
+    strandNow = c => {
+      const i = cents.indexOf(c);
+      nowBand.interrupt().transition().duration(REDUCED ? 0 : 350).attr("y", i < 0 ? 0 : top + i * pitch).attr("opacity", i < 0 ? 0 : 1);
+      labG.selectAll("text.cyr").classed("now", (d, j) => j === i);
+    };
     // world events, behind everything: a band across the figure, its label in the right-hand column, in the gap between
     // rungs nearest the event's start
     const ctxG = svg.append("g");
@@ -1253,9 +1289,9 @@
         if (animate) t.attr("opacity", 0).transition().delay(r.i * 16 + d.px * 7 + 300).duration(300).attr("opacity", 1);
       });
     }
-    // the key (which organisms, of what kind, how many genomes) and a line that reads the chosen one out
+    // under the strand: the key (which organisms, of what kind, how many genomes) and a line that reads the chosen one out
     const fig = d3.select(svg.node().parentNode);
-    const key = fig.insert("div", "svg").attr("class", "keylist strand-key");
+    const key = fig.insert("div", "ol.notes").attr("class", "keylist strand-key");
     KINDS.forEach(k => { const ls = lanes.filter(l => l.kind === k); if (!ls.length) return;
       key.append("span").attr("class", "kind").html("<i style='background:" + colOf(ls[0]) + "'></i>" + STRAND_KIND[k][0]);
       const row = key.append("span").attr("class", "items");
@@ -1263,7 +1299,7 @@
         .style("--c", colOf(l)).html(esc(l.name) + "<small>" + l.total + "</small>")
         .on("click", () => select(strandSel === l.id ? null : l.id, true))
         .on("mouseenter", () => preview(l)).on("mouseleave", () => preview(null))); });
-    const read = fig.insert("p", "svg").attr("class", "keylist strand-read").attr("aria-live", "polite");
+    const read = fig.insert("p", "ol.notes").attr("class", "keylist strand-read").attr("aria-live", "polite");
     const sampled = rows.filter(r => r.n != null).length;
     function readText(l) {
       if (!l) return "Choose an organism, or any dot, to pull its share out of the strand.";
@@ -1296,6 +1332,7 @@
       const html = "<b>" + r.c + "s</b>, " + r.n + " genomes<br>" + r.cells.slice().sort((a, b) => b.v - a.v).map(d => esc(d.l.name) + ": " + d.k + " (" + pct0(d.v) + ")").join("<br>");
       [[0, gutW], [leadX - 4, W - leadX + 4]].forEach(([x, w]) => tipOn(hit.append("rect").attr("x", x).attr("y", yRow(r.i) - pitch / 2 + 6).attr("width", w).attr("height", pitch - 12).attr("fill", "transparent"), () => html)); });
     select(strandSel, false);
+    if (PSEQ.on) strandNow(PSEQ.upto - 100);   // redrawn mid-play (a resize): keep the playing century lit
     // on the first view of a visit, the strand assembles from the top, century by century, once it scrolls into sight
     if (!strandShown && !REDUCED) {
       strandShown = true;
@@ -1550,7 +1587,7 @@
   }
   function enterMain(fromIntro) {
     endIntro(); clearTimeout(layersTimer);
-    leaveWear(); S.scene = "main"; S.layer = null; S.show = "all"; lineup.innerHTML = ""; jawLayer.style.opacity = 0;
+    leaveWear(); stopPseq(); S.scene = "main"; S.layer = null; S.show = "all"; lineup.innerHTML = ""; jawLayer.style.opacity = 0;
     if (!fromIntro) drawCloud(0, 0);
     pairEl.style.transform = "";
     leaveRadial(); stage.classList.remove("intro", "dashboard", "haspanel");
