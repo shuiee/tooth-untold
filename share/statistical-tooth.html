@@ -39,6 +39,8 @@
     Sections          LAYERS: number, name, dek, plate caption and placeholder events for each section. Event pictures are window.ERA_IMAGES["event-..."] (images/event-*.jpg in the source).
     Dashboard         CHARTS: each layer's chart titles, subtitles and notes. dashHTML() lays out the panel;
                       drawPathogenMatrix(), drawWear(), drawLEH(), drawLead() and drawElements() draw the charts.
+    Realistic section tooth.js realCut() (cut face) and the uReal branch of the surface shading; the nerve and
+                      vessels follow canalSegs(). app.js microbe() draws the realistic pathogens on section plates.
     Plate views       LAYERS[].view: "cut" (cross-section, in the jaw), "whole" (uncut, out of the jaw) or "aerial"
                       (the crown from above), per tooth. frameView() sets the camera; plateLabels() labels each view.
     Which marks show  paramsFor() and showsRec() keep only the chosen layer's traces in the teeth.
@@ -392,7 +394,29 @@ a{color:inherit}
       boxMin: [M.boxMin[0] - 0.1, M.boxMin[1] - 0.06, M.boxMin[2] - 0.1], boxMax: [M.boxMax[0] + 0.1, M.boxMax[1] + 0.06, M.boxMax[2] + 0.1],
     };
   }
+  // The centre lines of the root canals and pulp chamber on the cut face (x, y pairs as segments), for the nerve
+  // and vessels the realistic section draws inside the pulp. Models: their own canal line, thinned, run on up
+  // into the chamber. Constructed teeth: one canal per root up to the chamber, then branches into the pulp horns.
+  function canalSegs(S) {
+    const seg = [];
+    if (S.mesh && S.canal && S.canal.length > 1) {
+      const c = S.canal.filter((_, i) => i % 2 === 0 || i === S.canal.length - 1);
+      for (let i = 1; i < c.length; i++) seg.push([c[i - 1][0], c[i - 1][1], c[i][0], c[i][1]]);
+      const l = c[c.length - 1], k = c[c.length - 2];
+      const dx = l[0] - k[0], dy = l[1] - k[1], n = Math.hypot(dx, dy) || 1;
+      seg.push([l[0], l[1], l[0] + dx / n * 0.14, l[1] + dy / n * 0.14]);
+    } else {
+      S.roots.forEach(r => {
+        const a = [r[0] * 0.6, S.pulpC[1]], b = [r[0] + (r[4] - r[0]) * 0.93, r[1] + (r[5] - r[1]) * 0.93];
+        const m = [(a[0] + b[0]) / 2 + (b[1] - a[1]) * 0.03, (a[1] + b[1]) / 2];
+        const h = [a[0] * (S.roots.length > 1 ? 0.85 : 1), S.pulpC[1] + S.pulpR[1] * (S.tip ? 0.8 : 0.55)];
+        seg.push([b[0], b[1], m[0], m[1]], [m[0], m[1], a[0], a[1]], [a[0], a[1], h[0], h[1]]);
+      });
+    }
+    return seg.slice(0, 24);
+  }
   function finishShape(S) {
+    S.canalSegs = canalSegs(S);
     if (S.mesh) { S.crownH = S.top; return S; }
     S.top = S.tip ? S.tip[1][1] + S.tip[1][3] : S.cusps.length ? Math.max(...S.cusps.map(c => c[1] + c[3] * 0.72)) : 2 * S.bodyY;
     S.rootMin = Math.min(...S.roots.map(r => r[5] - r[7]));
@@ -498,6 +522,7 @@ uniform vec4 uCaries;
 uniform vec3 uBoxMin, uBoxMax;
 uniform float uJaw; uniform vec3 uJawMin, uJawMax;
 uniform int uMesh; uniform sampler3D uVol; uniform vec3 uVolMin, uDims; uniform float uPitch, uVClamp;
+uniform float uReal; uniform vec4 uSeg[24]; uniform int uNSeg;
 
 const vec3 INK   = vec3(.1,.098,.094);
 const vec3 ENAM  = vec3(.965,.957,.935);
@@ -590,7 +615,7 @@ float mapAll(vec3 p,out float dU,out float dC,out float dT,out float dB,out floa
 }
 float mapT(vec3 p,out float dU,out float dC){ float dT,dB,dG; return mapAll(p,dU,dC,dT,dB,dG); }
 float map(vec3 p){ float a,b; return max(mapT(p,a,b),p.z-uCutX); }
-vec3 normal(vec3 p){ const vec2 k=vec2(1,-1); float h=.0022;
+vec3 normal(vec3 p){ const vec2 k=vec2(1,-1); float h=uReal>0.?.011:.0022;   // wider on the smooth-shaded plates, so the model's voxels do not show
   return normalize(k.xyy*map(p+k.xyy*h)+k.yyx*map(p+k.yyx*h)+k.yxy*map(p+k.yxy*h)+k.xxx*map(p+k.xxx*h)); }
 float calcAO(vec3 p,vec3 n){ float oc=0.,s=1.; for(int i=1;i<=4;i++){ float h=.02*float(i*i); oc+=(h-map(p+n*h))*s; s*=.6; } return clamp(1.-2.*oc,0.,1.); }
 float hash3(vec3 p){ p=fract(p*vec3(.1031,.1030,.0973)); p+=dot(p,p.yxz+33.33); return fract((p.x+p.y)*p.z); }
@@ -602,6 +627,72 @@ float stipple(vec3 p,float dark,float k,float pw){
   return 1.-smoothstep(r-aa,r+aa,d);
 }
 float edgeLine(float d,float pw,float w){ return 1.-smoothstep(pw*w*.5,pw*w*1.4,abs(d)); }
+// ---- for the realistic section (uReal): smooth value noise, and the canal centre line
+float vnoise(vec3 p){ vec3 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+  return mix(mix(mix(hash3(i),hash3(i+vec3(1,0,0)),f.x),mix(hash3(i+vec3(0,1,0)),hash3(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash3(i+vec3(0,0,1)),hash3(i+vec3(1,0,1)),f.x),mix(hash3(i+vec3(0,1,1)),hash3(i+vec3(1,1,1)),f.x),f.y),f.z); }
+float fbm(vec3 p){ return .55*vnoise(p)+.3*vnoise(p*2.03+7.1)+.15*vnoise(p*4.1+3.3); }
+// signed distance from the canal centre line (sign = which side), and how far along it
+vec2 canalD(vec2 q){
+  float best=1e3, along=0.;
+  for(int i=0;i<24;i++){ if(i>=uNSeg) break; vec4 s=uSeg[i]; vec2 a=s.xy, ba=s.zw-s.xy;
+    float h=clamp(dot(q-a,ba)/max(dot(ba,ba),1e-6),0.,1.); vec2 v=q-a-ba*h; float d=length(v);
+    if(d<abs(best)){ best=d*sign(ba.x*v.y-ba.y*v.x+1e-9); along=float(i)+h; } }
+  return vec2(best,along);
+}
+// a ground section of tooth, coloured as in an anatomy atlas
+vec3 realCut(vec3 p,float dU,float dC,float pxw,bool worn){
+  float dp=pulpD(p), et=enamT(p), dD=dU+et, cr=uCaries.w>0.?carD(p):1., inn=-dU;
+  bool enamel=dD>0. && crownW(p)>.5;
+  vec3 col;
+  if(enamel){
+    // enamel: translucent blue-white, greyer towards the dentine; faint growth lines parallel to the surface,
+    // and rods running in from the surface
+    float u=clamp(inn/max(et,1e-3),0.,1.);
+    col=mix(vec3(.955,.958,.95),vec3(.85,.865,.86),u*.75);
+    col*=1.-.04*smoothstep(.55,1.,.5+.5*sin(inn*380.+fbm(p*40.)*3.));
+    col*=1.-.035*smoothstep(.5,.85,vnoise(vec3(p.x*620.,p.y*620.,inn*30.)));
+    float bl=max(uLeh.x*bandF(p.y,uLehY.x),uLeh.y*bandF(p.y,uLehY.y)); col*=1.-.42*clamp(bl*1.6,0.,1.);
+    if(uPb>0.){ float s=stipple(p,uPb*.22,190.,pxw); col=mix(col,vec3(.66,.47,.16),s*.75); }
+  } else if(dp>=0.){
+    // dentine: ivory at the enamel, warmer towards the pulp; tubules run out from the pulp as fine streaks,
+    // with faint growth lines parallel to the pulp wall
+    float tp=clamp(dp/.22,0.,1.);
+    col=mix(vec3(.87,.77,.61),vec3(.94,.885,.76),tp);
+    vec2 g=vec2(pulpD(p+vec3(.004,0.,0.))-dp,pulpD(p+vec3(0.,.004,0.))-dp); g=normalize(g+1e-6); vec2 tg=vec2(-g.y,g.x);
+    col*=1.-.09*smoothstep(.45,.9,vnoise(vec3(dot(p.xy,tg)*330.,dot(p.xy,g)*14.,2.7)));
+    col*=.96+.04*fbm(p*24.);
+    col*=1.-.022*(.5+.5*sin(dp*240.+fbm(p*30.)*2.));
+    // cementum: a thin, darker skin on the root
+    float cem=smoothstep(.02,-.03,p.y)*smoothstep(.014,.005,inn);
+    col=mix(col,vec3(.8,.72,.57),cem*.85);
+  } else {
+    // pulp: soft, blood-filled tissue, darker at the wall where the dentine-forming cells sit
+    float w=-dp;
+    col=mix(vec3(.62,.3,.3),vec3(.83,.52,.48),smoothstep(.0,.03,w));
+    col*=.84+.16*fbm(p*60.);
+    col=mix(col,vec3(.6,.2,.22),.35*smoothstep(.62,.8,vnoise(vec3(p.xy*95.,1.7))));   // fine capillaries
+    // the nerve, with an artery and a vein beside it, running up the canal; widths follow the canal's own width
+    vec2 cd=canalD(p.xy); float lat=cd.x, r=w+abs(lat), mea=.18*sin(cd.y*5.1+1.3);
+    float nw=clamp(r*.2,.0025,.0075), vw=clamp(r*.11,.0015,.0042), off=clamp(r*.55,.006,.022);
+    float inside=smoothstep(.0015,.005,w);
+    float nerve=1.-smoothstep(nw*.7,nw,abs(lat-off*mea*.3));
+    float art=1.-smoothstep(vw*.6,vw,abs(lat-off*(1.+mea*.4)));
+    float vein=1.-smoothstep(vw*.7,vw*1.15,abs(lat+off*(1.-mea*.4)));
+    col=mix(col,vec3(.55,.1,.13),art*inside*.95);
+    col=mix(col,vec3(.34,.2,.34),vein*inside*.9);
+    col=mix(col,vec3(.96,.9,.73),nerve*inside);
+    col=mix(col,vec3(.5,.2,.18),edgeLine(dp,pxw,.9)*.55);
+  }
+  if(cr<.028){ float k=smoothstep(.028,.01,cr); col=mix(col,mix(vec3(.33,.23,.15),vec3(.48,.34,.2),fbm(p*90.)),k); }
+  if(dC<0. && dU>0.) col=vec3(.8,.73,.56)*(.88+.12*fbm(p*110.));
+  // thin, soft edges instead of ink: the outer surface, the enamel-dentine junction, the worn plane, the cavity
+  col=mix(col,col*.45,edgeLine(dU,pxw,1.)*.9);
+  col=mix(col,col*.78,edgeLine(dD,pxw,.8)*(enamel||crownW(p)>.3?.65:0.));
+  if(worn) col=mix(col,col*.6,edgeLine(p.y-uWearY,pxw,1.)*.8);
+  if(uCaries.w>0.) col=mix(col,vec3(.25,.17,.11),edgeLine(cr-.028,pxw,.9)*.6);
+  return col;
+}
 
 void main(){
   vec2 uv=(2.*gl_FragCoord.xy-uRes)/uRes.y;
@@ -644,6 +735,8 @@ void main(){
         col=mix(base,INK,ink*.85);
       } else if(isGum){
         col=mix(GUM,INK,edgeLine(dG,pxw,1.2)*.8);
+      } else if(uReal>0.){
+        col=realCut(p,dU,dC,pxw,worn);
       } else {
         float dp=pulpD(p), dD=dU+enamT(p), cr=uCaries.w>0.?carD(p):1.;
         bool enamel=dD>0. && crownW(p)>.5;
@@ -684,10 +777,21 @@ void main(){
       if(facet) ink=max(ink*.3,edgeLine(dD,pw,1.2)*.8);
       if(cr<.012) ink=max(ink*.5,stipple(p,.4,120.,pw)*.5);
       col=mix(base*(.95+.05*tone),INK,ink);
+      if(uReal>0.){
+        // the realistic plate: smooth light instead of stipple. Enamel is pearly with a soft highlight, the root
+        // a warmer, matte cementum; stress lines are faint grooves, tartar and decay are matte
+        vec3 b=mix(vec3(.86,.8,.68),vec3(.95,.945,.93),cw);
+        if(isCalc) b=vec3(.8,.73,.56); if(cr<.012) b=vec3(.36,.26,.17); if(facet) b=dD<0.?vec3(.86,.76,.6):vec3(.95,.945,.93);
+        b*=.93+.07*fbm(p*55.);
+        float spec=pow(max(dot(reflect(-L,n),-rd),0.),28.)*.32*cw*(isCalc?0.:1.);
+        col=b*(.62+.38*lam)*mix(.8,1.,ao)+spec;
+        if(!facet && !isCalc && p.y>0.){ float bb=max(uLeh.x*bandF(p.y,uLehY.x),uLeh.y*bandF(p.y,uLehY.y)); col*=1.-.35*clamp(bb*1.6,0.,1.)*crownMask(p.y); }
+        col*=1.-.4*rim;
+      }
     }
     o=vec4(col,1.);
   } else {
-    float e=(1.-smoothstep(.6,1.6,minR/uPx))*.95;
+    float e=(1.-smoothstep(.6,1.6,minR/uPx))*(uReal>0.?.55:.95);
     o=vec4(INK*e,e);
   }
   if(worn && !capIn){
@@ -780,6 +884,9 @@ void main(){
       gl.uniform3fv(u("uBoxMin"), S.rbMin); gl.uniform3fv(u("uBoxMax"), S.rbMax);
       gl.uniform1f(u("uJaw"), S.jaw && P.jaw !== false ? 1 : 0); gl.uniform3fv(u("uJawMin"), S.jawMin); gl.uniform3fv(u("uJawMax"), S.jawMax);
       gl.uniform1i(u("uMesh"), S.mesh ? 1 : 0);
+      gl.uniform1f(u("uReal"), P.real ? 1 : 0);
+      const sg = new Float32Array(96); (S.canalSegs || []).forEach((q, i) => sg.set(q, i * 4));
+      gl.uniform4fv(u("uSeg"), sg); gl.uniform1i(u("uNSeg"), (S.canalSegs || []).length);
       if (S.mesh) {
         uploadVol(S.vol, S.key);
         gl.uniform3fv(u("uVolMin"), S.vol.origin); gl.uniform3fv(u("uDims"), S.vol.dims); gl.uniform1f(u("uPitch"), S.vol.pitch); gl.uniform1f(u("uVClamp"), S.vol.clamp);
@@ -1319,12 +1426,12 @@ window.startStatisticalTooth = (function () {
   const LAYERS = [
     { key: "caries", n: 1, name: "Caries", dek: "Decay in adults of six periods, by age at death and by how many teeth",
       view: { molar: "cut", canine: "cut" },
-      plate: "cut open to show how far decay reaches into the tooth; the cavity grows with the share of teeth that were carious.",
+      plate: "cut open, as a ground section, to show how far decay reaches into the tooth; the cavity grows with the share of teeth that were carious.",
       human: "Human × caries correlations across time",
       events: [{ label: "Refined sugar", when: "Year–Year", img: "event-sugar" }] },
     { key: "pathogens", n: 2, name: "Pathogens", dek: "Disease DNA recovered from European teeth, 100–1800 CE",
       view: { molar: "cut", canine: "cut" },
-      plate: "cut open, because pathogen DNA is recovered from inside the tooth: one mark per genome, placed for illustration, and the tartar some were found in.",
+      plate: "cut open, because pathogen DNA is recovered from inside the tooth, where the nerve and blood vessels run: one mark per genome, placed for illustration (bacteria as rods, viruses as spiked spheres, malaria parasites inside a red blood cell), and the tartar some were found in.",
       human: "Human × pathogen correlations across time",
       events: [{ label: "Plague of Justinian", when: "541–750s", img: "event-justinian" }, { label: "The Black Plague", when: "Year–Year", img: "event-blackdeath" }] },
     { key: "wear", n: 3, name: "Wear and LEH", dek: "Chewing wear and childhood stress lines in adults of six periods",
@@ -1372,6 +1479,41 @@ window.startStatisticalTooth = (function () {
     if (cat === "parasite") return "<circle r='" + (3.5 * s) + "' fill='#fbf8f1' stroke='" + c + "' stroke-width='1.7'/><circle r='" + (1.2 * s) + "' cx='" + (1.2 * s) + "' cy='" + (-1 * s) + "' fill='" + c + "'/>";
     if (cat === "particle") return "<path d='M" + (-4.6 * s) + ",0q" + (2.3 * s) + "," + (-3.3 * s) + " " + (4.6 * s) + ",0t" + (4.6 * s) + ",0' fill='none' stroke='" + c + "' stroke-width='1.7' stroke-linecap='round'/>";
     return "<circle r='2.6' fill='" + c + "'/>";
+  }
+  // Realistic pathogens for the section plates, drawn like a scientific illustration in each category's colour:
+  // bacteria as rods with a membrane, granules and fine flagella; viruses as spheres ringed with surface spikes;
+  // parasites (malaria) as a ring-stage parasite inside a red blood cell. Shading comes from gradients in #ov.
+  const tone = (hex, k) => { const c = d3.color(hex); return (k > 0 ? d3.interpolateRgb(c, "#ffffff")(k) : d3.interpolateRgb(c, "#000000")(-k)); };
+  function microbeDefs(svg) {
+    if (!svg.select("defs.microbes").empty()) return;
+    const defs = svg.insert("defs", ":first-child").attr("class", "microbes");
+    ["bacteria", "virus", "parasite", "particle"].forEach(cat => {
+      const g = defs.append("radialGradient").attr("id", "mb-" + cat).attr("cx", "38%").attr("cy", "32%").attr("r", "75%");
+      g.append("stop").attr("offset", "0").attr("stop-color", tone(CAT[cat], 0.55));
+      g.append("stop").attr("offset", ".55").attr("stop-color", tone(CAT[cat], 0.08));
+      g.append("stop").attr("offset", "1").attr("stop-color", tone(CAT[cat], -0.35));
+    });
+    const rbc = defs.append("radialGradient").attr("id", "mb-rbc");
+    [[0, "#e7b3a8"], [.45, "#f3cfc5"], [.8, "#e9ada0"], [1, "#c98476"]].forEach(([o, c]) => rbc.append("stop").attr("offset", o).attr("stop-color", c));
+  }
+  function microbe(cat, s, seed) {
+    const c = CAT[cat] || "#221f1b", dk = tone(c, -0.45), f = n => (n * s).toFixed(2), r = rng(seed);
+    if (cat === "bacteria") {
+      const fl = d3.range(2).map(i => { const x = f(5.4), y = f((i ? 1 : -1) * 0.6), a = (i ? 1 : -1) * (1.6 + r() * 1.4);
+        return "<path d='M" + x + "," + y + "q" + f(2.2) + "," + f(a) + " " + f(4.4) + "," + f(0) + "t" + f(4.2) + "," + f(0) + "' fill='none' stroke='" + dk + "' stroke-width='" + f(0.35) + "' stroke-linecap='round' opacity='.7'/>"; }).join("");
+      const gr = d3.range(3).map(() => "<circle cx='" + f(-3 + r() * 6) + "' cy='" + f(-0.7 + r() * 1.4) + "' r='" + f(0.38 + r() * 0.25) + "' fill='" + dk + "' opacity='.45'/>").join("");
+      return fl + "<rect x='" + f(-5.4) + "' y='" + f(-1.9) + "' width='" + f(10.8) + "' height='" + f(3.8) + "' rx='" + f(1.9) + "' fill='url(#mb-bacteria)' stroke='" + dk + "' stroke-width='" + f(0.45) + "'/>" +
+        "<rect x='" + f(-4.7) + "' y='" + f(-1.25) + "' width='" + f(9.4) + "' height='" + f(2.5) + "' rx='" + f(1.25) + "' fill='none' stroke='" + tone(c, 0.5) + "' stroke-width='" + f(0.25) + "' opacity='.6'/>" + gr;
+    }
+    if (cat === "virus") {
+      const n = 12, sp = d3.range(n).map(i => { const a = i / n * 6.2832 + r() * 0.1, x1 = Math.cos(a) * 3.3, y1 = Math.sin(a) * 3.3, x2 = Math.cos(a) * 4.7, y2 = Math.sin(a) * 4.7;
+        return "<line x1='" + f(x1) + "' y1='" + f(y1) + "' x2='" + f(x2) + "' y2='" + f(y2) + "' stroke='" + dk + "' stroke-width='" + f(0.4) + "'/><circle cx='" + f(x2) + "' cy='" + f(y2) + "' r='" + f(0.55) + "' fill='" + tone(c, 0.15) + "' stroke='" + dk + "' stroke-width='" + f(0.2) + "'/>"; }).join("");
+      return sp + "<circle r='" + f(3.5) + "' fill='url(#mb-virus)' stroke='" + dk + "' stroke-width='" + f(0.4) + "'/><circle r='" + f(2.1) + "' fill='none' stroke='" + tone(c, -0.2) + "' stroke-width='" + f(0.3) + "' opacity='.5'/>";
+    }
+    if (cat === "parasite") return "<ellipse rx='" + f(5) + "' ry='" + f(4.6) + "' fill='url(#mb-rbc)' stroke='#b47366' stroke-width='" + f(0.35) + "'/>" +
+      "<circle cx='" + f(0.6) + "' cy='" + f(-0.4) + "' r='" + f(1.9) + "' fill='none' stroke='url(#mb-parasite)' stroke-width='" + f(0.9) + "'/><circle cx='" + f(1.9) + "' cy='" + f(-1.3) + "' r='" + f(0.75) + "' fill='" + dk + "'/>";
+    if (cat === "particle") return "<path d='M" + f(-5) + "," + f(0.4) + "q" + f(2.5) + "," + f(-3) + " " + f(5) + "," + f(-0.4) + "t" + f(5) + "," + f(0.2) + "' fill='none' stroke='url(#mb-particle)' stroke-width='" + f(1.3) + "' stroke-linecap='round'/>";
+    return "<circle r='" + f(2.4) + "' fill='" + c + "'/>";
   }
   const tip = $("#tip");
   function showTip(ev, html) {
@@ -1459,7 +1601,7 @@ window.startStatisticalTooth = (function () {
     const cp = SH.cariesAt === "occlusal" ? [0.06, Math.min(wearY, SH.grooveY) - 0.005, -0.03] : [SH.B[0] * 0.97, 0.44 * top, -0.13];
     const pb = (L === "all" || L === "metals") && G.pb != null ? clamp(Math.log10(G.pb / 0.05) / Math.log10(10 / 0.05), 0, 1) : 0;
     const calc = G.calcRecs.some(r => L === "all" || (L === "pathogens" && r.kind !== "metal") || (L === "metals" && r.kind === "metal")) ? 1 : 0;
-    return { wearY, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: [0.36 * top, 0.54 * top], calc, pb, cutX: viewOf(T) === "cut" ? 0 : 5, jaw: viewOf(T) === "cut" };
+    return { wearY, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: [0.36 * top, 0.54 * top], calc, pb, cutX: viewOf(T) === "cut" ? 0 : 5, jaw: viewOf(T) === "cut" && S.scene !== "layer", real: S.scene === "layer" };
   }
   // the view a tooth is drawn in: cut everywhere except on a section's plate, where the section decides
   const viewOf = T => S.scene === "layer" && layerOf(S.layer) ? layerOf(S.layer).view[T.key] : "cut";
@@ -1473,6 +1615,12 @@ window.startStatisticalTooth = (function () {
         const r = T.el.getBoundingClientRect(), half = Math.max(-SH.boxMin[0], SH.boxMax[0], -SH.boxMin[2], SH.boxMax[2]) * 0.95;
         Object.assign(cam, { yaw: 0.35, pitch: 1.36, target: [0, SH.top * 0.8, 0], dist: half * cam.focal / Math.min(0.8, 0.8 * r.width / Math.max(1, r.height)) });
       } else if (v === "whole") Object.assign(cam, { yaw: T.key === "canine" ? 1.0 : 0.4, pitch: 0.12 });   // the canine turned to show its cusp in profile
+      else Object.assign(cam, { yaw: 0.3, pitch: 0.14 });   // a section faces the reader nearly square on
+      if (v !== "aerial") {   // out of the jaw: frame the tooth itself, crown to root tip
+        const r = T.el.getBoundingClientRect(), hh = (SH.top - SH.rootMin) / 2, half = Math.max(-SH.boxMin[0], SH.boxMax[0]);
+        cam.target = [0, (SH.top + SH.rootMin) / 2, 0];
+        cam.dist = Math.max(hh * cam.focal / 0.84, r.width > 0 ? half * cam.focal * r.height / (r.width * 0.8) : 0);
+      }
     });
   }
   const NEUTRAL = SH => ({ wearY: SH.top + 0.02, caries: [0, 0, 0, 0], leh: [0, 0], lehY: [0, 0], calc: 0, pb: 0, cutX: 5, jaw: false });
@@ -1512,6 +1660,7 @@ window.startStatisticalTooth = (function () {
         const y = SH.rootMin + 0.12 + rnd() * (P.wearY - 0.04 - SH.rootMin - 0.12), x = SH.boxMin[0] + rnd() * (SH.boxMax[0] - SH.boxMin[0]);
         const p = [x, y, -0.002];
         if (!insideSolid(T, p, 0.03)) continue;
+        if (S.scene === "layer" && y > 0.05 && T.R.outerJS(p) > -0.12) continue;   // on a section plate, DNA sits in dentine and pulp, not enamel
         if (k < 400 && placed.some(o => Math.hypot(o[1] - y, o[0] - x) < (dense ? 0.03 : 0.05))) continue;
         pos = p; break;
       }
@@ -1552,6 +1701,7 @@ window.startStatisticalTooth = (function () {
   function toPair(T, p) { const s = T.R.project(p); return [s.x + T.el.offsetLeft, s.y + T.el.offsetTop]; }
 
   const gLabels = ov.append("g"), gParts = ov.append("g");
+  microbeDefs(ov);
   function drawParticles(now) {
     if (!GL || !liveTeeth()) { gParts.selectAll("*").remove(); return false; }
     let busy = false;
@@ -1579,11 +1729,11 @@ window.startStatisticalTooth = (function () {
     gParts.selectAll("path.trail").data(trails, d => d.id).join("path").attr("class", "trail")
       .attr("d", d => "M" + d.pts.map(p => p[0].toFixed(1) + "," + p[1].toFixed(1)).join("L")).attr("fill", "none")
       .attr("stroke", d => CAT[d.cat] || "#221f1b").attr("stroke-width", 1.2).attr("stroke-linecap", "round").attr("opacity", d => d.op);
-    const sel = gParts.selectAll("g.pt").data(items, d => d.id);
+    const sel = gParts.selectAll("g.pt").data(items, d => (S.scene === "layer" ? "s" : "o") + d.id);
     sel.exit().remove();
     const en = sel.enter().append("g").attr("class", "pt").attr("tabindex", 0).attr("role", "button")
       .attr("aria-label", d => common(d.q.r.name) + ", " + d.q.r.site)
-      .html(d => glyph(d.q.cat, everything() ? 0.75 : 1))
+      .html(d => S.scene === "layer" ? microbe(d.q.cat, 0.58, hash(d.id)) : glyph(d.q.cat, everything() ? 0.75 : 1))
       .on("mousemove", (ev, d) => showTip(ev, recTip(d.q.r))).on("mouseleave", hideTip)
       .on("pointerdown", ev => ev.stopPropagation());
     en.merge(sel).attr("transform", d => "translate(" + d.x.toFixed(1) + "," + d.y.toFixed(1) + ") rotate(" + (hash(d.id) % 180) + ")").attr("opacity", d => d.op);
@@ -1622,7 +1772,12 @@ window.startStatisticalTooth = (function () {
         add("dentine", edge(top * 0.2, 0.13));
         if (solid([SH.pulpC[0], SH.pulpC[1], z])) add("pulp", [SH.pulpC[0], SH.pulpC[1], z]);
         add("root", edge(SH.rootMin * 0.55, 0.03));
-        const bone = [left ? SH.jawMin[0] + 0.12 : SH.jawMax[0] - 0.12, SH.bottom * 0.72, z]; if (!solid(bone)) add("bone", bone);
+        if (P.real) {
+          // the nerve and vessels, on the canal a third of the way up the root; the cementum skin lower down
+          const sg = (SH.canalSegs || []).filter(q => Math.min(q[1], q[3]) < SH.rootMin * 0.3).sort((a, b) => Math.abs((a[1] + a[3]) / 2 - SH.rootMin * 0.55) - Math.abs((b[1] + b[3]) / 2 - SH.rootMin * 0.55))[0];
+          if (sg) add("nerve and blood vessels", [(sg[0] + sg[2]) / 2, (sg[1] + sg[3]) / 2, z]);
+          add("cementum", edge(SH.rootMin * 0.75, 0.004));
+        } else { const bone = [left ? SH.jawMin[0] + 0.12 : SH.jawMax[0] - 0.12, SH.bottom * 0.72, z]; if (!solid(bone)) add("bone", bone); }
         if (L === "caries" && P.caries[3] > 0) add("cavity", P.caries[2] < -0.05 ? seen(P.caries.slice(0, 3)) : P.caries.slice(0, 3));   // a cavity behind the cut: point at where it shows
         if (L === "metals" && !left && P.pb > 0) add("lead in enamel", edge(top * 0.55, 0.015));
         if ((L === "metals" || L === "pathogens") && P.calc) { const h = T.R.march([left ? -2 : 2, 0.1, -0.2], [left ? 1 : -1, 0, 0], 3); if (h) add("tartar", h.p); }
@@ -1902,7 +2057,8 @@ window.startStatisticalTooth = (function () {
     const x = d3.scalePoint().domain(C.ages).range([m.l, W - m.r]).padding(0.1), y = d3.scaleLinear().domain([20, 90]).range([H - m.b, m.t]);
     [20, 40, 60, 80].forEach(v => { svg.append("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", y(v)).attr("y2", y(v)).attr("stroke", "#dcdad3").attr("stroke-width", 0.6);
       svg.append("text").attr("x", m.l - 6).attr("y", y(v) + 3).attr("text-anchor", "end").attr("class", "ax").text(v + "%"); });
-    C.ages.forEach((a, i) => { if (W >= 480 || i % 2 === 0 || i === C.ages.length - 1) svg.append("text").attr("x", x(a)).attr("y", H - 22).attr("text-anchor", "middle").attr("class", "ax").text(a); });
+    const nA = C.ages.length;   // on phones every other age band, never the one beside the last
+    C.ages.forEach((a, i) => { if (W >= 480 || (i % 2 === 0 && i !== nA - 2) || i === nA - 1) svg.append("text").attr("x", x(a)).attr("y", H - 22).attr("text-anchor", "middle").attr("class", "ax").text(a); });
     svg.append("text").attr("x", (m.l + W - m.r) / 2).attr("y", H - 1).attr("text-anchor", "middle").attr("class", "ax").text("age at death");
     const STRONG = { Industrial: ["#1a1a18", 2.2], "High medieval": ["#55544f", 2.2] };
     const order = C.periods.slice().sort((p, q) => (STRONG[p] ? 1 : 0) - (STRONG[q] ? 1 : 0));

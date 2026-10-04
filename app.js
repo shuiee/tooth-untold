@@ -39,12 +39,12 @@
   const LAYERS = [
     { key: "caries", n: 1, name: "Caries", dek: "Decay in adults of six periods, by age at death and by how many teeth",
       view: { molar: "cut", canine: "cut" },
-      plate: "cut open to show how far decay reaches into the tooth; the cavity grows with the share of teeth that were carious.",
+      plate: "cut open, as a ground section, to show how far decay reaches into the tooth; the cavity grows with the share of teeth that were carious.",
       human: "Human × caries correlations across time",
       events: [{ label: "Refined sugar", when: "Year–Year", img: "event-sugar" }] },
     { key: "pathogens", n: 2, name: "Pathogens", dek: "Disease DNA recovered from European teeth, 100–1800 CE",
       view: { molar: "cut", canine: "cut" },
-      plate: "cut open, because pathogen DNA is recovered from inside the tooth: one mark per genome, placed for illustration, and the tartar some were found in.",
+      plate: "cut open, because pathogen DNA is recovered from inside the tooth, where the nerve and blood vessels run: one mark per genome, placed for illustration (bacteria as rods, viruses as spiked spheres, malaria parasites inside a red blood cell), and the tartar some were found in.",
       human: "Human × pathogen correlations across time",
       events: [{ label: "Plague of Justinian", when: "541–750s", img: "event-justinian" }, { label: "The Black Plague", when: "Year–Year", img: "event-blackdeath" }] },
     { key: "wear", n: 3, name: "Wear and LEH", dek: "Chewing wear and childhood stress lines in adults of six periods",
@@ -92,6 +92,41 @@
     if (cat === "parasite") return "<circle r='" + (3.5 * s) + "' fill='#fbf8f1' stroke='" + c + "' stroke-width='1.7'/><circle r='" + (1.2 * s) + "' cx='" + (1.2 * s) + "' cy='" + (-1 * s) + "' fill='" + c + "'/>";
     if (cat === "particle") return "<path d='M" + (-4.6 * s) + ",0q" + (2.3 * s) + "," + (-3.3 * s) + " " + (4.6 * s) + ",0t" + (4.6 * s) + ",0' fill='none' stroke='" + c + "' stroke-width='1.7' stroke-linecap='round'/>";
     return "<circle r='2.6' fill='" + c + "'/>";
+  }
+  // Realistic pathogens for the section plates, drawn like a scientific illustration in each category's colour:
+  // bacteria as rods with a membrane, granules and fine flagella; viruses as spheres ringed with surface spikes;
+  // parasites (malaria) as a ring-stage parasite inside a red blood cell. Shading comes from gradients in #ov.
+  const tone = (hex, k) => { const c = d3.color(hex); return (k > 0 ? d3.interpolateRgb(c, "#ffffff")(k) : d3.interpolateRgb(c, "#000000")(-k)); };
+  function microbeDefs(svg) {
+    if (!svg.select("defs.microbes").empty()) return;
+    const defs = svg.insert("defs", ":first-child").attr("class", "microbes");
+    ["bacteria", "virus", "parasite", "particle"].forEach(cat => {
+      const g = defs.append("radialGradient").attr("id", "mb-" + cat).attr("cx", "38%").attr("cy", "32%").attr("r", "75%");
+      g.append("stop").attr("offset", "0").attr("stop-color", tone(CAT[cat], 0.55));
+      g.append("stop").attr("offset", ".55").attr("stop-color", tone(CAT[cat], 0.08));
+      g.append("stop").attr("offset", "1").attr("stop-color", tone(CAT[cat], -0.35));
+    });
+    const rbc = defs.append("radialGradient").attr("id", "mb-rbc");
+    [[0, "#e7b3a8"], [.45, "#f3cfc5"], [.8, "#e9ada0"], [1, "#c98476"]].forEach(([o, c]) => rbc.append("stop").attr("offset", o).attr("stop-color", c));
+  }
+  function microbe(cat, s, seed) {
+    const c = CAT[cat] || "#221f1b", dk = tone(c, -0.45), f = n => (n * s).toFixed(2), r = rng(seed);
+    if (cat === "bacteria") {
+      const fl = d3.range(2).map(i => { const x = f(5.4), y = f((i ? 1 : -1) * 0.6), a = (i ? 1 : -1) * (1.6 + r() * 1.4);
+        return "<path d='M" + x + "," + y + "q" + f(2.2) + "," + f(a) + " " + f(4.4) + "," + f(0) + "t" + f(4.2) + "," + f(0) + "' fill='none' stroke='" + dk + "' stroke-width='" + f(0.35) + "' stroke-linecap='round' opacity='.7'/>"; }).join("");
+      const gr = d3.range(3).map(() => "<circle cx='" + f(-3 + r() * 6) + "' cy='" + f(-0.7 + r() * 1.4) + "' r='" + f(0.38 + r() * 0.25) + "' fill='" + dk + "' opacity='.45'/>").join("");
+      return fl + "<rect x='" + f(-5.4) + "' y='" + f(-1.9) + "' width='" + f(10.8) + "' height='" + f(3.8) + "' rx='" + f(1.9) + "' fill='url(#mb-bacteria)' stroke='" + dk + "' stroke-width='" + f(0.45) + "'/>" +
+        "<rect x='" + f(-4.7) + "' y='" + f(-1.25) + "' width='" + f(9.4) + "' height='" + f(2.5) + "' rx='" + f(1.25) + "' fill='none' stroke='" + tone(c, 0.5) + "' stroke-width='" + f(0.25) + "' opacity='.6'/>" + gr;
+    }
+    if (cat === "virus") {
+      const n = 12, sp = d3.range(n).map(i => { const a = i / n * 6.2832 + r() * 0.1, x1 = Math.cos(a) * 3.3, y1 = Math.sin(a) * 3.3, x2 = Math.cos(a) * 4.7, y2 = Math.sin(a) * 4.7;
+        return "<line x1='" + f(x1) + "' y1='" + f(y1) + "' x2='" + f(x2) + "' y2='" + f(y2) + "' stroke='" + dk + "' stroke-width='" + f(0.4) + "'/><circle cx='" + f(x2) + "' cy='" + f(y2) + "' r='" + f(0.55) + "' fill='" + tone(c, 0.15) + "' stroke='" + dk + "' stroke-width='" + f(0.2) + "'/>"; }).join("");
+      return sp + "<circle r='" + f(3.5) + "' fill='url(#mb-virus)' stroke='" + dk + "' stroke-width='" + f(0.4) + "'/><circle r='" + f(2.1) + "' fill='none' stroke='" + tone(c, -0.2) + "' stroke-width='" + f(0.3) + "' opacity='.5'/>";
+    }
+    if (cat === "parasite") return "<ellipse rx='" + f(5) + "' ry='" + f(4.6) + "' fill='url(#mb-rbc)' stroke='#b47366' stroke-width='" + f(0.35) + "'/>" +
+      "<circle cx='" + f(0.6) + "' cy='" + f(-0.4) + "' r='" + f(1.9) + "' fill='none' stroke='url(#mb-parasite)' stroke-width='" + f(0.9) + "'/><circle cx='" + f(1.9) + "' cy='" + f(-1.3) + "' r='" + f(0.75) + "' fill='" + dk + "'/>";
+    if (cat === "particle") return "<path d='M" + f(-5) + "," + f(0.4) + "q" + f(2.5) + "," + f(-3) + " " + f(5) + "," + f(-0.4) + "t" + f(5) + "," + f(0.2) + "' fill='none' stroke='url(#mb-particle)' stroke-width='" + f(1.3) + "' stroke-linecap='round'/>";
+    return "<circle r='" + f(2.4) + "' fill='" + c + "'/>";
   }
   const tip = $("#tip");
   function showTip(ev, html) {
@@ -179,7 +214,7 @@
     const cp = SH.cariesAt === "occlusal" ? [0.06, Math.min(wearY, SH.grooveY) - 0.005, -0.03] : [SH.B[0] * 0.97, 0.44 * top, -0.13];
     const pb = (L === "all" || L === "metals") && G.pb != null ? clamp(Math.log10(G.pb / 0.05) / Math.log10(10 / 0.05), 0, 1) : 0;
     const calc = G.calcRecs.some(r => L === "all" || (L === "pathogens" && r.kind !== "metal") || (L === "metals" && r.kind === "metal")) ? 1 : 0;
-    return { wearY, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: [0.36 * top, 0.54 * top], calc, pb, cutX: viewOf(T) === "cut" ? 0 : 5, jaw: viewOf(T) === "cut" };
+    return { wearY, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: [0.36 * top, 0.54 * top], calc, pb, cutX: viewOf(T) === "cut" ? 0 : 5, jaw: viewOf(T) === "cut" && S.scene !== "layer", real: S.scene === "layer" };
   }
   // the view a tooth is drawn in: cut everywhere except on a section's plate, where the section decides
   const viewOf = T => S.scene === "layer" && layerOf(S.layer) ? layerOf(S.layer).view[T.key] : "cut";
@@ -193,6 +228,12 @@
         const r = T.el.getBoundingClientRect(), half = Math.max(-SH.boxMin[0], SH.boxMax[0], -SH.boxMin[2], SH.boxMax[2]) * 0.95;
         Object.assign(cam, { yaw: 0.35, pitch: 1.36, target: [0, SH.top * 0.8, 0], dist: half * cam.focal / Math.min(0.8, 0.8 * r.width / Math.max(1, r.height)) });
       } else if (v === "whole") Object.assign(cam, { yaw: T.key === "canine" ? 1.0 : 0.4, pitch: 0.12 });   // the canine turned to show its cusp in profile
+      else Object.assign(cam, { yaw: 0.3, pitch: 0.14 });   // a section faces the reader nearly square on
+      if (v !== "aerial") {   // out of the jaw: frame the tooth itself, crown to root tip
+        const r = T.el.getBoundingClientRect(), hh = (SH.top - SH.rootMin) / 2, half = Math.max(-SH.boxMin[0], SH.boxMax[0]);
+        cam.target = [0, (SH.top + SH.rootMin) / 2, 0];
+        cam.dist = Math.max(hh * cam.focal / 0.84, r.width > 0 ? half * cam.focal * r.height / (r.width * 0.8) : 0);
+      }
     });
   }
   const NEUTRAL = SH => ({ wearY: SH.top + 0.02, caries: [0, 0, 0, 0], leh: [0, 0], lehY: [0, 0], calc: 0, pb: 0, cutX: 5, jaw: false });
@@ -232,6 +273,7 @@
         const y = SH.rootMin + 0.12 + rnd() * (P.wearY - 0.04 - SH.rootMin - 0.12), x = SH.boxMin[0] + rnd() * (SH.boxMax[0] - SH.boxMin[0]);
         const p = [x, y, -0.002];
         if (!insideSolid(T, p, 0.03)) continue;
+        if (S.scene === "layer" && y > 0.05 && T.R.outerJS(p) > -0.12) continue;   // on a section plate, DNA sits in dentine and pulp, not enamel
         if (k < 400 && placed.some(o => Math.hypot(o[1] - y, o[0] - x) < (dense ? 0.03 : 0.05))) continue;
         pos = p; break;
       }
@@ -272,6 +314,7 @@
   function toPair(T, p) { const s = T.R.project(p); return [s.x + T.el.offsetLeft, s.y + T.el.offsetTop]; }
 
   const gLabels = ov.append("g"), gParts = ov.append("g");
+  microbeDefs(ov);
   function drawParticles(now) {
     if (!GL || !liveTeeth()) { gParts.selectAll("*").remove(); return false; }
     let busy = false;
@@ -299,11 +342,11 @@
     gParts.selectAll("path.trail").data(trails, d => d.id).join("path").attr("class", "trail")
       .attr("d", d => "M" + d.pts.map(p => p[0].toFixed(1) + "," + p[1].toFixed(1)).join("L")).attr("fill", "none")
       .attr("stroke", d => CAT[d.cat] || "#221f1b").attr("stroke-width", 1.2).attr("stroke-linecap", "round").attr("opacity", d => d.op);
-    const sel = gParts.selectAll("g.pt").data(items, d => d.id);
+    const sel = gParts.selectAll("g.pt").data(items, d => (S.scene === "layer" ? "s" : "o") + d.id);
     sel.exit().remove();
     const en = sel.enter().append("g").attr("class", "pt").attr("tabindex", 0).attr("role", "button")
       .attr("aria-label", d => common(d.q.r.name) + ", " + d.q.r.site)
-      .html(d => glyph(d.q.cat, everything() ? 0.75 : 1))
+      .html(d => S.scene === "layer" ? microbe(d.q.cat, 0.58, hash(d.id)) : glyph(d.q.cat, everything() ? 0.75 : 1))
       .on("mousemove", (ev, d) => showTip(ev, recTip(d.q.r))).on("mouseleave", hideTip)
       .on("pointerdown", ev => ev.stopPropagation());
     en.merge(sel).attr("transform", d => "translate(" + d.x.toFixed(1) + "," + d.y.toFixed(1) + ") rotate(" + (hash(d.id) % 180) + ")").attr("opacity", d => d.op);
@@ -342,7 +385,12 @@
         add("dentine", edge(top * 0.2, 0.13));
         if (solid([SH.pulpC[0], SH.pulpC[1], z])) add("pulp", [SH.pulpC[0], SH.pulpC[1], z]);
         add("root", edge(SH.rootMin * 0.55, 0.03));
-        const bone = [left ? SH.jawMin[0] + 0.12 : SH.jawMax[0] - 0.12, SH.bottom * 0.72, z]; if (!solid(bone)) add("bone", bone);
+        if (P.real) {
+          // the nerve and vessels, on the canal a third of the way up the root; the cementum skin lower down
+          const sg = (SH.canalSegs || []).filter(q => Math.min(q[1], q[3]) < SH.rootMin * 0.3).sort((a, b) => Math.abs((a[1] + a[3]) / 2 - SH.rootMin * 0.55) - Math.abs((b[1] + b[3]) / 2 - SH.rootMin * 0.55))[0];
+          if (sg) add("nerve and blood vessels", [(sg[0] + sg[2]) / 2, (sg[1] + sg[3]) / 2, z]);
+          add("cementum", edge(SH.rootMin * 0.75, 0.004));
+        } else { const bone = [left ? SH.jawMin[0] + 0.12 : SH.jawMax[0] - 0.12, SH.bottom * 0.72, z]; if (!solid(bone)) add("bone", bone); }
         if (L === "caries" && P.caries[3] > 0) add("cavity", P.caries[2] < -0.05 ? seen(P.caries.slice(0, 3)) : P.caries.slice(0, 3));   // a cavity behind the cut: point at where it shows
         if (L === "metals" && !left && P.pb > 0) add("lead in enamel", edge(top * 0.55, 0.015));
         if ((L === "metals" || L === "pathogens") && P.calc) { const h = T.R.march([left ? -2 : 2, 0.1, -0.2], [left ? 1 : -1, 0, 0], 3); if (h) add("tartar", h.p); }
@@ -622,7 +670,8 @@
     const x = d3.scalePoint().domain(C.ages).range([m.l, W - m.r]).padding(0.1), y = d3.scaleLinear().domain([20, 90]).range([H - m.b, m.t]);
     [20, 40, 60, 80].forEach(v => { svg.append("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", y(v)).attr("y2", y(v)).attr("stroke", "#dcdad3").attr("stroke-width", 0.6);
       svg.append("text").attr("x", m.l - 6).attr("y", y(v) + 3).attr("text-anchor", "end").attr("class", "ax").text(v + "%"); });
-    C.ages.forEach((a, i) => { if (W >= 480 || i % 2 === 0 || i === C.ages.length - 1) svg.append("text").attr("x", x(a)).attr("y", H - 22).attr("text-anchor", "middle").attr("class", "ax").text(a); });
+    const nA = C.ages.length;   // on phones every other age band, never the one beside the last
+    C.ages.forEach((a, i) => { if (W >= 480 || (i % 2 === 0 && i !== nA - 2) || i === nA - 1) svg.append("text").attr("x", x(a)).attr("y", H - 22).attr("text-anchor", "middle").attr("class", "ax").text(a); });
     svg.append("text").attr("x", (m.l + W - m.r) / 2).attr("y", H - 1).attr("text-anchor", "middle").attr("class", "ax").text("age at death");
     const STRONG = { Industrial: ["#1a1a18", 2.2], "High medieval": ["#55544f", 2.2] };
     const order = C.periods.slice().sort((p, q) => (STRONG[p] ? 1 : 0) - (STRONG[q] ? 1 : 0));

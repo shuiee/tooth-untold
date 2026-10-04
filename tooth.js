@@ -46,7 +46,29 @@
       boxMin: [M.boxMin[0] - 0.1, M.boxMin[1] - 0.06, M.boxMin[2] - 0.1], boxMax: [M.boxMax[0] + 0.1, M.boxMax[1] + 0.06, M.boxMax[2] + 0.1],
     };
   }
+  // The centre lines of the root canals and pulp chamber on the cut face (x, y pairs as segments), for the nerve
+  // and vessels the realistic section draws inside the pulp. Models: their own canal line, thinned, run on up
+  // into the chamber. Constructed teeth: one canal per root up to the chamber, then branches into the pulp horns.
+  function canalSegs(S) {
+    const seg = [];
+    if (S.mesh && S.canal && S.canal.length > 1) {
+      const c = S.canal.filter((_, i) => i % 2 === 0 || i === S.canal.length - 1);
+      for (let i = 1; i < c.length; i++) seg.push([c[i - 1][0], c[i - 1][1], c[i][0], c[i][1]]);
+      const l = c[c.length - 1], k = c[c.length - 2];
+      const dx = l[0] - k[0], dy = l[1] - k[1], n = Math.hypot(dx, dy) || 1;
+      seg.push([l[0], l[1], l[0] + dx / n * 0.14, l[1] + dy / n * 0.14]);
+    } else {
+      S.roots.forEach(r => {
+        const a = [r[0] * 0.6, S.pulpC[1]], b = [r[0] + (r[4] - r[0]) * 0.93, r[1] + (r[5] - r[1]) * 0.93];
+        const m = [(a[0] + b[0]) / 2 + (b[1] - a[1]) * 0.03, (a[1] + b[1]) / 2];
+        const h = [a[0] * (S.roots.length > 1 ? 0.85 : 1), S.pulpC[1] + S.pulpR[1] * (S.tip ? 0.8 : 0.55)];
+        seg.push([b[0], b[1], m[0], m[1]], [m[0], m[1], a[0], a[1]], [a[0], a[1], h[0], h[1]]);
+      });
+    }
+    return seg.slice(0, 24);
+  }
   function finishShape(S) {
+    S.canalSegs = canalSegs(S);
     if (S.mesh) { S.crownH = S.top; return S; }
     S.top = S.tip ? S.tip[1][1] + S.tip[1][3] : S.cusps.length ? Math.max(...S.cusps.map(c => c[1] + c[3] * 0.72)) : 2 * S.bodyY;
     S.rootMin = Math.min(...S.roots.map(r => r[5] - r[7]));
@@ -152,6 +174,7 @@ uniform vec4 uCaries;
 uniform vec3 uBoxMin, uBoxMax;
 uniform float uJaw; uniform vec3 uJawMin, uJawMax;
 uniform int uMesh; uniform sampler3D uVol; uniform vec3 uVolMin, uDims; uniform float uPitch, uVClamp;
+uniform float uReal; uniform vec4 uSeg[24]; uniform int uNSeg;
 
 const vec3 INK   = vec3(.1,.098,.094);
 const vec3 ENAM  = vec3(.965,.957,.935);
@@ -244,7 +267,7 @@ float mapAll(vec3 p,out float dU,out float dC,out float dT,out float dB,out floa
 }
 float mapT(vec3 p,out float dU,out float dC){ float dT,dB,dG; return mapAll(p,dU,dC,dT,dB,dG); }
 float map(vec3 p){ float a,b; return max(mapT(p,a,b),p.z-uCutX); }
-vec3 normal(vec3 p){ const vec2 k=vec2(1,-1); float h=.0022;
+vec3 normal(vec3 p){ const vec2 k=vec2(1,-1); float h=uReal>0.?.011:.0022;   // wider on the smooth-shaded plates, so the model's voxels do not show
   return normalize(k.xyy*map(p+k.xyy*h)+k.yyx*map(p+k.yyx*h)+k.yxy*map(p+k.yxy*h)+k.xxx*map(p+k.xxx*h)); }
 float calcAO(vec3 p,vec3 n){ float oc=0.,s=1.; for(int i=1;i<=4;i++){ float h=.02*float(i*i); oc+=(h-map(p+n*h))*s; s*=.6; } return clamp(1.-2.*oc,0.,1.); }
 float hash3(vec3 p){ p=fract(p*vec3(.1031,.1030,.0973)); p+=dot(p,p.yxz+33.33); return fract((p.x+p.y)*p.z); }
@@ -256,6 +279,72 @@ float stipple(vec3 p,float dark,float k,float pw){
   return 1.-smoothstep(r-aa,r+aa,d);
 }
 float edgeLine(float d,float pw,float w){ return 1.-smoothstep(pw*w*.5,pw*w*1.4,abs(d)); }
+// ---- for the realistic section (uReal): smooth value noise, and the canal centre line
+float vnoise(vec3 p){ vec3 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+  return mix(mix(mix(hash3(i),hash3(i+vec3(1,0,0)),f.x),mix(hash3(i+vec3(0,1,0)),hash3(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash3(i+vec3(0,0,1)),hash3(i+vec3(1,0,1)),f.x),mix(hash3(i+vec3(0,1,1)),hash3(i+vec3(1,1,1)),f.x),f.y),f.z); }
+float fbm(vec3 p){ return .55*vnoise(p)+.3*vnoise(p*2.03+7.1)+.15*vnoise(p*4.1+3.3); }
+// signed distance from the canal centre line (sign = which side), and how far along it
+vec2 canalD(vec2 q){
+  float best=1e3, along=0.;
+  for(int i=0;i<24;i++){ if(i>=uNSeg) break; vec4 s=uSeg[i]; vec2 a=s.xy, ba=s.zw-s.xy;
+    float h=clamp(dot(q-a,ba)/max(dot(ba,ba),1e-6),0.,1.); vec2 v=q-a-ba*h; float d=length(v);
+    if(d<abs(best)){ best=d*sign(ba.x*v.y-ba.y*v.x+1e-9); along=float(i)+h; } }
+  return vec2(best,along);
+}
+// a ground section of tooth, coloured as in an anatomy atlas
+vec3 realCut(vec3 p,float dU,float dC,float pxw,bool worn){
+  float dp=pulpD(p), et=enamT(p), dD=dU+et, cr=uCaries.w>0.?carD(p):1., inn=-dU;
+  bool enamel=dD>0. && crownW(p)>.5;
+  vec3 col;
+  if(enamel){
+    // enamel: translucent blue-white, greyer towards the dentine; faint growth lines parallel to the surface,
+    // and rods running in from the surface
+    float u=clamp(inn/max(et,1e-3),0.,1.);
+    col=mix(vec3(.955,.958,.95),vec3(.85,.865,.86),u*.75);
+    col*=1.-.04*smoothstep(.55,1.,.5+.5*sin(inn*380.+fbm(p*40.)*3.));
+    col*=1.-.035*smoothstep(.5,.85,vnoise(vec3(p.x*620.,p.y*620.,inn*30.)));
+    float bl=max(uLeh.x*bandF(p.y,uLehY.x),uLeh.y*bandF(p.y,uLehY.y)); col*=1.-.42*clamp(bl*1.6,0.,1.);
+    if(uPb>0.){ float s=stipple(p,uPb*.22,190.,pxw); col=mix(col,vec3(.66,.47,.16),s*.75); }
+  } else if(dp>=0.){
+    // dentine: ivory at the enamel, warmer towards the pulp; tubules run out from the pulp as fine streaks,
+    // with faint growth lines parallel to the pulp wall
+    float tp=clamp(dp/.22,0.,1.);
+    col=mix(vec3(.87,.77,.61),vec3(.94,.885,.76),tp);
+    vec2 g=vec2(pulpD(p+vec3(.004,0.,0.))-dp,pulpD(p+vec3(0.,.004,0.))-dp); g=normalize(g+1e-6); vec2 tg=vec2(-g.y,g.x);
+    col*=1.-.09*smoothstep(.45,.9,vnoise(vec3(dot(p.xy,tg)*330.,dot(p.xy,g)*14.,2.7)));
+    col*=.96+.04*fbm(p*24.);
+    col*=1.-.022*(.5+.5*sin(dp*240.+fbm(p*30.)*2.));
+    // cementum: a thin, darker skin on the root
+    float cem=smoothstep(.02,-.03,p.y)*smoothstep(.014,.005,inn);
+    col=mix(col,vec3(.8,.72,.57),cem*.85);
+  } else {
+    // pulp: soft, blood-filled tissue, darker at the wall where the dentine-forming cells sit
+    float w=-dp;
+    col=mix(vec3(.62,.3,.3),vec3(.83,.52,.48),smoothstep(.0,.03,w));
+    col*=.84+.16*fbm(p*60.);
+    col=mix(col,vec3(.6,.2,.22),.35*smoothstep(.62,.8,vnoise(vec3(p.xy*95.,1.7))));   // fine capillaries
+    // the nerve, with an artery and a vein beside it, running up the canal; widths follow the canal's own width
+    vec2 cd=canalD(p.xy); float lat=cd.x, r=w+abs(lat), mea=.18*sin(cd.y*5.1+1.3);
+    float nw=clamp(r*.2,.0025,.0075), vw=clamp(r*.11,.0015,.0042), off=clamp(r*.55,.006,.022);
+    float inside=smoothstep(.0015,.005,w);
+    float nerve=1.-smoothstep(nw*.7,nw,abs(lat-off*mea*.3));
+    float art=1.-smoothstep(vw*.6,vw,abs(lat-off*(1.+mea*.4)));
+    float vein=1.-smoothstep(vw*.7,vw*1.15,abs(lat+off*(1.-mea*.4)));
+    col=mix(col,vec3(.55,.1,.13),art*inside*.95);
+    col=mix(col,vec3(.34,.2,.34),vein*inside*.9);
+    col=mix(col,vec3(.96,.9,.73),nerve*inside);
+    col=mix(col,vec3(.5,.2,.18),edgeLine(dp,pxw,.9)*.55);
+  }
+  if(cr<.028){ float k=smoothstep(.028,.01,cr); col=mix(col,mix(vec3(.33,.23,.15),vec3(.48,.34,.2),fbm(p*90.)),k); }
+  if(dC<0. && dU>0.) col=vec3(.8,.73,.56)*(.88+.12*fbm(p*110.));
+  // thin, soft edges instead of ink: the outer surface, the enamel-dentine junction, the worn plane, the cavity
+  col=mix(col,col*.45,edgeLine(dU,pxw,1.)*.9);
+  col=mix(col,col*.78,edgeLine(dD,pxw,.8)*(enamel||crownW(p)>.3?.65:0.));
+  if(worn) col=mix(col,col*.6,edgeLine(p.y-uWearY,pxw,1.)*.8);
+  if(uCaries.w>0.) col=mix(col,vec3(.25,.17,.11),edgeLine(cr-.028,pxw,.9)*.6);
+  return col;
+}
 
 void main(){
   vec2 uv=(2.*gl_FragCoord.xy-uRes)/uRes.y;
@@ -298,6 +387,8 @@ void main(){
         col=mix(base,INK,ink*.85);
       } else if(isGum){
         col=mix(GUM,INK,edgeLine(dG,pxw,1.2)*.8);
+      } else if(uReal>0.){
+        col=realCut(p,dU,dC,pxw,worn);
       } else {
         float dp=pulpD(p), dD=dU+enamT(p), cr=uCaries.w>0.?carD(p):1.;
         bool enamel=dD>0. && crownW(p)>.5;
@@ -338,10 +429,21 @@ void main(){
       if(facet) ink=max(ink*.3,edgeLine(dD,pw,1.2)*.8);
       if(cr<.012) ink=max(ink*.5,stipple(p,.4,120.,pw)*.5);
       col=mix(base*(.95+.05*tone),INK,ink);
+      if(uReal>0.){
+        // the realistic plate: smooth light instead of stipple. Enamel is pearly with a soft highlight, the root
+        // a warmer, matte cementum; stress lines are faint grooves, tartar and decay are matte
+        vec3 b=mix(vec3(.86,.8,.68),vec3(.95,.945,.93),cw);
+        if(isCalc) b=vec3(.8,.73,.56); if(cr<.012) b=vec3(.36,.26,.17); if(facet) b=dD<0.?vec3(.86,.76,.6):vec3(.95,.945,.93);
+        b*=.93+.07*fbm(p*55.);
+        float spec=pow(max(dot(reflect(-L,n),-rd),0.),28.)*.32*cw*(isCalc?0.:1.);
+        col=b*(.62+.38*lam)*mix(.8,1.,ao)+spec;
+        if(!facet && !isCalc && p.y>0.){ float bb=max(uLeh.x*bandF(p.y,uLehY.x),uLeh.y*bandF(p.y,uLehY.y)); col*=1.-.35*clamp(bb*1.6,0.,1.)*crownMask(p.y); }
+        col*=1.-.4*rim;
+      }
     }
     o=vec4(col,1.);
   } else {
-    float e=(1.-smoothstep(.6,1.6,minR/uPx))*.95;
+    float e=(1.-smoothstep(.6,1.6,minR/uPx))*(uReal>0.?.55:.95);
     o=vec4(INK*e,e);
   }
   if(worn && !capIn){
@@ -434,6 +536,9 @@ void main(){
       gl.uniform3fv(u("uBoxMin"), S.rbMin); gl.uniform3fv(u("uBoxMax"), S.rbMax);
       gl.uniform1f(u("uJaw"), S.jaw && P.jaw !== false ? 1 : 0); gl.uniform3fv(u("uJawMin"), S.jawMin); gl.uniform3fv(u("uJawMax"), S.jawMax);
       gl.uniform1i(u("uMesh"), S.mesh ? 1 : 0);
+      gl.uniform1f(u("uReal"), P.real ? 1 : 0);
+      const sg = new Float32Array(96); (S.canalSegs || []).forEach((q, i) => sg.set(q, i * 4));
+      gl.uniform4fv(u("uSeg"), sg); gl.uniform1i(u("uNSeg"), (S.canalSegs || []).length);
       if (S.mesh) {
         uploadVol(S.vol, S.key);
         gl.uniform3fv(u("uVolMin"), S.vol.origin); gl.uniform3fv(u("uDims"), S.vol.dims); gl.uniform1f(u("uPitch"), S.vol.pitch); gl.uniform1f(u("uVClamp"), S.vol.clamp);

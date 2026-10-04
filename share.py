@@ -54,6 +54,8 @@ GUIDE = """<!--
     Sections          LAYERS: number, name, dek, plate caption and placeholder events for each section. Event pictures are window.ERA_IMAGES["event-..."] (images/event-*.jpg in the source).
     Dashboard         CHARTS: each layer's chart titles, subtitles and notes. dashHTML() lays out the panel;
                       drawPathogenMatrix(), drawWear(), drawLEH(), drawLead() and drawElements() draw the charts.
+    Realistic section tooth.js realCut() (cut face) and the uReal branch of the surface shading; the nerve and
+                      vessels follow canalSegs(). app.js microbe() draws the realistic pathogens on section plates.
     Plate views       LAYERS[].view: "cut" (cross-section, in the jaw), "whole" (uncut, out of the jaw) or "aerial"
                       (the crown from above), per tooth. frameView() sets the camera; plateLabels() labels each view.
     Which marks show  paramsFor() and showsRec() keep only the chosen layer's traces in the teeth.
