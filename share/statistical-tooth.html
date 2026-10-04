@@ -10,9 +10,11 @@
 
   THE FLOW
     Intro      the engraved jaw opens, four teeth line up, the first molar and canine become point clouds.
-    Overview   the two teeth alone play through 300-1900 CE (no timeline); marks arrive century by century.
-    Timeline   Plate II, the radial timeline in perspective (radial.js, data in radial-data.js): five records
-               come towards you from a point between the deep-set teeth; line length is the time each covers.
+    Overview   the two teeth alone, as realistic sections with their nerves (no gum or bone, no caption), play
+               through 300-1900 CE (no timeline); every kind of mark arrives century by century.
+    Timeline   Plate II, the radial timeline in perspective (radial.js, data in radial-data.js): five lines from
+               the centre of the page, between the large, deep-set molar (left) and canine (right), one per kind
+               of record, with a circle at the year each record begins (square-root scale, dotted year rings).
                A name opens that record's section.
     Sections   1 Caries, 2 Pathogens, 3 Wear and LEH, 4 Metals, 5 Artificial interventions, each a journal spread: the plate (the 3D teeth,
                in the view that suits the record, labelled) on the left, numbered figures drawn from the
@@ -38,15 +40,17 @@
   COMMON EDITS (all in app.js unless noted)
     Sections          LAYERS: number, name, dek, plate caption and placeholder events for each section. Event pictures are window.ERA_IMAGES["event-..."] (images/event-*.jpg in the source).
     Dashboard         CHARTS: each layer's chart titles, subtitles and notes. dashHTML() lays out the panel;
-                      drawPathogenMatrix(), drawWear(), drawLEH(), drawLead() and drawElements() draw the charts.
+                      drawPathogenStrand(), drawWear(), drawLEH(), drawLead() and drawElements() draw the charts.
     Realistic section tooth.js realCut() (cut face) and the uReal branch of the surface shading; the nerve and
                       vessels follow canalSegs(). app.js microbe() draws the realistic pathogens on section plates.
     Plate views       LAYERS[].view: "cut" (cross-section, in the jaw), "whole" (uncut, out of the jaw) or "aerial"
                       (the crown from above), per tooth. frameView() sets the camera; plateLabels() labels each view.
     Which marks show  paramsFor() and showsRec() keep only the chosen layer's traces in the teeth.
     Overview speed    SPEED is years per second; stepPlay() holds briefly at 1900, then enterRadial() runs.
-    Radial timeline   radial-data.js holds the four records (edit numbers there). radial.js: R0, RMAX, MAX_SPAN at
-                      the top set the geometry; radialTeeth() in app.js makes the tooth pictures.
+    Radial timeline   radial-data.js holds the five kinds of record (edit numbers there). radial.js: R0, RMAX, NOW,
+                      rAge() and RINGS at the top set the geometry, TOOTH_H the teeth; radialTeeth() in app.js makes the tooth pictures.
+    Pathogen strand   drawPathogenStrand() in app.js: STRAND_NAME (names), STRAND_CONTEXT (world events, context
+                      only), TURNS (where the ribbon turns over). One dot = 2% of a century's genomes.
     Intro jaw         loadJaw(), jawInk() and jawPose(). The picture is window.ERA_IMAGES["jaw-arches"]:
                       both arches opened flat, the hinge on the horizontal centre line. JAW_TEETH places the rings.
     Intro timing      intro(): the wait(...) and tween(...) durations, in ms.
@@ -156,27 +160,21 @@ a{color:inherit}
 #radial{position:fixed;inset:0;z-index:3;background:var(--bg)}
 #radial[hidden]{display:none}
 .rd{display:block;width:100%;height:100%;font-family:var(--label)}
-.rd-teeth,.rd-inside,.rd-ghosts,.rd-stems,.rd-read{pointer-events:none}
-.rd-ghost{fill:rgba(26,26,24,.3);stroke:none}
-.rd-ghost-soft{stroke:rgba(26,26,24,.28);stroke-width:1.4;fill:none}
-.rd-stem{stroke:rgba(26,26,24,.7);fill:none}
-.rd-stem-soft{stroke:rgba(26,26,24,.62);stroke-width:2;fill:none}
+.rd-teeth,.rd-inside,.rd-stems,.rd-read,.rd-hub{pointer-events:none}
+.rd-stem{fill:rgba(26,26,24,.55);stroke:none}
+.rd-stem-soft{stroke:rgba(26,26,24,.5);stroke-width:1.6;fill:none}
 .rd-inside{opacity:.6}
-.rd-hit{stroke:transparent;stroke-width:18;fill:none;pointer-events:stroke}
+.rd-hub{fill:var(--bg);stroke:var(--ink)}
 .rd-span{fill:var(--ink);stroke:none;pointer-events:none}
-.rd-lift{fill:var(--ink);stroke:none;opacity:0;pointer-events:none;transition:opacity .15s ease}
-.rd-lift.on{opacity:1}
-.rd-mark{fill:var(--bg);stroke:var(--ink);pointer-events:none}
-.rd-mark.edge{fill:var(--ink);stroke:none}
-.rd-markhit{fill:transparent;cursor:pointer;outline:none}
-.rd-end{fill:var(--ink);cursor:pointer;outline:none}
-.rd-vol{fill:rgba(138,109,71,.12);stroke:var(--dentine-ink);stroke-width:.9;opacity:0;pointer-events:none;transition:opacity .4s ease}
-.rd [data-cat].open .rd-vol{opacity:1}
-.rd [data-cat].open .rd-span,.rd [data-cat].open .rd-lift{fill:var(--dentine-ink)}
-.rd [data-cat].open .rd-mark{stroke:var(--dentine-ink)}
-.rd [data-cat].open .rd-mark.edge,.rd [data-cat].open .rd-end{fill:var(--dentine-ink)}
+.rd-dot{fill:var(--bg);stroke:var(--ink);pointer-events:none;transition:fill .15s ease}
+.rd-dot.nocount{stroke-dasharray:2.2 1.8}
+.rd-dot.on{fill:var(--ink)}
+.rd-hit{fill:transparent;cursor:pointer;outline:none}
+.rd-hitline{stroke:transparent;stroke-width:16;fill:none;pointer-events:stroke}
+.rd-rings{pointer-events:none}
+.rd-yring{fill:none;stroke:rgba(26,26,24,.22);stroke-width:.8;stroke-dasharray:1 4}
+.rd-ylab{font-family:var(--label);font-size:10px;font-style:italic;fill:var(--ink-3);paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round}
 .rd-name{fill:var(--ink);font-family:var(--label);font-weight:500;cursor:pointer;outline:none;paint-order:stroke;stroke:var(--bg);stroke-width:6px;stroke-linejoin:round}
-.rd-name.open{fill:var(--dentine-ink)}
 .rd-name.go:hover{text-decoration:underline;text-underline-offset:4px}
 .rd [data-cat],.rd-name{transition:opacity .25s ease}
 .rd.rd-dim [data-cat]:not(.lit),.rd.rd-dim .rd-name:not(.lit){opacity:.16}
@@ -188,9 +186,6 @@ a{color:inherit}
 .rd-ct{fill:var(--ink-2);font-size:13px;font-style:italic}
 .rd-ring{fill:none;stroke:var(--ink);stroke-width:1.2;opacity:0;pointer-events:none}
 .rd-ring.on{opacity:1}
-.rd-foot{position:fixed;left:28px;bottom:26px;z-index:4;max-width:min(560px,calc(100vw - 56px));margin:0;font-family:var(--label);font-size:11.5px;line-height:1.45;color:var(--ink-2)}
-.rd-foot[hidden]{display:none}
-.rd-foot b{color:var(--ink);font-weight:600;margin-right:.25em}
 #stage.radial .tooth canvas,#stage.radial #ov{opacity:0;transition-duration:.3s}
 #stage.radial .tcap{visibility:hidden}
 #again{position:absolute;right:28px;bottom:26px;z-index:6;display:none}
@@ -247,12 +242,30 @@ a{color:inherit}
 .dp svg text{font-family:var(--label);font-size:10px}
 .dp svg text.ax{font-size:9.5px;fill:var(--ink-3)}
 .dp svg text.rl{font-size:11px;fill:var(--ink)}
-.dp svg text.rs{font-size:9px;font-style:italic;fill:var(--ink-3)}
-.dp svg text.grp{font-size:9px;font-weight:600;letter-spacing:.09em}
 .dp svg text.cv{font-size:10px;font-weight:600}
 .dp svg text.cn{font-size:7.5px}
 .dp svg text.big{font-size:17px;fill:var(--ink)}
-.dp svg .nodata{fill:#dedcd5;fill-opacity:.55}
+/* Fig. 2.2, the pathogen strand (drawPathogenStrand in app.js) */
+.dp svg .rung{stroke:var(--ink);stroke-opacity:.1;stroke-width:.6}
+.dp svg .ctxband{fill:var(--ink);fill-opacity:.045}
+.dp svg .grid50{stroke:var(--ink-3);stroke-width:.6;stroke-dasharray:1 3}
+.dp svg text.ctx,.dp svg text.gapl{font-size:9.5px;font-style:italic;fill:var(--ink-3)}
+.dp svg text.ctx{paint-order:stroke;stroke:var(--bg);stroke-width:3px;stroke-linejoin:round}
+.dp svg text.cyr{font-size:10px;fill:var(--ink-2)}
+.dp svg text.ld{font-size:10.5px;fill:var(--ink)}
+.dp svg text.ld.thin{fill:var(--ink-3)}
+.dp svg text.ld .pc{fill:var(--ink-3);font-size:9.5px}
+.keylist.strand-key{display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 14px;margin:2px 0 12px;font-family:var(--label);font-size:11.5px;line-height:1.55}
+.strand-key .kind{font-size:9px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);padding-top:2px;white-space:nowrap}
+.strand-key .kind i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.strand-key button{font:inherit;color:var(--ink);background:none;border:0;padding:0 3px;margin:0 7px 0 -3px;cursor:pointer;text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:3px;transition:background .15s ease,color .15s ease}
+.strand-key button small{font-size:9.5px;color:var(--ink-3);margin-left:4px}
+.strand-key button:hover{text-decoration-color:var(--c)}
+.strand-key button[aria-pressed="true"]{background:var(--c);color:var(--bg);text-decoration:none}
+.strand-key button[aria-pressed="true"] small{color:inherit;opacity:.8}
+.keylist.strand-read{display:block;margin:0 0 10px;min-height:3em;font-size:12px;line-height:1.5;color:var(--ink-2);max-width:74ch}
+.strand-read b{color:var(--ink);font-weight:600}
+.strand-read .link{margin-left:4px;font-size:10px}
 .dp svg rect,.dp svg circle{cursor:default}
 .keylist{display:flex;flex-wrap:wrap;gap:3px 14px;margin-top:8px;font-family:var(--label);font-size:10.5px;color:var(--ink-3)}
 .keylist b{font-weight:500;color:var(--ink)}
@@ -292,11 +305,11 @@ a{color:inherit}
   .rh-idx{margin-left:0;width:100%;gap:14px;flex-wrap:wrap}
   .rh-idx #rhBack{padding-left:14px}
   .folio.l{left:16px}.folio.r{right:16px}
-  .rd-foot{left:16px;bottom:22px}
   #stage.dashboard #pair{grid-template-columns:0 minmax(0,1fr) minmax(0,1fr) 0}
   #again{right:16px;bottom:22px}
-  .rd-foot{left:16px;right:104px;max-width:none}
   #stage.radial .rh{left:16px;right:16px}
+  .keylist.strand-key{grid-template-columns:minmax(0,1fr);gap:0}
+  .strand-key .kind{padding-top:6px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -336,7 +349,6 @@ a{color:inherit}
   <button class="btn" id="skip">Skip intro</button>
   <button class="btn" id="again">Replay</button>
   <div id="radial" hidden></div>
-  <p class="rd-foot" id="radialFoot" hidden><b>Plate II</b> How far back each record reaches, drawn in perspective: the teeth sit deepest and the records come towards you. A line's length is the time its record covers, on one scale for all five, and a gap is a stretch with no record. Circles mark the records within each line. A name opens its section; the circle at a line's end shows how much was gathered per year.</p>
   <span class="folio l fade" id="folioL"></span><span class="folio r fade" id="folioR"></span>
 </div>
 <div id="tip" hidden></div>
@@ -1016,55 +1028,56 @@ void main(){
 <script>
 /* The Tooth Untold: the radial timeline (window.ToothRadial).
 
-   Five records leave one shared point in the gap between a canine and a first molar: caries, pathogens,
-   wear and LEH, metals, artificial interventions. Drawn in perspective: the teeth sit deep in the page and the
-   lines come out towards the viewer. A line's length is the time its record covers, on one shared scale; a
-   stretch with no record is a gap in the line. The timeline is read off circles: one at the start of every record,
-   filled where a record opens, breaks or resumes, hollow at an ordinary boundary inside a run, and a larger
-   one at the far end beside the name. Inside the teeth the lines are soft and blurred; outside, crisp.
+   Five lines leave the centre of the page, one for each kind of record: caries, pathogens, wear and LEH, metals,
+   artificial interventions. The centre point sits in the gap between a first molar (left, as on every other plate)
+   and a canine (right). Along each line a hollow circle marks the year each record begins, read against the dotted
+   year rings, and the line is darker over the years its records cover, so a gap in the record is a pale stretch.
+   Every name is the same size, at the far end of its line.
 
-   Hand-built SVG, no libraries. The data is radial-data.js. The teeth arrive as pictures from the page's
-   own renderer (app.js, radialTeeth()), each with a white and a black silhouette for the blur and the mask.
-   Styles are the .rd-* rules in index.html. */
+   Drawn in perspective: the teeth and the centre sit deep in the page and the lines come out towards the viewer,
+   so the further back a record reaches, the wider the line and the larger its circle. Distance from the centre is
+   how long before the latest record a year is, on one square-root scale for every line. Inside the teeth the lines
+   are soft and blurred; outside, crisp.
+
+   Hand-built SVG, no libraries. The teeth arrive as pictures from the page's own renderer (app.js, radialTeeth()),
+   each with a white and a black silhouette for the blur and the mask. Styles are the .rd-* rules in index.html. */
 (function () {
   "use strict";
   const NS = "http://www.w3.org/2000/svg";
 
-  // ---------------------------------------------------------------- the three constants of the geometry
-  // R0      radius where every record starts, just clear of the teeth
-  // RMAX    radius the longest possible record reaches
-  // MAX_SPAN  years that reach RMAX: the longest record in the data, so a longer one rescales every line together
-  // Radius for t years into a record: R0 + (t / MAX_SPAN) * (RMAX - R0). Every record starts at R0 whatever its
-  // real start date, so distance along a line means "years into that record". The figure is then projected
-  // (see Perspective below) and scaled by one factor so the names stay on canvas.
-  const R0 = 150, RMAX = 585;
+  // ---------------------------------------------------------------- geometry
+  // R0      radius where the lines leave the teeth: the latest year in the data
+  // RMAX    radius of the oldest year in the data
+  // NOW     the latest year in the data; distance from the centre is how many years before NOW a year is
+  // Radius for a year A years before NOW: R0 + sqrt(A / MAX_AGE) * (RMAX - R0). The square root gives the last two
+  // thousand years room beside the six thousand of the metals record; the rings (RINGS, calendar years) mark the
+  // scale. The figure is projected (see Perspective) and scaled by one factor so every circle and name stays on
+  // canvas, with the centre point fixed at the centre of the page.
+  const R0 = 230, RMAX = 585;
   const DATA = window.RADIAL_DATA || [];
-  const MAX_SPAN = Math.max(...DATA.map(c => c.segs[c.segs.length - 1][1] - c.segs[0][0]));
-  const rAt = t => R0 + (t / MAX_SPAN) * (RMAX - R0);
-
-  // Tall, narrow containers turn the whole set of lines (the teeth stay upright) to whichever angle lets the
-  // figure be largest, so the long lines run along the long side and the names stay on canvas.
-  // On small screens, names of more than one word that are longer than WRAP_AT characters break onto two lines.
+  const NOW = Math.max(...DATA.map(c => c.segs[c.segs.length - 1][1]));
+  const MAX_AGE = NOW - Math.min(...DATA.map(c => c.segs[0][0]));
+  const rAge = a => R0 + Math.sqrt(Math.max(0, a) / MAX_AGE) * (RMAX - R0);
+  const rYear = y => rAge(NOW - y);
+  const RINGS = [1800, 1500, 1000, 500, -1000, -3000], RING_AT = 72;   // RING_AT: the direction their labels sit in
+  // Tall, narrow containers turn the whole set (the teeth stay upright) to whichever angle lets the figure be
+  // largest. On small screens, names of more than one word longer than WRAP_AT characters break onto two lines.
   const PORTRAIT = 1.05, TURN_STEP = 6, WRAP_AT = 10;
-  // Perspective. The lines lie on a cone that points at the viewer: the shared point and the teeth sit deepest,
-  // and a point on a line comes nearer the further out it is, at the same rate on every line, so equal years still
-  // sit at equal distances along every line (in the figure's own 3D space). A point at radius w has depth
-  // Z_HUB + (Z_END - Z_HUB) * w / RMAX (positive is behind the page); the camera is CAM units in front of the page
-  // and looks down a little (TILT degrees), so the cone reads as three-dimensional.
-  // Circles, line widths and names grow with nearness; names by up to NAME_GROW times. K_MAX caps the screen
-  // scale on very large screens.
-  const CAM = 1000, Z_HUB = 760, Z_END = -170, TILT = 10, NAME_GROW = 1.5, K_MAX = 1.3;
+  // Perspective. The lines lie on a cone that points at the viewer: the centre and the teeth sit deepest, and a
+  // point comes nearer the further out it is. A point at radius w has depth Z_HUB + (Z_END - Z_HUB) * w / RMAX
+  // (positive is behind the page); the camera is CAM units in front of the page and looks down a little (TILT
+  // degrees), so the cone reads as three-dimensional. K_MAX caps the screen scale on very large screens.
+  const CAM = 1000, Z_HUB = 760, Z_END = -170, TILT = 10, K_MAX = 1.3;
   function project(angDeg, w) {
     const a = angDeg * Math.PI / 180, t = TILT * Math.PI / 180, x = w * Math.cos(a), y = w * Math.sin(a), z = Z_HUB + (Z_END - Z_HUB) * w / RMAX;
     const y2 = y * Math.cos(t) - z * Math.sin(t), z2 = y * Math.sin(t) + z * Math.cos(t), s = CAM / (CAM + z2);
     return [x * s, y2 * s, s];
   }
-  // how much nearer than the page a point at radius w sits, averaged round the cone (for sizes)
+  // how much nearer than R0 a point at radius w sits (for line widths and circle sizes)
   const depthScale = w => CAM / (CAM + (Z_HUB + (Z_END - Z_HUB) * w / RMAX) * Math.cos(TILT * Math.PI / 180));
-  // teeth: height in figure units and the gap between them; the shared point is the middle of the gap
-  const TOOTH_H = { canine: 206, molar: 168 }, GAP = 30;
-  // decorative hairlines: composition only, no data
-  const GHOSTS = 45, GHOST_SEED = 20261001, GHOST_CLEAR = 7, GHOST_APART = 2.4;
+  const near = w => depthScale(w) / depthScale(R0);
+  // teeth: height in figure units and the gap between them; the centre point is the middle of the gap
+  const TOOTH_H = { canine: 340, molar: 276 }, GAP = 40;
   const REDUCED = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function el(tag, attrs, parent) {
@@ -1080,101 +1093,104 @@ void main(){
     if (a >= 0 && b >= 0) return a + " – " + b + " CE";
     return yr(a) + " – " + yr(b);
   }
-  const years = d => Math.max(1, d[1] - d[0]);   // a single-year record counts as one year
   const amount = (c, d) => d[2] == null ? "count not in the data" : d[2].toLocaleString("en-GB") + " " + c.unit;
   const press = f => ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); f(); } };
+  const ease = t => 1 - Math.pow(1 - t, 3);
 
-  /* mount(host, { teeth, animate, open, onOpen, padTop, padBottom })
+  /* mount(host, { teeth, animate, onOpen, padTop, padBottom })
        teeth    { canine: {art, white, black, w, h}, molar: {...} }  (pictures as URLs, w/h in pixels) or null
-       animate  play the one entrance
-       open     a Set of category keys whose "how much was gathered" view is on; kept across rebuilds
-       onOpen   called with a category key when its name is activated (the page opens that section);
-                without it, the name toggles the per-year view like the end dot
+       animate  play the one entrance: the lines shoot out of the centre towards the viewer
+       onOpen   called with a category key when its name is activated (the page opens that section)
        padTop, padBottom  room to leave above and below the figure, in pixels (or functions returning it)  */
   function mount(host, opts) {
-    const open = opts.open || new Set();
-    let svg = null, timers = [];
+    let svg = null, raf = 0;
 
     function build(animate) {
-      timers.forEach(clearTimeout); timers = [];
+      cancelAnimationFrame(raf);
       if (svg) svg.remove();
-      // padTop / padBottom: room the page needs above and below the figure (its running head and caption)
       const W = Math.max(280, host.clientWidth), H = Math.max(320, host.clientHeight);
-      const val = v => typeof v === "function" ? v() : v;   // numbers, or functions read on every rebuild
+      const val = v => typeof v === "function" ? v() : v;
       const padTop = Math.max(24, val(opts.padTop) || 0), padBottom = Math.max(24, val(opts.padBottom) || 0);
-      const narrow = W < 640, baseSize = narrow ? 15 : 21, pad = narrow ? 10 : 24;
+      const narrow = W < 640, nameSize = narrow ? 15 : 20, pad = narrow ? 10 : 24;
+      const C = [W / 2, H / 2];   // the centre point: the centre of the page
       svg = el("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, class: "rd", role: "group",
-        "aria-label": "Radial timeline of the tooth record, drawn in perspective: " + DATA.length + " lines come towards you from a point between a canine and a first molar, one each for " + DATA.map(c => c.name.toLowerCase()).join(", ") + ". A line's length is the time its record covers, on one shared scale; circles mark the records within it and gaps are years with no record. Hover or focus a circle for its years and how much was gathered; activate a name to open its section, or an end circle to show how much was gathered per year." }, host);
+        "aria-label": "Radial timeline of the tooth record, drawn in perspective: five lines leave a point between a first molar and a canine at the centre, one each for " + DATA.map(c => c.name.toLowerCase()).join(", ") + ". Distance from the centre is how long ago a year is; a circle marks the year each record begins and the line is darker over the years the records cover. Hover or focus a circle for its years and how much was gathered; activate a name to open its section." }, host);
       const defs = el("defs", {}, svg);
 
-      // ---- names: one or two lines each, sized by how near their line's end comes
-      const probe = el("text", { class: "rd-name" }, svg);
-      const width = (t, size) => { probe.style.fontSize = size + "px"; probe.textContent = t; return probe.getComputedTextLength(); };
-      const ends = DATA.map(c => rAt(c.segs[c.segs.length - 1][1] - c.segs[0][0]));
-      const sEnd = DATA.map((c, i) => depthScale(ends[i]));
-      const sRef = Math.min(...sEnd), dot = w => Math.max(0.55, Math.min(1.7, depthScale(w) / sRef));
-      const nameSize = DATA.map((c, i) => Math.round(baseSize * Math.min(NAME_GROW, sEnd[i] / sRef)));
-      const nameLines = DATA.map((c, i) => {
+      // ---- each line: its records' circles at the year each begins, and the stretches its records cover
+      const LINES = DATA.map(c => {
+        const marks = c.dens.map(d => ({ c, d, w: rYear(d[0]) }));
+        return { c, marks, wEnd: Math.max(...marks.map(m => m.w)), spans: c.segs.map(sg => [rYear(sg[1]), rYear(sg[0])]) };
+      });
+
+      // ---- names: one or two lines each, all the same size
+      const probe = el("text", { class: "rd-name", style: "font-size:" + nameSize + "px" }, svg);
+      const width = t => { probe.textContent = t; return probe.getComputedTextLength(); };
+      const nameLines = DATA.map(c => {
         const w = c.name.split(" ");
         if (!narrow || w.length < 2 || c.name.length <= WRAP_AT) return [c.name];
         let best = null;   // the break that makes the wider line narrowest
-        for (let k = 1; k < w.length; k++) { const a = w.slice(0, k).join(" "), b = w.slice(k).join(" "), m = Math.max(width(a, nameSize[i]), width(b, nameSize[i])); if (!best || m < best[0]) best = [m, a, b]; }
+        for (let k = 1; k < w.length; k++) { const a = w.slice(0, k).join(" "), b = w.slice(k).join(" "), m = Math.max(width(a), width(b)); if (!best || m < best[0]) best = [m, a, b]; }
         return [best[1], best[2]];
       });
-      const nameW = nameLines.map((L, i) => Math.max(...L.map(t => width(t, nameSize[i]))));
-      const lineH = i => nameSize[i] * 1.12, dotGap = i => 8 + 6 * dot(ends[i]);
+      const nameW = nameLines.map(L => Math.max(...L.map(width))), lineH = nameSize * 1.12, nameGap = narrow ? 10 : 14;
       probe.remove();
+      const circR = (w, k) => 4.6 * near(w) * Math.min(1.25, Math.max(0.7, k));
 
-      // ---- fit: the largest scale k (screen pixels per figure unit) and the shared point's place on screen that
-      // keep every line, end circle and name on canvas, for a given turn of the whole set
+      // ---- fit: the largest scale k (screen pixels per figure unit) that keeps every circle and name on canvas with
+      // the centre point at C, for a given turn of the whole set
       const layout = turn => {
         const hub = project(0, 0), rel = (a, w) => { const p = project(a, w); return [p[0] - hub[0], p[1] - hub[1]]; };
-        const items = DATA.map((c, i) => {
-          const o = rel(c.angle + turn, ends[i]), l = Math.hypot(o[0], o[1]) || 1, u = [o[0] / l, o[1] / l];
-          const upright = Math.abs(u[0]) < 0.26, g = dotGap(i), nw = nameW[i], nh = nameLines[i].length * lineH(i);
-          const bx = upright ? [-nw / 2, nw / 2] : u[0] > 0 ? [g, g + nw] : [-g - nw, -g];
-          const by = upright ? (u[1] > 0 ? [g, g + nh] : [-g - nh, -g]) : [-nh / 2, nh / 2];
+        const names = LINES.map((Ln, ci) => {
+          const o = rel(Ln.c.angle + turn, Ln.wEnd), l = Math.hypot(o[0], o[1]) || 1, u = [o[0] / l, o[1] / l];
+          const upright = Math.abs(u[0]) < 0.3, nw = nameW[ci], nh = nameLines[ci].length * lineH;
+          const bx = upright ? [-nw / 2, nw / 2] : u[0] > 0 ? [0, nw] : [-nw, 0];
+          const by = upright ? (u[1] > 0 ? [0, nh] : [-nh, 0]) : [-nh / 2, nh / 2];
           return { o, u, upright, bx, by };
         });
         const ok = k => {
-          let xl = pad, xh = W - pad, yl = padTop, yh = H - padBottom;
-          items.forEach(t => { xl = Math.max(xl, pad - k * t.o[0] - t.bx[0]); xh = Math.min(xh, W - pad - k * t.o[0] - t.bx[1]); yl = Math.max(yl, padTop - k * t.o[1] - t.by[0]); yh = Math.min(yh, H - padBottom - k * t.o[1] - t.by[1]); });
-          return xl <= xh && yl <= yh ? [(xl + xh) / 2, (yl + yh) / 2] : null;
+          const inX = x => x >= pad && x <= W - pad, inY = y => y >= padTop && y <= H - padBottom;
+          for (const n of names) {
+            const r = 10 * Math.min(1.25, k), g = nameGap + r, ex = C[0] + k * n.o[0], ey = C[1] + k * n.o[1], x = ex + n.u[0] * g, y = ey + n.u[1] * g;
+            if (!inX(ex - r) || !inX(ex + r) || !inY(ey - r) || !inY(ey + r)) return false;
+            if (!inX(x + n.bx[0]) || !inX(x + n.bx[1]) || !inY(y + n.by[0]) || !inY(y + n.by[1])) return false;
+          }
+          return true;
         };
         let lo = 0.05, hi = 3;
-        if (!ok(lo)) return { k: lo, at: [W / 2, (padTop + H - padBottom) / 2], items, hub };
-        for (let n = 0; n < 30; n++) { const m = (lo + hi) / 2; if (ok(m)) lo = m; else hi = m; }
-        return { k: lo, at: ok(lo), items, hub };
+        if (ok(lo)) for (let n = 0; n < 30; n++) { const m = (lo + hi) / 2; if (ok(m)) lo = m; else hi = m; }
+        return { k: lo, names, hub };
       };
       let turn = 0, L = layout(0);
       if (H / W > PORTRAIT) for (let t = TURN_STEP; t < 360; t += TURN_STEP) { const c = layout(t); if (c.k > L.k * 1.005) { L = c; turn = t; } }
-      const k = Math.min(L.k, K_MAX), at = L.at, ang = c => c.angle + turn;
-      const P = (a, w) => { const p = project(a, w); return [at[0] + k * (p[0] - L.hub[0]), at[1] + k * (p[1] - L.hub[1])]; };
-      const r0px = Math.min(...[0, 60, 120, 180, 240, 300].map(a => Math.hypot(...P(a, R0).map((v, j) => v - at[j]))));
+      const k = Math.min(L.k, K_MAX);
+      const P = (a, w) => { const p = project(a, w); return [C[0] + k * (p[0] - L.hub[0]), C[1] + k * (p[1] - L.hub[1])]; };
+      const r0px = Math.min(...[0, 60, 120, 180, 240, 300].map(a => Math.hypot(...P(a, R0).map((v, j) => v - C[j]))));
       // a tapered band along a line, from w1 to w2: perspective makes the near end wider
       const band = (A, w1, w2, h) => {
-        const p = P(A, w1), q = P(A, w2), dx = q[0] - p[0], dy = q[1] - p[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l, a = h * dot(w1), b = h * dot(w2);
+        const p = P(A, w1), q = P(A, w2), dx = q[0] - p[0], dy = q[1] - p[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l, a = h * near(w1), b = h * near(w2);
         return [[p[0] + nx * a, p[1] + ny * a], [q[0] + nx * b, q[1] + ny * b], [q[0] - nx * b, q[1] - ny * b], [p[0] - nx * a, p[1] - ny * a]].map(v => v[0].toFixed(2) + "," + v[1].toFixed(2)).join(" ");
       };
 
-      // ---- teeth: the whole models, side by side and not touching, set deep at the shared point inside R0
+      // ---- teeth: the whole models, molar left and canine right, set deep at the centre point inside R0
       const teethG = el("g", { class: "rd-teeth", "aria-hidden": "true" });
       const maskIn = el("mask", { id: "rd-in", maskUnits: "userSpaceOnUse", x: 0, y: 0, width: W, height: H }, defs);
       const maskOut = el("mask", { id: "rd-out", maskUnits: "userSpaceOnUse", x: 0, y: 0, width: W, height: H }, defs);
       el("rect", { width: W, height: H, fill: "#fff" }, maskOut);
-      const T = opts.teeth, sHub = depthScale(0);
+      const T = opts.teeth, sHub = depthScale(0), teethBoxes = [];
       if (T && T.canine && T.molar) {
         const size = key => { const t = T[key], h = TOOTH_H[key] * k * sHub; return { t, h, w: h * t.w / t.h }; };
-        const c = size("canine"), m = size("molar"), g = GAP * k * sHub;
+        const m = size("molar"), c = size("canine"), g = GAP * k * sHub;
         // shrink both together if a corner would reach past R0
         const far = (x, y, w, h) => Math.max(...[[x, y], [x + w, y], [x, y + h], [x + w, y + h]].map(([px, py]) => Math.hypot(px, py)));
         let s = 1;
         for (let n = 0; n < 6; n++) {
-          const ext = Math.max(far(-g / 2 - c.w * s, -c.h * s / 2, c.w * s, c.h * s), far(g / 2, -m.h * s / 2, m.w * s, m.h * s));
-          if (ext <= r0px - 6) break; s *= (r0px - 6) / ext;
+          const ext = Math.max(far(-g / 2 - m.w * s, -m.h * s / 2, m.w * s, m.h * s), far(g / 2, -c.h * s / 2, c.w * s, c.h * s));
+          if (ext <= r0px - 4) break; s *= (r0px - 4) / ext;
         }
-        [["canine", c, at[0] - g / 2 - c.w * s], ["molar", m, at[0] + g / 2]].forEach(([key, o, x]) => {
-          const box = { x, y: at[1] - o.h * s / 2, width: o.w * s, height: o.h * s, preserveAspectRatio: "none" };
+        [["molar", m, C[0] - g / 2 - m.w * s], ["canine", c, C[0] + g / 2]].forEach(([key, o, x]) => {
+          const box = { x, y: C[1] - o.h * s / 2, width: o.w * s, height: o.h * s, preserveAspectRatio: "none" };
+          teethBoxes.push({ x: box.x, y: box.y, width: box.width, height: box.height });
           el("image", Object.assign({ href: o.t.art }, box), teethG);
           el("image", Object.assign({ href: o.t.white }, box), maskIn);
           el("image", Object.assign({ href: o.t.black }, box), maskOut);
@@ -1183,202 +1199,163 @@ void main(){
       el("filter", { id: "rd-soft", filterUnits: "userSpaceOnUse", x: 0, y: 0, width: W, height: H }, defs)
         .appendChild(el("feGaussianBlur", { stdDeviation: Math.max(1.6, 2.6 * k * sHub) }));
 
-      // ---- layers, back to front. Nothing sits above the circles' hit areas but the names and the readout.
+      // ---- layers, back to front
       el("clipPath", { id: "rd-band" }, defs).appendChild(el("rect", { x: 0, y: padTop, width: W, height: H - padTop - padBottom }));
-      const ghostsClip = el("g", { "clip-path": "url(#rd-band)", "aria-hidden": "true" }, svg);
-      const ghosts = el("g", { class: "rd-ghosts", mask: "url(#rd-out)", "aria-hidden": "true" }, ghostsClip);
+      const ringG = el("g", { class: "rd-rings", "clip-path": "url(#rd-band)", "aria-hidden": "true" }, svg);
       const stems = el("g", { class: "rd-stems", mask: "url(#rd-out)", "aria-hidden": "true" }, svg);
       svg.appendChild(teethG);
       const inside = el("g", { class: "rd-inside", mask: "url(#rd-in)", "aria-hidden": "true" }, svg);
       const soft = el("g", { filter: "url(#rd-soft)" }, inside);
+      el("circle", { class: "rd-hub", cx: C[0], cy: C[1], r: Math.max(3, 4.2 * k), "stroke-width": Math.max(1, 1.3 * k) }, svg);
       const lines = el("g", { class: "rd-lines" }, svg);
       const names = el("g", { class: "rd-names" }, svg);
       const read = el("g", { class: "rd-read", "aria-hidden": "true" }, svg);
       const ring = el("circle", { class: "rd-ring", r: 0 }, svg);
       const ringBox = el("rect", { class: "rd-ring", width: 0, height: 0, rx: 3 }, svg);
+      // the year rings, on the cone: faint and dotted (kept between the running head and the Replay button)
+      RINGS.forEach(Y => {
+        const w = rYear(Y), pts = [];
+        for (let a = 0; a <= 360; a += 4) pts.push(P(a, w).map(v => v.toFixed(1)).join(","));
+        el("polyline", { class: "rd-yring", points: pts.join(" ") }, ringG);
+      });
 
-      // ---- decorative hairlines from the same point, from a fixed seed so they never reshuffle
-      (function () {
-        let seed = GHOST_SEED;
-        const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
-        const dAng = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
-        const busy = DATA.map(ang), out = [];
-        for (let tries = 0; out.length < GHOSTS && tries < 5000; tries++) {
-          const a = rnd() * 360, len = rnd();
-          if (busy.some(b => dAng(a, b) < GHOST_CLEAR) || out.some(o => dAng(a, o) < GHOST_APART)) continue;
-          out.push(a);
-          const w = R0 + Math.pow(len, 1.7) * (RMAX - R0) * 0.75, p = P(a, 0), q = P(a, w);
-          el("polygon", { class: "rd-ghost", points: band(a, 0, w, 0.32) }, ghosts);
-          el("line", { class: "rd-ghost-soft", x1: p[0], y1: p[1], x2: q[0], y2: q[1] }, soft);
-        }
-      })();
-
-      // ---- readout: years and amount on a thin leader line
-      const rLine = el("line", {}, read), rYear = el("text", { class: "rd-yr" }, read), rCount = el("text", { class: "rd-ct" }, read);
-      const dir = (A, w1, w2) => { const p = P(A, w1), q = P(A, w2), l = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1; return [(q[0] - p[0]) / l, (q[1] - p[1]) / l]; };
-      // the readout sits on a short leader to one side of the line; it tries both sides and both alignments
-      // and takes the first place where it touches no name and stays on canvas
-      function showRead(c, d, t0) {
-        const A = ang(c), wm = (rAt(d[0] - t0) + rAt(Math.min(d[1], c.segs[c.segs.length - 1][1]) - t0)) / 2, q = P(A, wm), u = dir(A, R0, RMAX);
-        const ux = -u[1], uy = u[0], pref = uy >= 0 ? 1 : -1;
-        rYear.textContent = range(d[0], d[1]); rCount.textContent = amount(c, d);
+      // ---- readout: years and amount on a short leader, on whichever side touches no name and stays on canvas
+      const rLine = el("line", {}, read), rYr = el("text", { class: "rd-yr" }, read), rCount = el("text", { class: "rd-ct" }, read);
+      const nameEls = [];
+      function showRead(m, q, r) {
+        const u = [q[0] - C[0], q[1] - C[1]], l = Math.hypot(u[0], u[1]) || 1, ux = -u[1] / l, uy = u[0] / l, pref = uy >= 0 ? 1 : -1;
+        rYr.textContent = range(m.d[0], m.d[1]); rCount.textContent = amount(m.c, m.d);
         const nameBoxes = nameEls.map(n => n.getBBox()), clear = bx => bx.x >= 4 && bx.x + bx.width <= W - 4 && bx.y >= 4 && bx.y + bx.height <= H - 4 &&
           nameBoxes.every(n => bx.x > n.x + n.width + 3 || n.x > bx.x + bx.width + 3 || bx.y > n.y + n.height + 2 || n.y > bx.y + bx.height + 2);
         const place = (side, anchor, len) => {
-          const lx = q[0] + ux * side * len, ly = q[1] + uy * side * len, tx = lx + (anchor === "end" ? -8 : 8);
-          rLine.setAttribute("x1", q[0] + ux * side * 8); rLine.setAttribute("y1", q[1] + uy * side * 8); rLine.setAttribute("x2", lx); rLine.setAttribute("y2", ly);
-          [[rYear, 1], [rCount, 19]].forEach(([t, dy]) => { t.setAttribute("x", tx); t.setAttribute("y", ly + dy); t.setAttribute("text-anchor", anchor); });
-          const y1 = rYear.getBBox(), y2 = rCount.getBBox(), x0 = Math.min(y1.x, y2.x), x1 = Math.max(y1.x + y1.width, y2.x + y2.width);
+          const lx = q[0] + ux * side * (r + len), ly = q[1] + uy * side * (r + len), tx = lx + (anchor === "end" ? -8 : 8);
+          rLine.setAttribute("x1", q[0] + ux * side * (r + 3)); rLine.setAttribute("y1", q[1] + uy * side * (r + 3)); rLine.setAttribute("x2", lx); rLine.setAttribute("y2", ly);
+          [[rYr, 1], [rCount, 19]].forEach(([t, dy]) => { t.setAttribute("x", tx); t.setAttribute("y", ly + dy); t.setAttribute("text-anchor", anchor); });
+          const y1 = rYr.getBBox(), y2 = rCount.getBBox(), x0 = Math.min(y1.x, y2.x), x1 = Math.max(y1.x + y1.width, y2.x + y2.width);
           return { x: x0, y: y1.y, width: x1 - x0, height: y2.y + y2.height - y1.y };
         };
         read.classList.add("on");
         const tries = [];
-        [34, 58, 86, 120].forEach(len => [pref, -pref].forEach(side => { const away = ux * side >= 0 ? "start" : "end"; [away, away === "start" ? "end" : "start"].forEach(an => tries.push([side, an, len])); }));
+        [26, 50, 80, 116].forEach(len => [pref, -pref].forEach(side => { const away = ux * side >= 0 ? "start" : "end"; [away, away === "start" ? "end" : "start"].forEach(an => tries.push([side, an, len])); }));
         for (const t of tries) if (clear(place(...t))) return;
-        place(...tries[0]);   // nowhere is clear: fall back to the usual place
+        place(...tries[0]);
       }
       const hideRead = () => read.classList.remove("on");
       function showRing(node) {
         if (!node.matches(":focus-visible")) return;
         if (node.tagName === "text") { const b = node.getBBox(); Object.entries({ x: b.x - 6, y: b.y - 4, width: b.width + 12, height: b.height + 8 }).forEach(([kk, v]) => ringBox.setAttribute(kk, v)); ringBox.classList.add("on"); }
-        else { ring.setAttribute("cx", node.getAttribute("cx")); ring.setAttribute("cy", node.getAttribute("cy")); ring.setAttribute("r", +node.getAttribute("r") + 2); ring.classList.add("on"); }
+        else { ring.setAttribute("cx", node.getAttribute("cx")); ring.setAttribute("cy", node.getAttribute("cy")); ring.setAttribute("r", +node.getAttribute("r") + 2.5); ring.classList.add("on"); }
       }
       const hideRing = () => { ring.classList.remove("on"); ringBox.classList.remove("on"); };
 
-      // ---- the lines
-      const groups = [], nameEls = [], stemEls = [];
+      // ---- the five lines
+      const groups = [], drawn = [], dots = [];
       function lit(g, on) {
         svg.classList.toggle("rd-dim", on);
         groups.forEach((n, i) => { n.classList.toggle("lit", on && n === g); nameEls[i].classList.toggle("lit", on && n === g); });
       }
-      DATA.forEach((c, ci) => {
-        const A = ang(c), t0 = c.segs[0][0], tEnd = c.segs[c.segs.length - 1][1], wEnd = ends[ci], W_ = t => rAt(t - t0);
-        const g = el("g", { "data-cat": c.key, class: open.has(c.key) ? "open" : null }, lines);
+      const allMarks = LINES.flatMap(Ln => Ln.marks.map(m => ({ m, q: P(Ln.c.angle + turn, m.w) })));
+      LINES.forEach((Ln, ci) => {
+        const c = Ln.c, A = c.angle + turn, g = el("g", { "data-cat": c.key }, lines), p1 = P(A, R0), e = P(A, Ln.wEnd);
         groups.push(g);
-        // from the shared point to R0: crisp outside the teeth, soft inside them
-        const p0 = P(A, 0), p1 = P(A, R0);
-        stemEls.push(el("line", { class: "rd-stem", x1: p0[0], y1: p0[1], x2: p1[0], y2: p1[1], "stroke-width": (0.9 * dot(R0)).toFixed(2) }, stems));
-        el("line", { class: "rd-stem-soft", x1: p0[0], y1: p0[1], x2: p1[0], y2: p1[1] }, soft);
-        // a hit strip for "hover the line", underneath every circle so it never takes their events
-        const e = P(A, wEnd);
-        el("line", { class: "rd-hit", x1: p1[0], y1: p1[1], x2: e[0], y2: e[1] }, g);
-        // covered stretches; a break is a break. Each is a band that widens as it comes nearer.
-        c.segs.forEach(sg => el("polygon", { class: "rd-span", points: band(A, W_(sg[0]), W_(sg[1]), 0.48) }, g));
-        // how much was gathered per year: one soft circle on the middle of each record, scaled within this line
-        let vmax = 0;
-        c.dens.forEach(d => { if (d[2] != null) vmax = Math.max(vmax, d[2] / years(d)); });
-        c.dens.forEach(d => {
-          if (d[2] == null || !vmax) return;
-          const wm = (W_(d[0]) + W_(d[1])) / 2, q = P(A, wm);
-          el("circle", { class: "rd-vol", cx: q[0], cy: q[1], r: (3 + Math.sqrt(d[2] / years(d) / vmax) * 17) * dot(wm) * Math.min(1, k * 1.2) }, g);
-        });
-        // circles: the start of every record, filled where the record opens or resumes after a gap, hollow
-        // inside a continuous run; and a filled one where the record breaks (the end of a stretch before a gap)
-        const marks = [];
-        c.dens.forEach((d, i) => {
-          const prev = c.dens[i - 1], next = c.dens[i + 1];
-          marks.push({ d, at: d[0], edge: !prev || prev[1] < d[0] });
-          if (next && d[1] < next[0]) marks.push({ d, at: d[1], edge: true, brk: true });
-        });
-        const lastD = c.dens[c.dens.length - 1], pointEnd = lastD && lastD[0] === lastD[1] && lastD[1] === tEnd;
-        const spots = marks.map(m => P(A, W_(m.at))).concat([e]);
-        const hitR = q => Math.max(1, Math.min(12, ...spots.filter(o => o !== q && (o[0] !== q[0] || o[1] !== q[1])).map(o => Math.hypot(o[0] - q[0], o[1] - q[1]) / 2)));
-        // the end circle goes in first, beneath the record circles, so no record's hit area is covered
-        const endSlot = el("g", {}, g);
-        marks.forEach((m, mi) => {
-          if (pointEnd && m.d === lastD && !m.brk) return;   // drawn by the end dot below
-          const d = m.d, w = W_(m.at), q = spots[mi], sc = dot(w), base = (m.edge ? 3.8 : 3.1) * sc;
-          const liftLine = el("polygon", { class: "rd-lift", points: band(A, W_(d[0]), W_(d[1]), 1.2) }, g);
-          const dotEl = el("circle", { class: "rd-mark" + (m.edge ? " edge" : ""), cx: q[0], cy: q[1], r: base, "stroke-width": (1.1 * sc).toFixed(2) }, g);
-          const hit = el("circle", { class: "rd-markhit", cx: q[0], cy: q[1], r: hitR(q).toFixed(1), tabindex: 0, role: "button",
-            "aria-label": c.name + (m.brk ? ", record breaks after " : ", ") + range(d[0], d[1]) + ", " + amount(c, d) }, g);
-          const on = () => { liftLine.classList.add("on"); dotEl.setAttribute("r", base + 1.4 * sc); showRead(c, d, t0); };
-          const off = () => { liftLine.classList.remove("on"); dotEl.setAttribute("r", base); hideRead(); };
+        // the line: a hairline from the centre to the oldest year, crisp outside the teeth and soft inside them; a
+        // hit strip under it for "hover the line"; darker over the years the records cover
+        const o = { Ln, A,
+          stem: el("polygon", { class: "rd-stem", points: band(A, 0, Ln.wEnd, 0.42) }, stems),
+          soft: el("line", { class: "rd-stem-soft", x1: C[0], y1: C[1], x2: p1[0], y2: p1[1] }, soft),
+          hitLine: el("line", { class: "rd-hitline", x1: p1[0], y1: p1[1], x2: e[0], y2: e[1] }, g),
+          spans: Ln.spans.map(sp => ({ sp, el: el("polygon", { class: "rd-span", points: band(A, sp[0], sp[1], 1.1) }, g) })), marks: [] };
+        // a circle at the year each record begins, no wider than the room between it and its neighbours on the line
+        const qs = Ln.marks.map(m => P(A, m.w));
+        Ln.marks.forEach((m, mi) => {
+          const q = qs[mi], room = Math.min(...qs.filter((x, j) => j !== mi).map(x => Math.hypot(x[0] - q[0], x[1] - q[1])));
+          const r = Math.min(circR(m.w, k), Math.max(1.8, 0.44 * room));
+          const dot = el("circle", { class: "rd-dot" + (m.d[2] == null ? " nocount" : ""), cx: q[0], cy: q[1], r, "stroke-width": (1.6 * near(m.w) * Math.min(1.2, Math.max(0.75, k))).toFixed(2) }, g);
+          const others = allMarks.filter(x => x.m !== m).map(x => Math.hypot(x.q[0] - q[0], x.q[1] - q[1]) / 2);
+          const hit = el("circle", { class: "rd-hit", cx: q[0], cy: q[1], r: Math.max(1, Math.min(14, ...others)).toFixed(1), tabindex: 0, role: "button", "aria-label": c.name + ", " + range(m.d[0], m.d[1]) + ", " + amount(c, m.d) }, g);
+          const on = () => { dot.classList.add("on"); showRead(m, q, r); };
+          const off = () => { dot.classList.remove("on"); hideRead(); };
           hit.addEventListener("mouseenter", on); hit.addEventListener("mouseleave", off);
-          hit.addEventListener("focus", () => { on(); lit(g, true); showRing(hit); });
+          hit.addEventListener("focus", () => { on(); lit(g, true); showRing(dot); });
           hit.addEventListener("blur", () => { off(); lit(g, false); hideRing(); });
           hit.addEventListener("keydown", press(on));
+          const dd = { m, q, r, dot }; o.marks.push(dd); dots.push(dd);
         });
-        // the far end: a larger circle, then the name
-        const er = 6 * dot(wEnd);
-        const end = el("circle", { class: "rd-end", cx: e[0], cy: e[1], r: er, tabindex: 0, role: "button",
-          "aria-pressed": open.has(c.key) ? "true" : "false", "aria-label": (pointEnd ? c.name + ", " + range(lastD[0], lastD[1]) + ", " + amount(c, lastD) + ". " : c.name + ": ") + "show how much was gathered per year" }, g);
-        endSlot.appendChild(end);
-        if (pointEnd) {
-          end.addEventListener("mouseenter", () => { end.setAttribute("r", er + 1.4); showRead(c, lastD, t0); });
-          end.addEventListener("mouseleave", () => { end.setAttribute("r", er); hideRead(); });
-          end.addEventListener("focus", () => showRead(c, lastD, t0));
-          end.addEventListener("blur", hideRead);
-        }
-        // names sit beyond the end dot: to its side, or centred above or below it when the line is near vertical
-        const it = L.items[ci], fs = nameSize[ci], lh = lineH(ci), nl = nameLines[ci].length, gp = dotGap(ci);
-        const lx = it.upright ? e[0] : e[0] + (it.u[0] > 0 ? gp : -gp);
-        const y0 = it.upright ? (it.u[1] > 0 ? e[1] + gp + fs * 0.78 : e[1] - gp - (nl - 1) * lh - fs * 0.22) : e[1] + fs / 3 - (nl - 1) * lh / 2;
+        drawn.push(o);
+        // the name, beyond the oldest circle: to its side, or centred above or below it when the line is near vertical
+        const it = L.names[ci], gp = nameGap + circR(Ln.wEnd, k), nl = nameLines[ci].length;
+        const lx = e[0] + it.u[0] * gp, ly = e[1] + it.u[1] * gp;
+        const y0 = it.upright ? (it.u[1] > 0 ? ly + nameSize * 0.78 : ly - (nl - 1) * lineH - nameSize * 0.22) : ly + nameSize / 3 - (nl - 1) * lineH / 2;
         const opens = typeof opts.onOpen === "function";
-        const name = el("text", { class: "rd-name" + (open.has(c.key) ? " open" : "") + (opens ? " go" : ""), x: lx, y: y0, "text-anchor": it.upright ? "middle" : it.u[0] > 0 ? "start" : "end",
-          style: "font-size:" + fs + "px", tabindex: 0, role: opens ? "link" : "button", "aria-pressed": opens ? null : open.has(c.key) ? "true" : "false",
-          "aria-label": opens ? c.name + ": open this section" : c.name + ": show how much was gathered per year" }, names);
+        const name = el("text", { class: "rd-name" + (opens ? " go" : ""), x: lx, y: y0, "text-anchor": it.upright ? "middle" : it.u[0] > 0 ? "start" : "end",
+          style: "font-size:" + nameSize + "px", tabindex: opens ? 0 : null, role: opens ? "link" : null, "aria-label": opens ? c.name + ": open this section" : null }, names);
         if (nl === 1) name.textContent = c.name;
-        else nameLines[ci].forEach((t, li) => { el("tspan", { x: lx, dy: li ? lh : 0 }, name).textContent = t; });
+        else nameLines[ci].forEach((t, li) => { el("tspan", { x: lx, dy: li ? lineH : 0 }, name).textContent = t; });
         nameEls.push(name);
-        function toggle() {
-          const on = !open.has(c.key);
-          if (on) open.add(c.key); else open.delete(c.key);
-          g.classList.toggle("open", on); name.classList.toggle("open", on);
-          [name, end].forEach(n => { if (n.hasAttribute("aria-pressed")) n.setAttribute("aria-pressed", on ? "true" : "false"); });
-        }
-        const go = opens ? () => opts.onOpen(c.key) : toggle;
-        end.addEventListener("click", toggle); end.addEventListener("keydown", press(toggle));
-        name.addEventListener("click", go); name.addEventListener("keydown", press(go));
-        [name, end].forEach(n => {
-          n.addEventListener("focus", () => { lit(g, true); showRing(n); });
-          n.addEventListener("blur", () => { lit(g, false); hideRing(); });
-          n.addEventListener("mouseenter", () => lit(g, true));
-          n.addEventListener("mouseleave", () => lit(g, false));
-        });
+        if (opens) { const go = () => opts.onOpen(c.key); name.addEventListener("click", go); name.addEventListener("keydown", press(go)); }
+        name.addEventListener("focus", () => { lit(g, true); showRing(name); });
+        name.addEventListener("blur", () => { lit(g, false); hideRing(); });
+        name.addEventListener("mouseenter", () => lit(g, true));
+        name.addEventListener("mouseleave", () => lit(g, false));
         g.addEventListener("mouseenter", () => lit(g, true));
         g.addEventListener("mouseleave", () => lit(g, false));
       });
 
-      // ---- names that still run into each other: the longer one moves outward along its line
+      // ---- a name that runs into a circle or another name moves outward along its line
       const box = n => n.getBBox(), meets = (p, q) => p.x < q.x + q.width + 6 && q.x < p.x + p.width + 6 && p.y < q.y + q.height + 2 && q.y < p.y + p.height + 2;
-      for (let pass = 0; pass < 6; pass++) {
+      const dotBox = d => ({ x: d.q[0] - d.r, y: d.q[1] - d.r, width: 2 * d.r, height: 2 * d.r });
+      for (let pass = 0; pass < 12; pass++) {
         let moved = false;
-        nameEls.forEach((p, i) => nameEls.forEach((q, j) => {
-          if (j <= i || !meets(box(p), box(q))) return;
-          const kk = DATA[i].name.length >= DATA[j].name.length ? i : j, n = nameEls[kk], u = L.items[kk].u;
-          n.setAttribute("x", +n.getAttribute("x") + u[0] * 12); n.setAttribute("y", +n.getAttribute("y") + u[1] * 12);
+        nameEls.forEach((n, i) => {
+          const b = box(n), hitsDot = dots.some(d => meets(b, dotBox(d))), hitsName = nameEls.some((m, j) => j !== i && DATA[i].name.length >= DATA[j].name.length && meets(b, box(m)));
+          if (!hitsDot && !hitsName) return;
+          const u = L.names[i].u;
+          n.setAttribute("x", +n.getAttribute("x") + u[0] * 8); n.setAttribute("y", +n.getAttribute("y") + u[1] * 8);
           n.querySelectorAll("tspan").forEach(t => t.setAttribute("x", n.getAttribute("x")));
           moved = true;
-        }));
+        });
         if (!moved) break;
       }
+      // ---- the rings' year labels, in the widest gap between lines; a label that would touch another label, a name, a
+      // circle or the teeth, or leave the band between the running head and the Replay button, is left out
+      const placed = nameEls.map(n => n.getBBox()).concat(dots.map(dotBox), teethBoxes);
+      RINGS.forEach(Y => {
+        const q = P(RING_AT + turn, rYear(Y));
+        const t = el("text", { class: "rd-ylab", x: q[0] + 4, y: q[1] - 4 }, ringG); t.textContent = Y < 0 ? -Y + " BCE" : Y + " CE";
+        const b = t.getBBox();
+        if (b.y < padTop + 2 || b.y + b.height > H - padBottom - 2 || b.x < pad || b.x + b.width > W - pad || placed.some(p => meets(b, p))) t.remove(); else placed.push(b);
+      });
 
-      // ---- one entrance: the lines draw outward from the deep point towards you, the records fade in, then the names
+      // ---- one entrance: each line shoots out of the centre towards the viewer, one after another, dropping its
+      // circles as it passes their years; then the names
       if (animate && !REDUCED) {
-        const set = (n, css) => Object.assign(n.style, css);
-        stemEls.forEach(s => { const l = Math.hypot(s.x2.baseVal.value - s.x1.baseVal.value, s.y2.baseVal.value - s.y1.baseVal.value); set(s, { strokeDasharray: l, strokeDashoffset: l }); });
-        [ghosts, inside, names].concat(groups).forEach(n => set(n, { opacity: 0 }));
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          const ease = "cubic-bezier(.6,0,.2,1)";
-          set(inside, { transition: "opacity 700ms ease", opacity: "" });
-          set(ghosts, { transition: "opacity 1200ms ease 300ms", opacity: "" });
-          stemEls.forEach((s, i) => set(s, { transition: "stroke-dashoffset 700ms " + ease + " " + i * 70 + "ms", strokeDashoffset: 0 }));
-          groups.forEach((n, i) => set(n, { transition: "opacity 900ms ease " + (440 + i * 90) + "ms", opacity: "" }));
-          set(names, { transition: "opacity 700ms ease 1100ms", opacity: "" });
-          timers.push(setTimeout(() => [ghosts, inside, names].concat(groups, stemEls).forEach(n => { n.style.transition = ""; n.style.opacity = ""; n.style.strokeDasharray = ""; n.style.strokeDashoffset = ""; }), 2600));
-        }));
+        names.style.opacity = 0;
+        const t0 = performance.now(), DUR = 1300;
+        drawn.forEach(o => o.marks.forEach(d => d.dot.setAttribute("r", 0)));
+        const frame = now => {
+          let done = true;
+          drawn.forEach((o, i) => {
+            const t = Math.max(0, Math.min(1, (now - t0 - i * 160) / DUR)), w = o.Ln.wEnd * ease(t);
+            if (t < 1) done = false;
+            o.stem.setAttribute("points", band(o.A, 0, Math.max(1, w), 0.42));
+            o.spans.forEach(s => s.el.setAttribute("points", band(o.A, Math.min(s.sp[0], w), Math.min(s.sp[1], w), 1.1)));
+            o.marks.forEach(d => d.dot.setAttribute("r", w >= d.m.w - 0.5 ? d.r : 0));
+          });
+          if (!done) raf = requestAnimationFrame(frame);
+          else { names.style.transition = "opacity 600ms ease"; names.style.opacity = ""; }
+        };
+        raf = requestAnimationFrame(frame);
       }
     }
 
     build(!!opts.animate);
     return {
       resize() { build(false); },
-      destroy() { timers.forEach(clearTimeout); if (svg) svg.remove(); svg = null; },
+      destroy() { cancelAnimationFrame(raf); if (svg) svg.remove(); svg = null; },
     };
   }
 
-  window.ToothRadial = { mount, R0, RMAX, MAX_SPAN };
+  window.ToothRadial = { mount, R0, RMAX, NOW };
 })();
 
 </script>
@@ -1387,7 +1364,8 @@ void main(){
 <script>
 /* The Tooth Untold: storyline build (v6).
    Intro: engraved jaw, closed, swings open on its hinge -> four teeth line up -> first molar and canine close in -> 2D becomes a 3D point cloud.
-   Overview: the two composite teeth, cut open in their jaw, play through 300-1900 CE with no timeline; marks arrive as each
+   Overview: the two composite teeth, cut open as realistic ground sections (no gum or bone; the nerve and vessels in
+   their canals, as on the Pathogens plate), play through 300-1900 CE with no timeline; marks arrive as each
    century's records come in. Then the radial timeline (radial.js, data in radial-data.js): four records leave a point
    between the two teeth; a name opens that record's section. Everything after the intro is set as a scientific
    journal: running heads, plates and numbered figures with captions, page numbers.
@@ -1472,15 +1450,7 @@ window.startStatisticalTooth = (function () {
   const ease = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
   function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
   function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-  function glyph(cat, s) {
-    s = s || 1; const c = CAT[cat] || "#221f1b";
-    if (cat === "bacteria") return "<rect x='" + (-4.6 * s) + "' y='" + (-1.7 * s) + "' width='" + (9.2 * s) + "' height='" + (3.4 * s) + "' rx='" + (1.7 * s) + "' fill='" + c + "' stroke='#fbf8f1' stroke-width='.7'/>";
-    if (cat === "virus") return "<path d='" + d3.range(6).map(i => (i ? "L" : "M") + (4 * s * Math.cos(i * Math.PI / 3)).toFixed(2) + "," + (4 * s * Math.sin(i * Math.PI / 3)).toFixed(2)).join("") + "Z' fill='" + c + "' stroke='#fbf8f1' stroke-width='.7'/>";
-    if (cat === "parasite") return "<circle r='" + (3.5 * s) + "' fill='#fbf8f1' stroke='" + c + "' stroke-width='1.7'/><circle r='" + (1.2 * s) + "' cx='" + (1.2 * s) + "' cy='" + (-1 * s) + "' fill='" + c + "'/>";
-    if (cat === "particle") return "<path d='M" + (-4.6 * s) + ",0q" + (2.3 * s) + "," + (-3.3 * s) + " " + (4.6 * s) + ",0t" + (4.6 * s) + ",0' fill='none' stroke='" + c + "' stroke-width='1.7' stroke-linecap='round'/>";
-    return "<circle r='2.6' fill='" + c + "'/>";
-  }
-  // Realistic pathogens for the section plates, drawn like a scientific illustration in each category's colour:
+  // Realistic pathogens for the overview and the section plates, drawn like a scientific illustration in each category's colour:
   // bacteria as rods with a membrane, granules and fine flagella; viruses as spheres ringed with surface spikes;
   // parasites (malaria) as a ring-stage parasite inside a red blood cell. Shading comes from gradients in #ov.
   const tone = (hex, k) => { const c = d3.color(hex); return (k > 0 ? d3.interpolateRgb(c, "#ffffff")(k) : d3.interpolateRgb(c, "#000000")(-k)); };
@@ -1575,14 +1545,14 @@ window.startStatisticalTooth = (function () {
   TEETH.forEach(T => { T.canvas = T.el.querySelector("canvas"); try { T.R = window.ToothGL.create(T.canvas); } catch (e) { console.error(e); } T.parts = new Map(); });
   const GL = TEETH.every(T => T.R);
   if (!GL) $("#pair").insertAdjacentHTML("beforeend", "<div class='fallback'>This browser cannot draw the 3D teeth (WebGL2 is unavailable). The timeline and panels still work.</div>");
-  const VIEW = { yaw: 0.55, pitch: 0.22 };
+  const VIEW = { yaw: 0.3, pitch: 0.14 };   // the cut view, the same as on the section plates
   let G = null;
   const pairEl = $("#pair"), ov = d3.select("#ov");
 
   function setShapes() {
     if (!GL) return;
     TEETH.forEach(T => { T.R.setShape(window.ToothGL.shape(T.type, S.jaw), true); T.parts.clear(); });
-    refit();
+    frameView();
   }
   function refit() {
     if (!GL) return;
@@ -1601,7 +1571,7 @@ window.startStatisticalTooth = (function () {
     const cp = SH.cariesAt === "occlusal" ? [0.06, Math.min(wearY, SH.grooveY) - 0.005, -0.03] : [SH.B[0] * 0.97, 0.44 * top, -0.13];
     const pb = (L === "all" || L === "metals") && G.pb != null ? clamp(Math.log10(G.pb / 0.05) / Math.log10(10 / 0.05), 0, 1) : 0;
     const calc = G.calcRecs.some(r => L === "all" || (L === "pathogens" && r.kind !== "metal") || (L === "metals" && r.kind === "metal")) ? 1 : 0;
-    return { wearY, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: [0.36 * top, 0.54 * top], calc, pb, cutX: viewOf(T) === "cut" ? 0 : 5, jaw: viewOf(T) === "cut" && S.scene !== "layer", real: S.scene === "layer" };
+    return { wearY, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: [0.36 * top, 0.54 * top], calc, pb, cutX: viewOf(T) === "cut" ? 0 : 5, jaw: false, real: liveTeeth() };
   }
   // the view a tooth is drawn in: cut everywhere except on a section's plate, where the section decides
   const viewOf = T => S.scene === "layer" && layerOf(S.layer) ? layerOf(S.layer).view[T.key] : "cut";
@@ -1646,7 +1616,7 @@ window.startStatisticalTooth = (function () {
         const had = T.parts.get(r.id); if (had && !had.dead) return;
         const q = makeParticle(T, r, placed, dense); if (!q) return;
         const fast = S.playing;   // the overview moves quickly, so marks travel faster there
-        q.born = animate && !STILL ? now + Math.min(k++ * (fast ? 25 : 55), fast ? 450 : 1100) : -1e9; q.dur = (fast ? 800 : 1500) + (hash(r.id) % (fast ? 250 : 400));
+        q.born = animate && !STILL ? now + Math.min(k++ * (fast ? 25 : 55), fast ? 450 : 1100) : -1e9; q.dur = (fast ? 600 : 1500) + (hash(r.id) % (fast ? 200 : 400));
         T.parts.set(r.id, q);
       });
     });
@@ -1660,13 +1630,13 @@ window.startStatisticalTooth = (function () {
         const y = SH.rootMin + 0.12 + rnd() * (P.wearY - 0.04 - SH.rootMin - 0.12), x = SH.boxMin[0] + rnd() * (SH.boxMax[0] - SH.boxMin[0]);
         const p = [x, y, -0.002];
         if (!insideSolid(T, p, 0.03)) continue;
-        if (S.scene === "layer" && y > 0.05 && T.R.outerJS(p) > -0.12) continue;   // on a section plate, DNA sits in dentine and pulp, not enamel
+        if (y > 0.05 && T.R.outerJS(p) > -0.12) continue;   // DNA sits in dentine and pulp, not enamel
         if (k < 400 && placed.some(o => Math.hypot(o[1] - y, o[0] - x) < (dense ? 0.03 : 0.05))) continue;
         pos = p; break;
       }
       if (!pos) return null;
       placed.push(pos);
-      // route: in from below the root tip, up the canal to the mark's own height, then across to it
+      // route: from the root tip, where the nerve and vessels enter, up the canal to the mark's own height, then across
       let axis;
       if (SH.canal && SH.canal.length) axis = SH.canal.map(c => [c[0], c[1]]);
       else {
@@ -1675,14 +1645,14 @@ window.startStatisticalTooth = (function () {
         axis = d3.range(0, 1.001, 0.1).map(k => [a0[0] + (b0[0] - a0[0]) * k, a0[1] + (b0[1] - a0[1]) * k]);
       }
       const z = -0.002, up = axis.filter(c => c[1] <= pos[1]);
-      const path = withLengths([[axis[0][0] + (rnd() - 0.5) * 0.25, SH.bottom - 0.3, z], [axis[0][0], axis[0][1], z]].concat(up.map(c => [c[0], c[1], z]), [pos]));
+      const path = withLengths([[axis[0][0], axis[0][1], z], [axis[0][0], axis[0][1] + 0.001, z]].concat(up.map(c => [c[0], c[1], z]), [pos]));
       return { r, p: pos, path, face: true, cat: r.cat };
     }
     const a = -0.95 + rnd() * 0.87, dir = [Math.cos(a), 0, Math.sin(a)];
     const hit = T.R.march([dir[0] * 2, 0.1 + (rnd() - 0.5) * 0.04, dir[2] * 2], [-dir[0], 0, -dir[2]], 3);
     if (!hit) return null;
     const pos = [hit.p[0] + dir[0] * 0.035, hit.p[1], hit.p[2] + dir[2] * 0.035];
-    const path = withLengths([[pos[0] + 0.2, SH.top + 0.42, pos[2]], [pos[0] + 0.1, SH.top + 0.12, pos[2]], pos]);
+    const path = withLengths([[pos[0] + 0.1, SH.top + 0.1, pos[2]], [pos[0] + 0.05, SH.top + 0.04, pos[2]], pos]);   // tartar settles from just above the crown
     return { r, p: pos, path, face: false, n: dir, cat: r.cat };
   }
   function withLengths(path) {
@@ -1716,6 +1686,7 @@ window.startStatisticalTooth = (function () {
         const k = (now - q.born) / q.dur;
         if (k < 0) { busy = true; return; }
         const e = ease(Math.min(k, 1));
+        if (k < 0.2) op *= k / 0.2;   // fade in on the way in, so marks setting off together do not bunch at the root tip
         let pos = k >= 1 ? q.p : along(q.path, e);
         const xy = toPair(T, pos);
         if (k < 1.5) {
@@ -1733,7 +1704,7 @@ window.startStatisticalTooth = (function () {
     sel.exit().remove();
     const en = sel.enter().append("g").attr("class", "pt").attr("tabindex", 0).attr("role", "button")
       .attr("aria-label", d => common(d.q.r.name) + ", " + d.q.r.site)
-      .html(d => S.scene === "layer" ? microbe(d.q.cat, 0.58, hash(d.id)) : glyph(d.q.cat, everything() ? 0.75 : 1))
+      .html(d => microbe(d.q.cat, S.scene === "main" ? 0.85 : 0.58, hash(d.id)))   // larger on the overview, where fewer arrive at once
       .on("mousemove", (ev, d) => showTip(ev, recTip(d.q.r))).on("mouseleave", hideTip)
       .on("pointerdown", ev => ev.stopPropagation());
     en.merge(sel).attr("transform", d => "translate(" + d.x.toFixed(1) + "," + d.y.toFixed(1) + ") rotate(" + (hash(d.id) % 180) + ")").attr("opacity", d => d.op);
@@ -1873,8 +1844,7 @@ window.startStatisticalTooth = (function () {
   const readout = () => { $("#when").textContent = everything() ? "300–1900 CE, all periods pooled" : Math.round(S.t) + " CE"; };
 
   // ------------------------------------------------------------------ the radial timeline
-  const radialEl = $("#radial"), radialFoot = $("#radialFoot"), panelEl = $("#panel");
-  const radialOpen = new Set();   // lines whose "how much was gathered" view is on, kept while moving around the page
+  const radialEl = $("#radial"), panelEl = $("#panel");
   let radial = null;
   // Each tooth alone, whole and uncut, out of its jaw (the 3D model itself, as on the "whole" plates), drawn by its
   // own renderer and cropped to its silhouette. The white and black silhouettes let radial.js blur the lines inside
@@ -1926,7 +1896,7 @@ window.startStatisticalTooth = (function () {
     document.querySelectorAll("#rhIdx [data-l]").forEach(b => b.setAttribute("aria-current", L && b.dataset.l === L.key ? "page" : "false"));
     $("#rhBack").hidden = !L;
     $("#capText").innerHTML = L ? "<b>Fig. " + L.n + ".1</b> " + STAT + ", all periods pooled, " + esc(typeof L.plate === "function" ? (LD ? L.plate() : "") : L.plate)
-      : "<b>Plate I</b> " + STAT + ". A first molar and a canine, cut open in their jaw, as the records of 300–1900 CE arrive century by century.";
+      : "";   // the overview and the timeline carry no caption
     const pages = L ? [2 + 2 * L.n, 3 + 2 * L.n] : onRadial ? [2, 3] : [1, null];
     $("#folioL").textContent = pages[0] || ""; $("#folioR").textContent = pages[1] || "";
   }
@@ -1939,15 +1909,15 @@ window.startStatisticalTooth = (function () {
       if (S.scene !== "radial") return;
       refit();
       const teeth = GL ? radialTeeth() : null;
-      stage.classList.add("radial"); radialEl.hidden = false; radialFoot.hidden = false;
+      stage.classList.add("radial"); radialEl.hidden = false;
       if (radial) radial.destroy();
-      radial = window.ToothRadial ? window.ToothRadial.mount(radialEl, { teeth, animate: animate && !REDUCED, open: radialOpen, onOpen: openLayer,
-        padTop: () => $("#rh").getBoundingClientRect().bottom + 8, padBottom: () => innerHeight - radialFoot.getBoundingClientRect().top + 8 }) : null;
+      radial = window.ToothRadial ? window.ToothRadial.mount(radialEl, { teeth, animate: animate && !REDUCED, onOpen: openLayer,
+        padTop: () => $("#rh").getBoundingClientRect().bottom + 8, padBottom: () => innerHeight - $("#again").getBoundingClientRect().top + 8 }) : null;
     });
   }
   function leaveRadial() {
     if (radial) { radial.destroy(); radial = null; }
-    radialEl.hidden = true; radialFoot.hidden = true; stage.classList.remove("radial");
+    radialEl.hidden = true; stage.classList.remove("radial");
   }
 
   // ------------------------------------------------------------------ one layer's dashboard
@@ -1957,6 +1927,7 @@ window.startStatisticalTooth = (function () {
   function openLayer(k) {
     const L = layerOf(k); if (!L) return;
     clearTimeout(layersTimer); pause();
+    if (S.scene !== "layer" || S.layer !== k) { strandSel = null; strandShown = false; }   // a fresh visit, not a resize
     S.scene = "layer"; S.layer = k; S.show = k; S.t = T_ALL; G = composite(T_ALL); readout();
     leaveRadial(); stage.classList.add("dashboard", "haspanel");
     panelEl.hidden = false;
@@ -1977,11 +1948,14 @@ window.startStatisticalTooth = (function () {
       { id: "csev", title: "Fewer people escaped, and those who did not had it worse",
       sub: () => { const V = LD.caries.severity, five = p => V[p].shares[3] + V[p].shares[4]; return "Adults by how many of their own teeth were carious. The share with none falls from " + pct1c(V["High medieval"].shares[0]) + " in the High medieval period to " + pct1c(V.Industrial.shares[0]) + " in the Industrial; five or more carious teeth rises from " + pct1c(five("High medieval")) + " to " + pct1c(five("Industrial")) + "."; },
       notes: ["Age is not controlled here; this figure is about the shape of the distribution. Fig. 1.2 has age as its axis."] }],
-    pathogens: [{ id: "pmatrix", title: "Which disease dominated the record, century by century",
-      sub: "Each cell is the share of that century's recovered genomes that belong to one organism, so each column adds up to 100%. The bar on top shows how many genomes that is.",
-      notes: ["A share cancels out how much digging and sequencing each century received, but it is not prevalence, and not a share of the oral microbiome: the denominator is genomes recovered, not people alive.",
-        "Columns resting on a handful of genomes (the 100s–300s) swing wildly; read the bar and the cell together. The 800s have no European dental samples.",
-        "Source: AncientMetagenomeDir (SPAAM community, CC-BY 4.0), European dental samples; disease labels from the team's pathogen_reference.csv."] }],
+    pathogens: [{ id: "pstrand", title: "Which disease dominated the record, century by century",
+      sub: "The record drawn as a strand. Each rung is a century from 100 to 1800 CE, made of 50 dots shared among the organisms recovered from it, one dot for every 2% of the century's genomes. The dark dots are the century's largest share, named on the right; the bar beside each century counts its genomes. Choose an organism to light its dots in every century and pull them out of the strand.",
+      notes: () => { const un = strandUnnamed(); return ["Compare runs of dots on the same rung. A share cancels out how much digging and sequencing each century received, but it is not prevalence, and not a share of the oral microbiome: the denominator is genomes recovered, not people alive.",
+        "Pale rungs rest on fewer than five genomes (the 100s to 300s) and swing wildly. The 800s have no European dental samples." + (un.length ? " " + cap(numWord(d3.sum(un, u => u.k))) + " genomes in the century totals are not named in the index (" + un.map(u => numWord(u.k) + " in the " + u.c + "s").join(", ") + "); they keep their own run of dots, listed as not named." : ""),
+        "Shares are rounded to whole dots, and every organism found keeps at least one, so a run can be a dot off; hovering a run, and the rows pulled out, give the exact numbers.",
+        "The twist is drawing, not data. The ribbon turns only beside small or empty centuries, so the large ones face the reader; rungs on the far side of a turn read right to left.",
+        "Shaded bands are world events, for context and not from this dataset: " + STRAND_CONTEXT.map(e => "the " + e.label.charAt(0).toLowerCase() + e.label.slice(1) + " (" + e.when + ")").join(", ").replace(/, ([^,]*)$/, " and $1") + ", from the team's events list.",
+        "Source: AncientMetagenomeDir (SPAAM community, CC-BY 4.0), European dental samples; disease labels from the team's pathogen_reference.csv."]; } }],
     wear: [{ id: "wear", title: "Chewing wear builds up with age, and eases over the centuries",
       sub: "Mean molar wear (Smith 1984 stage, 1 to 8) by period and age at death. Each row rises with age; at every age, Industrial-period molars are the least worn.",
       notes: ["Wear is recorded for only part of the GHHP database, which its authors warn may not generalise. Dashed cells rest on fewer than 30 people."] },
@@ -2022,7 +1996,7 @@ window.startStatisticalTooth = (function () {
     (CHARTS[L.key] || []).forEach(c => {
       const svg = d3.select("#ch-" + c.id); if (svg.empty()) return;
       svg.selectAll("*").remove(); d3.select(svg.node().parentNode).selectAll(".keylist").remove();
-      ({ cage: drawCariesAge, csev: drawCariesSeverity, repair: drawRepair, pmatrix: drawPathogenMatrix, wear: drawWear, leh: drawLEH, lead: drawLead, elements: drawElements })[c.id](svg, svg.node().clientWidth || 600);
+      ({ cage: drawCariesAge, csev: drawCariesSeverity, repair: drawRepair, pstrand: drawPathogenStrand, wear: drawWear, leh: drawLEH, lead: drawLead, elements: drawElements })[c.id](svg, svg.node().clientWidth || 600);
     });
   }
   // interventions: repaired teeth per 100 individuals, log scale; points with their intervals, faint what-if bars
@@ -2105,48 +2079,204 @@ window.startStatisticalTooth = (function () {
   const CATNAME = { bacteria: "Bacteria", virus: "Viruses", parasite: "Parasites", other: "Not disease agents" };
   const shortDisease = t => (t.agent ? t.disease.split(/ — | · |, /)[0] : t.disease.split(" — ").pop()).split(" (")[0].replace(/^louse-borne /, "");
 
-  // pathogens: organisms × centuries, shaded by share, in the colours of the marks in the teeth
-  function drawPathogenMatrix(svg, W) {
-    const P = LD.pathogens, cents = P.centuries, order = ["bacteria", "virus", "parasite", "other"];
-    const rowsIn = order.flatMap(c => P.taxa.filter(t => t.cat === c).sort((a, b) => b.total - a.total));
-    const narrow = W < 480, labW = narrow ? Math.round(W * 0.36) : Math.min(176, Math.max(118, W * 0.27)), totW = narrow ? 22 : 30, cw = (W - labW - totW) / cents.length, rh = 28, top = 46, gap = 18;
-    let y = top; const ys = []; let lastCat = null;
-    rowsIn.forEach(t => { if (t.cat !== lastCat) { y += gap; lastCat = t.cat; } ys.push(y); y += rh; });
-    const H = y + 22; size(svg, W, H);
-    const x = i => labW + i * cw, maxN = d3.max(Object.values(P.genomes));
-    const col = t => t.cat === "other" ? "#8a8983" : CAT[t.cat];
-    // genomes sequenced per century
-    svg.append("text").attr("x", labW - 8).attr("y", top - 20).attr("text-anchor", "end").attr("class", "ax").text(narrow ? "genomes" : "genomes recovered");
-    cents.forEach((c, i) => {
-      const n = P.genomes[c];
-      if (n == null) {
-        svg.append("rect").attr("x", x(i) + 1).attr("y", top - 34).attr("width", cw - 2).attr("height", H - top + 12 - 22).attr("class", "nodata");
-        svg.append("text").attr("x", x(i) + cw / 2).attr("y", (top + H - 22) / 2).attr("text-anchor", "middle").attr("class", "ax").attr("transform", "rotate(-90," + (x(i) + cw / 2) + "," + (top + H - 22) / 2 + ")").text("no samples");
-        return;
-      }
-      const h = Math.max(1, 22 * n / maxN);
-      svg.append("rect").attr("x", x(i) + 2).attr("y", top - 8 - h).attr("width", cw - 4).attr("height", h).attr("fill", "#b9b7b0");
-      if (cw >= 16) svg.append("text").attr("x", x(i) + cw / 2).attr("y", top - 11 - h).attr("text-anchor", "middle").attr("class", "ax").text(n);
-      if (cw >= 34 || (cw >= 16 ? i % 2 === 0 : i % 4 === 0)) svg.append("text").attr("x", x(i) + cw / 2).attr("y", H - 6).attr("text-anchor", "middle").attr("class", "ax").text(c + "s");
+  // pathogens: the team's matrix (organism × century, c4b) drawn as a strand. Each rung is a century, each organism keeps
+  // one strand (lane) through the rungs, and a dot's area is that organism's share of the century's recovered genomes.
+  // The ribbon turns over between every third rung, like DNA; the twist is drawing only. Choosing an organism (its name
+  // in the key, or any of its dots) colours its strand and pulls its share out as a row of pixels per century, one pixel
+  // for every 2%. The shaded bands are world events from the team's events list (research/Human Correlations/
+  // timeline_events_display.csv, dates rechecked): context, not data.
+  const STRAND_NAME = { "Yersinia pestis": "plague", "Mycobacterium leprae": "leprosy", "Salmonella enterica": "enteric fever", "Clostridium tetani": "tetanus",
+    "Borrelia recurrentis": "relapsing fever", "Treponema pallidum": "treponemal disease", "Streptococcus pneumoniae": "pneumococcus", "Erysipelothrix rhusiopathiae": "erysipeloid",
+    "Haemophilus influenzae": "H. influenzae", "Hepatitis B virus": "hepatitis B", "Variola virus": "smallpox", "Parvovirus B19": "parvovirus B19", "Human alphaherpesvirus 1": "oral herpes",
+    "Plasmodium falciparum": "falciparum malaria", "Plasmodium vivax": "vivax malaria", "Plasmodium malariae": "quartan malaria",
+    "Tannerella forsythia": "gum-disease bacterium", "Methanobrevibacter oralis": "oral archaeon" };
+  const STRAND_KIND = { bacteria: ["Bacteria", "a bacterium"], virus: ["Viruses", "a virus"], parasite: ["Parasites", "a malaria parasite"],
+    other: ["Not disease agents", "not an epidemic disease agent"], unnamed: ["Not named", ""] };
+  const STRAND_CONTEXT = [
+    { from: 541, to: 750, label: "First plague pandemic", short: "Plague pandemic", when: "541–750" },
+    { from: 1347, to: 1351, label: "Black Death", short: "Black Death", when: "1347–1351" },
+    { from: 1495, to: 1495, label: "Syphilis spreading through Europe", short: "Syphilis in Europe", when: "from 1495" },
+  ];
+  const numWord = n => ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"][n] || String(n);
+  // genomes a century's total counts but the index names no organism for
+  const strandUnnamed = () => { const P = LD.pathogens; return P.centuries.filter(c => P.genomes[c] != null).map(c => ({ c, n: P.genomes[c],
+    k: P.genomes[c] - d3.sum(P.taxa, t => t.cells[c] ? t.cells[c][0] : 0) })).filter(u => u.k > 0); };
+  let strandSel = null, strandShown = false;   // the chosen organism; whether the strand has assembled on this visit
+  function drawPathogenStrand(svg, W) {
+    const P = LD.pathogens, cents = P.centuries, KINDS = ["bacteria", "virus", "parasite", "other", "unnamed"];
+    const lanes = [];
+    KINDS.slice(0, 4).forEach(k => P.taxa.filter(t => t.cat === k).sort((a, b) => b.total - a.total)
+      .forEach(t => lanes.push({ id: t.taxon, name: STRAND_NAME[t.taxon] || t.taxon, taxon: t.taxon, kind: k, total: t.total, cells: t.cells })));
+    const un = strandUnnamed();
+    if (un.length) lanes.push({ id: "unnamed", name: "not named in the index", taxon: null, kind: "unnamed", total: d3.sum(un, u => u.k),
+      cells: Object.fromEntries(un.map(u => [u.c, [u.k, u.k / u.n * 100]])) });
+    const total = d3.sum(cents, c => P.genomes[c] || 0), maxN = d3.max(cents, c => P.genomes[c] || 0), PX = 50;   // one dot = 2%
+    const colOf = l => l.kind === "other" || l.kind === "unnamed" ? "#8a8983" : CAT[l.kind];
+    const narrow = W < 520, barW = narrow ? 16 : 32, cyrFont = narrow ? "9px" : null;
+    const probe = svg.append("text").attr("class", "cyr").style("font-size", cyrFont).text("1800s"), cyrW = probe.node().getComputedTextLength(); probe.remove();
+    const barX = Math.ceil(cyrW) + 6, gutW = barX + barW + (narrow ? 18 : 24);   // century, bar, count
+    const ribW = narrow ? Math.min(150, W * 0.36) : clamp(W * 0.34, 170, 236), pitch = narrow ? 30 : 34, top = 26;
+    const H = top + cents.length * pitch + 8; size(svg, W, H);
+    const cx = gutW + 8 + ribW / 2, TILT = 0.06, dotR = narrow ? 1.05 : 1.3, leadX = cx + ribW / 2 + 12;
+    const yRow = i => top + (i + 0.5) * pitch, yYear = Y => top + (Y - cents[0]) / 100 * pitch;
+    // the twist: the ribbon turns over (edge-on) only in the gaps between rungs listed in TURNS, turning slowly while a
+    // rung faces the reader, so no century is seen edge-on and the narrowest rungs keep half their width. The turns sit
+    // beside small or empty centuries, so the 400s, 600s, 1300s, 1500s and 1600s face the reader.
+    const TURNS = [1.5, 6.5, 10.5, 16.5].filter(t => t < cents.length - 0.5);
+    const twist = s => {
+      let k = TURNS.findIndex(t => s < t); if (k < 0) k = TURNS.length;
+      const a = k ? TURNS[k - 1] : TURNS[0] - (TURNS[1] - TURNS[0]), b = k < TURNS.length ? TURNS[k] : TURNS[k - 1] + (TURNS[k - 1] - TURNS[k - 2]);
+      const f = (s - a) / (b - a) - 0.5;
+      return Math.PI * k + Math.PI * f - 0.5 * Math.sin(2 * Math.PI * f);
+    };
+    const at = (u, s) => { const a = twist(s), z = u * Math.sin(a); return [cx + u * ribW / 2 * Math.cos(a), top + (s + 0.5) * pitch + z * ribW / 2 * TILT, z]; };
+    const front = z => (z + 1) / 2;
+    const rows = cents.map((c, i) => {
+      const n = P.genomes[c] == null ? null : P.genomes[c];
+      const cells = n == null ? [] : lanes.filter(l => l.cells[c]).map(l => ({ l, c, i, k: l.cells[c][0], v: l.cells[c][1] }));
+      const max = d3.max(cells, d => d.v);
+      return { c, i, n, cells, max, lead: cells.filter(d => Math.abs(d.v - max) < 1e-6), thin: n != null && n < 5 };
     });
-    svg.append("text").attr("x", W).attr("y", top - 20).attr("text-anchor", "end").attr("class", "ax").text("total");
-    // rows
-    lastCat = null;
-    rowsIn.forEach((t, r) => {
-      const yy = ys[r];
-      if (t.cat !== lastCat) { lastCat = t.cat; svg.append("text").attr("x", 0).attr("y", yy - 5).attr("class", "grp").attr("fill", col(t)).text(CATNAME[t.cat].toUpperCase()); }
-      svg.append("text").attr("x", labW - 8).attr("y", yy + 10).attr("text-anchor", "end").attr("class", "rl").style("font-size", narrow ? "9.5px" : null).text(shortDisease(t));
-      svg.append("text").attr("x", labW - 8).attr("y", yy + 23).attr("text-anchor", "end").attr("class", "rs").style("font-size", narrow ? "8px" : null).text(t.taxon);
-      svg.append("text").attr("x", W).attr("y", yy + 16).attr("text-anchor", "end").attr("class", "ax").text(t.total);
-      svg.append("line").attr("x1", labW).attr("x2", W - totW).attr("y1", yy + rh - 0.5).attr("y2", yy + rh - 0.5).attr("stroke", "#dcdad3").attr("stroke-width", 0.5);
-      const cells = cents.map((c, i) => ({ c, i, v: t.cells[c], t })).filter(d => d.v);
-      const g = svg.append("g");
-      tipOn(g.selectAll("rect").data(cells).join("rect").attr("x", d => x(d.i) + 1).attr("y", yy + 1).attr("width", cw - 2).attr("height", rh - 3)
-        .attr("fill", col(t)).attr("fill-opacity", d => 0.1 + 0.9 * Math.min(1, d.v[1] / 90)),
-        d => "<b>" + esc(cap(shortDisease(t))) + "</b> <span class='m'>(" + esc(t.taxon) + ")</span><br>" + d.c + "s: " + d.v[0] + " of " + P.genomes[d.c] + " genomes · " + Math.round(d.v[1]) + "%");
-      if (cw >= 20) g.selectAll("text").data(cells).join("text").attr("x", d => x(d.i) + cw / 2).attr("y", yy + rh / 2 + 3).attr("text-anchor", "middle")
-        .attr("class", "cv").attr("fill", d => d.v[1] > 45 ? "#fbf8f1" : "#1a1a18").text(d => Math.round(d.v[1]));
+    const gapRow = s => rows.some(r => r.n == null && Math.abs(s - r.i) < 0.5);
+    // each century's 50 dots, shared out by largest remainder (every organism found keeps at least one), in key order,
+    // with one empty place between organisms
+    const dots = [];
+    rows.forEach(r => { if (!r.cells.length) return;
+      const q = r.cells.map(d => d.v / 100 * PX), n = q.map(v => Math.max(1, Math.floor(v)));
+      const byRem = d3.range(q.length).sort((a, b) => (q[b] - n[b]) - (q[a] - n[a]));
+      for (let left = PX - d3.sum(n), j = 0; left > 0; left--, j++) n[byRem[j % byRem.length]]++;
+      for (let over = d3.sum(n) - PX; over > 0; over--) n[d3.maxIndex(n)]--;
+      const places = PX + r.cells.length - 1, squeeze = clamp(Math.abs(Math.cos(twist(r.i))) * 1.15, 0.6, 1); let k = 0;   // smaller dots where a rung is turned away
+      r.cells.forEach((d, ci) => { d.px = n[ci]; d.dots = [];
+        for (let j = 0; j < n[ci]; j++, k++) { const u = -1 + 2 * (k + 0.5) / places, p = at(u * 0.94, r.i); const o = { d, j, x: p[0], y: p[1], z: p[2], sq: squeeze }; d.dots.push(o); dots.push(o); }
+        k++; });
     });
+    dots.sort((a, b) => a.z - b.z);
+
+    // world events, behind everything: a band across the figure, its label in the right-hand column, in the gap between
+    // rungs nearest the event's start
+    const ctxG = svg.append("g");
+    STRAND_CONTEXT.forEach(e => {
+      const y0 = yYear(e.from), y1 = Math.max(yYear(e.to + 1), y0 + 2.5), b = top + Math.round((e.from - cents[0]) / 100) * pitch;
+      ctxG.append("rect").attr("x", gutW - 6).attr("width", W - gutW + 6).attr("y", y0).attr("height", y1 - y0).attr("class", "ctxband");
+      const t = ctxG.append("text").attr("x", leadX).attr("y", b + 3.5).attr("class", "ctx").text((narrow ? e.short : e.label) + ", " + e.when);
+      for (let f = 9.5; f > 7.5 && leadX + t.node().getComputedTextLength() > W; f -= 0.5) t.style("font-size", f - 0.5 + "px");
+    });
+    // the ribbon's two edges, dotted, darker where they come towards the reader
+    const edge = [];
+    for (let s = -0.5; s <= cents.length - 0.5 + 1e-9; s += 3.2 / pitch) [-1, 1].forEach(u => edge.push({ s, p: at(u, s), gap: gapRow(s) }));
+    const edgeOp = d => (0.2 + 0.52 * front(d.p[2])) * (d.gap ? 0.35 : 1);
+    const edgeSel = svg.append("g").selectAll("circle").data(edge).join("circle").attr("cx", d => d.p[0]).attr("cy", d => d.p[1])
+      .attr("r", d => 0.7 + 1.1 * front(d.p[2])).attr("fill", "#1a1a18").attr("opacity", edgeOp);
+    rows.forEach(r => { if (r.n == null) svg.append("text").attr("x", cx).attr("y", yRow(r.i) + 3.5).attr("text-anchor", "middle").attr("class", "gapl").text("no samples"); });
+    // the chosen organism's line: through the middle of its dots, broken where a century holds none of it
+    const laneG = svg.append("g");
+    function laneLine(l) {
+      laneG.selectAll("*").remove(); if (!l) return;
+      const mids = rows.map(r => { const d = r.cells.find(x => x.l === l); if (!d) return null; const m = d.dots[Math.floor(d.dots.length / 2)]; return [m.x, m.y]; });
+      laneG.append("path").attr("d", d3.line().defined(p => p).curve(d3.curveCatmullRom)(mids)).attr("fill", "none").attr("stroke", colOf(l)).attr("stroke-width", 1).attr("opacity", 0.55);
+    }
+    const dotSel = svg.append("g").selectAll("circle").data(dots).join("circle").attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => dotR * (0.8 + 0.4 * front(d.z)) * d.sq);
+    const dotOp = d => (rows[d.d.i].thin ? 0.45 : 0.62 + 0.38 * front(d.z));
+    // default: the century's largest share dark, the rest grey; a chosen organism in its colour, the rest faded
+    function paint(hl) {
+      dotSel.attr("fill", o => hl ? (o.d.l === hl ? colOf(hl) : "#a9a7a0") : rows[o.d.i].lead.includes(o.d) ? "#1a1a18" : "#a9a7a0")
+        .attr("opacity", o => hl ? (o.d.l === hl ? 1 : 0.35) : dotOp(o));
+      laneLine(hl);
+    }
+    // the side columns: century and its genomes on the left; on the right, each century's largest share
+    const labG = svg.append("g");
+    labG.append("text").attr("x", barX).attr("y", top - 10).attr("class", "ax").text("genomes");
+    labG.append("text").attr("x", cx).attr("y", top - 10).attr("text-anchor", "middle").attr("class", "ax").text(narrow ? "one dot = 2%" : "one dot = 2% of the century's genomes");
+    rows.forEach(r => {
+      labG.append("text").attr("x", 0).attr("y", yRow(r.i) + 3.5).attr("class", "cyr").style("font-size", cyrFont).text(r.c + "s");
+      if (r.n == null) return;
+      const bw = Math.max(1, barW * r.n / maxN);
+      labG.append("rect").attr("x", barX).attr("y", yRow(r.i) - 3).attr("width", bw).attr("height", 6).attr("fill", "#b9b7b0");
+      labG.append("text").attr("x", barX + bw + 4).attr("y", yRow(r.i) + 3.5).attr("class", "ax").text(r.n);
+    });
+    const leadG = svg.append("g");
+    if (!narrow) leadG.append("text").attr("x", leadX).attr("y", top - 10).attr("class", "ax").text("largest share (dark dots)");
+    else leadG.append("text").attr("x", leadX).attr("y", top - 10).attr("class", "ax").text("largest share");
+    rows.forEach(r => { if (!r.cells.length) return;
+      const t = leadG.append("text").attr("x", leadX).attr("y", yRow(r.i) + 3.5).attr("class", r.thin ? "ld thin" : "ld");
+      if (r.lead.length > 1) t.text(numWord(r.lead.length) + " tied, " + pct0(r.max) + " each");
+      else { t.append("tspan").text(r.lead[0].l.name + " "); t.append("tspan").attr("class", "pc").text(pct0(r.max)); } });
+    // the pull-out: the chosen organism's dots fly out of every rung and line up, 50 places to 100%
+    const pullG = svg.append("g"), unit = Math.min(4, (W - leadX - (narrow ? 34 : 70)) / PX);
+    function pull(hl, animate) {
+      pullG.selectAll("*").interrupt(); pullG.selectAll("*").remove();
+      leadG.interrupt().transition().duration(animate ? 250 : 0).attr("opacity", hl ? 0 : 1);
+      if (!hl) return;
+      [0, 50, 100].forEach(v => { const x = leadX + v / 100 * PX * unit;
+        pullG.append("text").attr("x", x).attr("y", top - 10).attr("text-anchor", v ? "middle" : "start").attr("class", "ax").text(v ? v + "%" : "0");
+        if (v) pullG.append("line").attr("x1", x).attr("x2", x).attr("y1", top - 5).attr("y2", H - 4).attr("class", "grid50"); });
+      rows.forEach(r => { const d = r.cells.find(x => x.l === hl); if (!d) return;
+        const y = yRow(r.i), end = j => leadX + (j + 0.5) * unit;
+        const px = pullG.selectAll(null).data(d.dots).join("circle").attr("r", Math.min(unit * 0.42, dotR + 0.3)).attr("fill", colOf(hl));
+        if (animate) px.attr("cx", o => o.x).attr("cy", o => o.y).transition().delay(o => r.i * 16 + o.j * 7).duration(560).ease(d3.easeCubicOut).attr("cx", o => end(o.j)).attr("cy", y);
+        else px.attr("cx", o => end(o.j)).attr("cy", y);
+        const t = pullG.append("text").attr("x", leadX + d.px * unit + 5).attr("y", y + 3.5).attr("class", r.thin ? "ld thin" : "ld");
+        t.append("tspan").text(pct0(d.v));
+        if (!narrow) t.append("tspan").attr("class", "pc").text("  " + d.k + "/" + r.n);
+        if (animate) t.attr("opacity", 0).transition().delay(r.i * 16 + d.px * 7 + 300).duration(300).attr("opacity", 1);
+      });
+    }
+    // the key (which organisms, of what kind, how many genomes) and a line that reads the chosen one out
+    const fig = d3.select(svg.node().parentNode);
+    const key = fig.insert("div", "svg").attr("class", "keylist strand-key");
+    KINDS.forEach(k => { const ls = lanes.filter(l => l.kind === k); if (!ls.length) return;
+      key.append("span").attr("class", "kind").html("<i style='background:" + colOf(ls[0]) + "'></i>" + STRAND_KIND[k][0]);
+      const row = key.append("span").attr("class", "items");
+      ls.forEach(l => row.append("button").attr("type", "button").attr("data-id", l.id).attr("aria-pressed", "false").attr("title", l.taxon || "")
+        .style("--c", colOf(l)).html(esc(l.name) + "<small>" + l.total + "</small>")
+        .on("click", () => select(strandSel === l.id ? null : l.id, true))
+        .on("mouseenter", () => preview(l)).on("mouseleave", () => preview(null))); });
+    const read = fig.insert("p", "svg").attr("class", "keylist strand-read").attr("aria-live", "polite");
+    const sampled = rows.filter(r => r.n != null).length;
+    function readText(l) {
+      if (!l) return "Choose an organism, or any dot, to pull its share out of the strand.";
+      const own = rows.filter(r => r.cells.some(d => d.l === l)), led = own.filter(r => r.lead.some(d => d.l === l));
+      const peak = own.map(r => r.cells.find(d => d.l === l)).reduce((a, d) => !a || d.v > a.v ? d : a, null);
+      return (l.taxon ? "<b>" + esc(cap(l.name)) + "</b> <i>" + esc(l.taxon) + "</i>, " + STRAND_KIND[l.kind][1] : "<b>Not named</b>: genomes counted in a century's total whose organism the index does not name") + ". " + l.total + " of " + total +
+        " genomes, found in " + own.length + " of the " + sampled + " sampled centuries" + (led.length ? ", with the largest share in " + led.length + " of them" : "") +
+        ". Its peak: " + pct0(peak.v) + " of the " + peak.c + "s (" + peak.k + " of " + rows[peak.i].n + "). <button class='link' type='button'>Clear</button>";
+    }
+    let shown = null;   // what the strand shows now: the chosen organism, or the one under the pointer
+    function preview(l) { if (strandSel) return; if (l !== shown) { shown = l; paint(l); } }
+    function select(id, animate) {
+      strandSel = id; const l = lanes.find(x => x.id === id) || null; shown = l;
+      key.selectAll("button").attr("aria-pressed", function () { return this.dataset.id === id ? "true" : "false"; });
+      paint(l); pull(l, animate && !REDUCED); read.html(readText(l));
+      read.select("button").on("click", () => select(null, true));
+    }
+    fig.on("keydown.strand", ev => { if (ev.key === "Escape" && strandSel) select(null, true); });
+    // hovering: each organism's run of dots on a rung is one target
+    const segs = rows.flatMap(r => r.cells);
+    const segSel = svg.append("g").selectAll("path").data(segs).join("path").attr("d", d => d3.line()(d.dots.map(o => [o.x, o.y]).concat(d.dots.length < 2 ? [[d.dots[0].x + 0.1, d.dots[0].y]] : [])))
+      .attr("fill", "none").attr("stroke", "transparent").attr("stroke-width", Math.min(14, pitch - 10)).attr("stroke-linecap", "round").style("cursor", "pointer");
+    tipOn(segSel, d => "<b>" + esc(cap(d.l.name)) + "</b>" + (d.l.taxon ? " <span class='m'>(" + esc(d.l.taxon) + ")</span>" : "") + "<br>" + d.c + "s: " + d.k + " of " + rows[d.i].n +
+      " genomes, " + pct0(d.v) + (rows[d.i].thin ? "<br><span class='m'>fewer than five genomes that century</span>" : ""));
+    segSel.on("mouseenter.pv", (ev, d) => preview(d.l)).on("mouseleave.pv", () => preview(null))
+      .on("click", (ev, d) => { hideTip(); select(strandSel === d.l.id ? null : d.l.id, true); });
+    // a century's whole rung, from its label or its leader
+    const hit = svg.append("g");
+    rows.forEach(r => { if (r.n == null) return;
+      const html = "<b>" + r.c + "s</b>, " + r.n + " genomes<br>" + r.cells.slice().sort((a, b) => b.v - a.v).map(d => esc(d.l.name) + ": " + d.k + " (" + pct0(d.v) + ")").join("<br>");
+      [[0, gutW], [leadX - 4, W - leadX + 4]].forEach(([x, w]) => tipOn(hit.append("rect").attr("x", x).attr("y", yRow(r.i) - pitch / 2 + 6).attr("width", w).attr("height", pitch - 12).attr("fill", "transparent"), () => html)); });
+    select(strandSel, false);
+    // on the first view of a visit, the strand assembles from the top, century by century, once it scrolls into sight
+    if (!strandShown && !REDUCED) {
+      strandShown = true;
+      edgeSel.attr("opacity", 0); dotSel.attr("opacity", 0); leadG.attr("opacity", 0);
+      const run = () => {
+        edgeSel.transition().delay(d => (d.s + 0.5) * 60).duration(260).attr("opacity", edgeOp);
+        dotSel.transition().delay(o => o.d.i * 60 + 120 + o.d.dots.indexOf(o) * 4).duration(320).attr("opacity", o => strandSel ? (o.d.l.id === strandSel ? 1 : 0.35) : dotOp(o));
+        if (!strandSel) leadG.transition().delay(cents.length * 60 + 200).duration(400).attr("opacity", 1);
+      };
+      if (window.IntersectionObserver) { const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); run(); } }, { threshold: 0.15 }); io.observe(svg.node()); }
+      else run();
+    }
   }
   // morphology 1: mean molar wear, period × age at death
   function drawWear(svg, W) {

@@ -1,6 +1,7 @@
 /* The Tooth Untold: storyline build (v6).
    Intro: engraved jaw, closed, swings open on its hinge -> four teeth line up -> first molar and canine close in -> 2D becomes a 3D point cloud.
-   Overview: the two composite teeth, cut open in their jaw, play through 300-1900 CE with no timeline; marks arrive as each
+   Overview: the two composite teeth, cut open as realistic ground sections (no gum or bone; the nerve and vessels in
+   their canals, as on the Pathogens plate), play through 300-1900 CE with no timeline; marks arrive as each
    century's records come in. Then the radial timeline (radial.js, data in radial-data.js): four records leave a point
    between the two teeth; a name opens that record's section. Everything after the intro is set as a scientific
    journal: running heads, plates and numbered figures with captions, page numbers.
@@ -85,15 +86,7 @@
   const ease = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
   function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
   function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-  function glyph(cat, s) {
-    s = s || 1; const c = CAT[cat] || "#221f1b";
-    if (cat === "bacteria") return "<rect x='" + (-4.6 * s) + "' y='" + (-1.7 * s) + "' width='" + (9.2 * s) + "' height='" + (3.4 * s) + "' rx='" + (1.7 * s) + "' fill='" + c + "' stroke='#fbf8f1' stroke-width='.7'/>";
-    if (cat === "virus") return "<path d='" + d3.range(6).map(i => (i ? "L" : "M") + (4 * s * Math.cos(i * Math.PI / 3)).toFixed(2) + "," + (4 * s * Math.sin(i * Math.PI / 3)).toFixed(2)).join("") + "Z' fill='" + c + "' stroke='#fbf8f1' stroke-width='.7'/>";
-    if (cat === "parasite") return "<circle r='" + (3.5 * s) + "' fill='#fbf8f1' stroke='" + c + "' stroke-width='1.7'/><circle r='" + (1.2 * s) + "' cx='" + (1.2 * s) + "' cy='" + (-1 * s) + "' fill='" + c + "'/>";
-    if (cat === "particle") return "<path d='M" + (-4.6 * s) + ",0q" + (2.3 * s) + "," + (-3.3 * s) + " " + (4.6 * s) + ",0t" + (4.6 * s) + ",0' fill='none' stroke='" + c + "' stroke-width='1.7' stroke-linecap='round'/>";
-    return "<circle r='2.6' fill='" + c + "'/>";
-  }
-  // Realistic pathogens for the section plates, drawn like a scientific illustration in each category's colour:
+  // Realistic pathogens for the overview and the section plates, drawn like a scientific illustration in each category's colour:
   // bacteria as rods with a membrane, granules and fine flagella; viruses as spheres ringed with surface spikes;
   // parasites (malaria) as a ring-stage parasite inside a red blood cell. Shading comes from gradients in #ov.
   const tone = (hex, k) => { const c = d3.color(hex); return (k > 0 ? d3.interpolateRgb(c, "#ffffff")(k) : d3.interpolateRgb(c, "#000000")(-k)); };
@@ -188,14 +181,14 @@
   TEETH.forEach(T => { T.canvas = T.el.querySelector("canvas"); try { T.R = window.ToothGL.create(T.canvas); } catch (e) { console.error(e); } T.parts = new Map(); });
   const GL = TEETH.every(T => T.R);
   if (!GL) $("#pair").insertAdjacentHTML("beforeend", "<div class='fallback'>This browser cannot draw the 3D teeth (WebGL2 is unavailable). The timeline and panels still work.</div>");
-  const VIEW = { yaw: 0.55, pitch: 0.22 };
+  const VIEW = { yaw: 0.3, pitch: 0.14 };   // the cut view, the same as on the section plates
   let G = null;
   const pairEl = $("#pair"), ov = d3.select("#ov");
 
   function setShapes() {
     if (!GL) return;
     TEETH.forEach(T => { T.R.setShape(window.ToothGL.shape(T.type, S.jaw), true); T.parts.clear(); });
-    refit();
+    frameView();
   }
   function refit() {
     if (!GL) return;
@@ -214,7 +207,7 @@
     const cp = SH.cariesAt === "occlusal" ? [0.06, Math.min(wearY, SH.grooveY) - 0.005, -0.03] : [SH.B[0] * 0.97, 0.44 * top, -0.13];
     const pb = (L === "all" || L === "metals") && G.pb != null ? clamp(Math.log10(G.pb / 0.05) / Math.log10(10 / 0.05), 0, 1) : 0;
     const calc = G.calcRecs.some(r => L === "all" || (L === "pathogens" && r.kind !== "metal") || (L === "metals" && r.kind === "metal")) ? 1 : 0;
-    return { wearY, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: [0.36 * top, 0.54 * top], calc, pb, cutX: viewOf(T) === "cut" ? 0 : 5, jaw: viewOf(T) === "cut" && S.scene !== "layer", real: S.scene === "layer" };
+    return { wearY, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: [0.36 * top, 0.54 * top], calc, pb, cutX: viewOf(T) === "cut" ? 0 : 5, jaw: false, real: liveTeeth() };
   }
   // the view a tooth is drawn in: cut everywhere except on a section's plate, where the section decides
   const viewOf = T => S.scene === "layer" && layerOf(S.layer) ? layerOf(S.layer).view[T.key] : "cut";
@@ -259,7 +252,7 @@
         const had = T.parts.get(r.id); if (had && !had.dead) return;
         const q = makeParticle(T, r, placed, dense); if (!q) return;
         const fast = S.playing;   // the overview moves quickly, so marks travel faster there
-        q.born = animate && !STILL ? now + Math.min(k++ * (fast ? 25 : 55), fast ? 450 : 1100) : -1e9; q.dur = (fast ? 800 : 1500) + (hash(r.id) % (fast ? 250 : 400));
+        q.born = animate && !STILL ? now + Math.min(k++ * (fast ? 25 : 55), fast ? 450 : 1100) : -1e9; q.dur = (fast ? 600 : 1500) + (hash(r.id) % (fast ? 200 : 400));
         T.parts.set(r.id, q);
       });
     });
@@ -273,13 +266,13 @@
         const y = SH.rootMin + 0.12 + rnd() * (P.wearY - 0.04 - SH.rootMin - 0.12), x = SH.boxMin[0] + rnd() * (SH.boxMax[0] - SH.boxMin[0]);
         const p = [x, y, -0.002];
         if (!insideSolid(T, p, 0.03)) continue;
-        if (S.scene === "layer" && y > 0.05 && T.R.outerJS(p) > -0.12) continue;   // on a section plate, DNA sits in dentine and pulp, not enamel
+        if (y > 0.05 && T.R.outerJS(p) > -0.12) continue;   // DNA sits in dentine and pulp, not enamel
         if (k < 400 && placed.some(o => Math.hypot(o[1] - y, o[0] - x) < (dense ? 0.03 : 0.05))) continue;
         pos = p; break;
       }
       if (!pos) return null;
       placed.push(pos);
-      // route: in from below the root tip, up the canal to the mark's own height, then across to it
+      // route: from the root tip, where the nerve and vessels enter, up the canal to the mark's own height, then across
       let axis;
       if (SH.canal && SH.canal.length) axis = SH.canal.map(c => [c[0], c[1]]);
       else {
@@ -288,14 +281,14 @@
         axis = d3.range(0, 1.001, 0.1).map(k => [a0[0] + (b0[0] - a0[0]) * k, a0[1] + (b0[1] - a0[1]) * k]);
       }
       const z = -0.002, up = axis.filter(c => c[1] <= pos[1]);
-      const path = withLengths([[axis[0][0] + (rnd() - 0.5) * 0.25, SH.bottom - 0.3, z], [axis[0][0], axis[0][1], z]].concat(up.map(c => [c[0], c[1], z]), [pos]));
+      const path = withLengths([[axis[0][0], axis[0][1], z], [axis[0][0], axis[0][1] + 0.001, z]].concat(up.map(c => [c[0], c[1], z]), [pos]));
       return { r, p: pos, path, face: true, cat: r.cat };
     }
     const a = -0.95 + rnd() * 0.87, dir = [Math.cos(a), 0, Math.sin(a)];
     const hit = T.R.march([dir[0] * 2, 0.1 + (rnd() - 0.5) * 0.04, dir[2] * 2], [-dir[0], 0, -dir[2]], 3);
     if (!hit) return null;
     const pos = [hit.p[0] + dir[0] * 0.035, hit.p[1], hit.p[2] + dir[2] * 0.035];
-    const path = withLengths([[pos[0] + 0.2, SH.top + 0.42, pos[2]], [pos[0] + 0.1, SH.top + 0.12, pos[2]], pos]);
+    const path = withLengths([[pos[0] + 0.1, SH.top + 0.1, pos[2]], [pos[0] + 0.05, SH.top + 0.04, pos[2]], pos]);   // tartar settles from just above the crown
     return { r, p: pos, path, face: false, n: dir, cat: r.cat };
   }
   function withLengths(path) {
@@ -329,6 +322,7 @@
         const k = (now - q.born) / q.dur;
         if (k < 0) { busy = true; return; }
         const e = ease(Math.min(k, 1));
+        if (k < 0.2) op *= k / 0.2;   // fade in on the way in, so marks setting off together do not bunch at the root tip
         let pos = k >= 1 ? q.p : along(q.path, e);
         const xy = toPair(T, pos);
         if (k < 1.5) {
@@ -346,7 +340,7 @@
     sel.exit().remove();
     const en = sel.enter().append("g").attr("class", "pt").attr("tabindex", 0).attr("role", "button")
       .attr("aria-label", d => common(d.q.r.name) + ", " + d.q.r.site)
-      .html(d => S.scene === "layer" ? microbe(d.q.cat, 0.58, hash(d.id)) : glyph(d.q.cat, everything() ? 0.75 : 1))
+      .html(d => microbe(d.q.cat, S.scene === "main" ? 0.85 : 0.58, hash(d.id)))   // larger on the overview, where fewer arrive at once
       .on("mousemove", (ev, d) => showTip(ev, recTip(d.q.r))).on("mouseleave", hideTip)
       .on("pointerdown", ev => ev.stopPropagation());
     en.merge(sel).attr("transform", d => "translate(" + d.x.toFixed(1) + "," + d.y.toFixed(1) + ") rotate(" + (hash(d.id) % 180) + ")").attr("opacity", d => d.op);
@@ -486,8 +480,7 @@
   const readout = () => { $("#when").textContent = everything() ? "300–1900 CE, all periods pooled" : Math.round(S.t) + " CE"; };
 
   // ------------------------------------------------------------------ the radial timeline
-  const radialEl = $("#radial"), radialFoot = $("#radialFoot"), panelEl = $("#panel");
-  const radialOpen = new Set();   // lines whose "how much was gathered" view is on, kept while moving around the page
+  const radialEl = $("#radial"), panelEl = $("#panel");
   let radial = null;
   // Each tooth alone, whole and uncut, out of its jaw (the 3D model itself, as on the "whole" plates), drawn by its
   // own renderer and cropped to its silhouette. The white and black silhouettes let radial.js blur the lines inside
@@ -539,7 +532,7 @@
     document.querySelectorAll("#rhIdx [data-l]").forEach(b => b.setAttribute("aria-current", L && b.dataset.l === L.key ? "page" : "false"));
     $("#rhBack").hidden = !L;
     $("#capText").innerHTML = L ? "<b>Fig. " + L.n + ".1</b> " + STAT + ", all periods pooled, " + esc(typeof L.plate === "function" ? (LD ? L.plate() : "") : L.plate)
-      : "<b>Plate I</b> " + STAT + ". A first molar and a canine, cut open in their jaw, as the records of 300–1900 CE arrive century by century.";
+      : "";   // the overview and the timeline carry no caption
     const pages = L ? [2 + 2 * L.n, 3 + 2 * L.n] : onRadial ? [2, 3] : [1, null];
     $("#folioL").textContent = pages[0] || ""; $("#folioR").textContent = pages[1] || "";
   }
@@ -552,15 +545,15 @@
       if (S.scene !== "radial") return;
       refit();
       const teeth = GL ? radialTeeth() : null;
-      stage.classList.add("radial"); radialEl.hidden = false; radialFoot.hidden = false;
+      stage.classList.add("radial"); radialEl.hidden = false;
       if (radial) radial.destroy();
-      radial = window.ToothRadial ? window.ToothRadial.mount(radialEl, { teeth, animate: animate && !REDUCED, open: radialOpen, onOpen: openLayer,
-        padTop: () => $("#rh").getBoundingClientRect().bottom + 8, padBottom: () => innerHeight - radialFoot.getBoundingClientRect().top + 8 }) : null;
+      radial = window.ToothRadial ? window.ToothRadial.mount(radialEl, { teeth, animate: animate && !REDUCED, onOpen: openLayer,
+        padTop: () => $("#rh").getBoundingClientRect().bottom + 8, padBottom: () => innerHeight - $("#again").getBoundingClientRect().top + 8 }) : null;
     });
   }
   function leaveRadial() {
     if (radial) { radial.destroy(); radial = null; }
-    radialEl.hidden = true; radialFoot.hidden = true; stage.classList.remove("radial");
+    radialEl.hidden = true; stage.classList.remove("radial");
   }
 
   // ------------------------------------------------------------------ one layer's dashboard
@@ -570,6 +563,7 @@
   function openLayer(k) {
     const L = layerOf(k); if (!L) return;
     clearTimeout(layersTimer); pause();
+    if (S.scene !== "layer" || S.layer !== k) { strandSel = null; strandShown = false; }   // a fresh visit, not a resize
     S.scene = "layer"; S.layer = k; S.show = k; S.t = T_ALL; G = composite(T_ALL); readout();
     leaveRadial(); stage.classList.add("dashboard", "haspanel");
     panelEl.hidden = false;
@@ -590,11 +584,14 @@
       { id: "csev", title: "Fewer people escaped, and those who did not had it worse",
       sub: () => { const V = LD.caries.severity, five = p => V[p].shares[3] + V[p].shares[4]; return "Adults by how many of their own teeth were carious. The share with none falls from " + pct1c(V["High medieval"].shares[0]) + " in the High medieval period to " + pct1c(V.Industrial.shares[0]) + " in the Industrial; five or more carious teeth rises from " + pct1c(five("High medieval")) + " to " + pct1c(five("Industrial")) + "."; },
       notes: ["Age is not controlled here; this figure is about the shape of the distribution. Fig. 1.2 has age as its axis."] }],
-    pathogens: [{ id: "pmatrix", title: "Which disease dominated the record, century by century",
-      sub: "Each cell is the share of that century's recovered genomes that belong to one organism, so each column adds up to 100%. The bar on top shows how many genomes that is.",
-      notes: ["A share cancels out how much digging and sequencing each century received, but it is not prevalence, and not a share of the oral microbiome: the denominator is genomes recovered, not people alive.",
-        "Columns resting on a handful of genomes (the 100s–300s) swing wildly; read the bar and the cell together. The 800s have no European dental samples.",
-        "Source: AncientMetagenomeDir (SPAAM community, CC-BY 4.0), European dental samples; disease labels from the team's pathogen_reference.csv."] }],
+    pathogens: [{ id: "pstrand", title: "Which disease dominated the record, century by century",
+      sub: "The record drawn as a strand. Each rung is a century from 100 to 1800 CE, made of 50 dots shared among the organisms recovered from it, one dot for every 2% of the century's genomes. The dark dots are the century's largest share, named on the right; the bar beside each century counts its genomes. Choose an organism to light its dots in every century and pull them out of the strand.",
+      notes: () => { const un = strandUnnamed(); return ["Compare runs of dots on the same rung. A share cancels out how much digging and sequencing each century received, but it is not prevalence, and not a share of the oral microbiome: the denominator is genomes recovered, not people alive.",
+        "Pale rungs rest on fewer than five genomes (the 100s to 300s) and swing wildly. The 800s have no European dental samples." + (un.length ? " " + cap(numWord(d3.sum(un, u => u.k))) + " genomes in the century totals are not named in the index (" + un.map(u => numWord(u.k) + " in the " + u.c + "s").join(", ") + "); they keep their own run of dots, listed as not named." : ""),
+        "Shares are rounded to whole dots, and every organism found keeps at least one, so a run can be a dot off; hovering a run, and the rows pulled out, give the exact numbers.",
+        "The twist is drawing, not data. The ribbon turns only beside small or empty centuries, so the large ones face the reader; rungs on the far side of a turn read right to left.",
+        "Shaded bands are world events, for context and not from this dataset: " + STRAND_CONTEXT.map(e => "the " + e.label.charAt(0).toLowerCase() + e.label.slice(1) + " (" + e.when + ")").join(", ").replace(/, ([^,]*)$/, " and $1") + ", from the team's events list.",
+        "Source: AncientMetagenomeDir (SPAAM community, CC-BY 4.0), European dental samples; disease labels from the team's pathogen_reference.csv."]; } }],
     wear: [{ id: "wear", title: "Chewing wear builds up with age, and eases over the centuries",
       sub: "Mean molar wear (Smith 1984 stage, 1 to 8) by period and age at death. Each row rises with age; at every age, Industrial-period molars are the least worn.",
       notes: ["Wear is recorded for only part of the GHHP database, which its authors warn may not generalise. Dashed cells rest on fewer than 30 people."] },
@@ -635,7 +632,7 @@
     (CHARTS[L.key] || []).forEach(c => {
       const svg = d3.select("#ch-" + c.id); if (svg.empty()) return;
       svg.selectAll("*").remove(); d3.select(svg.node().parentNode).selectAll(".keylist").remove();
-      ({ cage: drawCariesAge, csev: drawCariesSeverity, repair: drawRepair, pmatrix: drawPathogenMatrix, wear: drawWear, leh: drawLEH, lead: drawLead, elements: drawElements })[c.id](svg, svg.node().clientWidth || 600);
+      ({ cage: drawCariesAge, csev: drawCariesSeverity, repair: drawRepair, pstrand: drawPathogenStrand, wear: drawWear, leh: drawLEH, lead: drawLead, elements: drawElements })[c.id](svg, svg.node().clientWidth || 600);
     });
   }
   // interventions: repaired teeth per 100 individuals, log scale; points with their intervals, faint what-if bars
@@ -718,48 +715,204 @@
   const CATNAME = { bacteria: "Bacteria", virus: "Viruses", parasite: "Parasites", other: "Not disease agents" };
   const shortDisease = t => (t.agent ? t.disease.split(/ — | · |, /)[0] : t.disease.split(" — ").pop()).split(" (")[0].replace(/^louse-borne /, "");
 
-  // pathogens: organisms × centuries, shaded by share, in the colours of the marks in the teeth
-  function drawPathogenMatrix(svg, W) {
-    const P = LD.pathogens, cents = P.centuries, order = ["bacteria", "virus", "parasite", "other"];
-    const rowsIn = order.flatMap(c => P.taxa.filter(t => t.cat === c).sort((a, b) => b.total - a.total));
-    const narrow = W < 480, labW = narrow ? Math.round(W * 0.36) : Math.min(176, Math.max(118, W * 0.27)), totW = narrow ? 22 : 30, cw = (W - labW - totW) / cents.length, rh = 28, top = 46, gap = 18;
-    let y = top; const ys = []; let lastCat = null;
-    rowsIn.forEach(t => { if (t.cat !== lastCat) { y += gap; lastCat = t.cat; } ys.push(y); y += rh; });
-    const H = y + 22; size(svg, W, H);
-    const x = i => labW + i * cw, maxN = d3.max(Object.values(P.genomes));
-    const col = t => t.cat === "other" ? "#8a8983" : CAT[t.cat];
-    // genomes sequenced per century
-    svg.append("text").attr("x", labW - 8).attr("y", top - 20).attr("text-anchor", "end").attr("class", "ax").text(narrow ? "genomes" : "genomes recovered");
-    cents.forEach((c, i) => {
-      const n = P.genomes[c];
-      if (n == null) {
-        svg.append("rect").attr("x", x(i) + 1).attr("y", top - 34).attr("width", cw - 2).attr("height", H - top + 12 - 22).attr("class", "nodata");
-        svg.append("text").attr("x", x(i) + cw / 2).attr("y", (top + H - 22) / 2).attr("text-anchor", "middle").attr("class", "ax").attr("transform", "rotate(-90," + (x(i) + cw / 2) + "," + (top + H - 22) / 2 + ")").text("no samples");
-        return;
-      }
-      const h = Math.max(1, 22 * n / maxN);
-      svg.append("rect").attr("x", x(i) + 2).attr("y", top - 8 - h).attr("width", cw - 4).attr("height", h).attr("fill", "#b9b7b0");
-      if (cw >= 16) svg.append("text").attr("x", x(i) + cw / 2).attr("y", top - 11 - h).attr("text-anchor", "middle").attr("class", "ax").text(n);
-      if (cw >= 34 || (cw >= 16 ? i % 2 === 0 : i % 4 === 0)) svg.append("text").attr("x", x(i) + cw / 2).attr("y", H - 6).attr("text-anchor", "middle").attr("class", "ax").text(c + "s");
+  // pathogens: the team's matrix (organism × century, c4b) drawn as a strand. Each rung is a century, each organism keeps
+  // one strand (lane) through the rungs, and a dot's area is that organism's share of the century's recovered genomes.
+  // The ribbon turns over between every third rung, like DNA; the twist is drawing only. Choosing an organism (its name
+  // in the key, or any of its dots) colours its strand and pulls its share out as a row of pixels per century, one pixel
+  // for every 2%. The shaded bands are world events from the team's events list (research/Human Correlations/
+  // timeline_events_display.csv, dates rechecked): context, not data.
+  const STRAND_NAME = { "Yersinia pestis": "plague", "Mycobacterium leprae": "leprosy", "Salmonella enterica": "enteric fever", "Clostridium tetani": "tetanus",
+    "Borrelia recurrentis": "relapsing fever", "Treponema pallidum": "treponemal disease", "Streptococcus pneumoniae": "pneumococcus", "Erysipelothrix rhusiopathiae": "erysipeloid",
+    "Haemophilus influenzae": "H. influenzae", "Hepatitis B virus": "hepatitis B", "Variola virus": "smallpox", "Parvovirus B19": "parvovirus B19", "Human alphaherpesvirus 1": "oral herpes",
+    "Plasmodium falciparum": "falciparum malaria", "Plasmodium vivax": "vivax malaria", "Plasmodium malariae": "quartan malaria",
+    "Tannerella forsythia": "gum-disease bacterium", "Methanobrevibacter oralis": "oral archaeon" };
+  const STRAND_KIND = { bacteria: ["Bacteria", "a bacterium"], virus: ["Viruses", "a virus"], parasite: ["Parasites", "a malaria parasite"],
+    other: ["Not disease agents", "not an epidemic disease agent"], unnamed: ["Not named", ""] };
+  const STRAND_CONTEXT = [
+    { from: 541, to: 750, label: "First plague pandemic", short: "Plague pandemic", when: "541–750" },
+    { from: 1347, to: 1351, label: "Black Death", short: "Black Death", when: "1347–1351" },
+    { from: 1495, to: 1495, label: "Syphilis spreading through Europe", short: "Syphilis in Europe", when: "from 1495" },
+  ];
+  const numWord = n => ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"][n] || String(n);
+  // genomes a century's total counts but the index names no organism for
+  const strandUnnamed = () => { const P = LD.pathogens; return P.centuries.filter(c => P.genomes[c] != null).map(c => ({ c, n: P.genomes[c],
+    k: P.genomes[c] - d3.sum(P.taxa, t => t.cells[c] ? t.cells[c][0] : 0) })).filter(u => u.k > 0); };
+  let strandSel = null, strandShown = false;   // the chosen organism; whether the strand has assembled on this visit
+  function drawPathogenStrand(svg, W) {
+    const P = LD.pathogens, cents = P.centuries, KINDS = ["bacteria", "virus", "parasite", "other", "unnamed"];
+    const lanes = [];
+    KINDS.slice(0, 4).forEach(k => P.taxa.filter(t => t.cat === k).sort((a, b) => b.total - a.total)
+      .forEach(t => lanes.push({ id: t.taxon, name: STRAND_NAME[t.taxon] || t.taxon, taxon: t.taxon, kind: k, total: t.total, cells: t.cells })));
+    const un = strandUnnamed();
+    if (un.length) lanes.push({ id: "unnamed", name: "not named in the index", taxon: null, kind: "unnamed", total: d3.sum(un, u => u.k),
+      cells: Object.fromEntries(un.map(u => [u.c, [u.k, u.k / u.n * 100]])) });
+    const total = d3.sum(cents, c => P.genomes[c] || 0), maxN = d3.max(cents, c => P.genomes[c] || 0), PX = 50;   // one dot = 2%
+    const colOf = l => l.kind === "other" || l.kind === "unnamed" ? "#8a8983" : CAT[l.kind];
+    const narrow = W < 520, barW = narrow ? 16 : 32, cyrFont = narrow ? "9px" : null;
+    const probe = svg.append("text").attr("class", "cyr").style("font-size", cyrFont).text("1800s"), cyrW = probe.node().getComputedTextLength(); probe.remove();
+    const barX = Math.ceil(cyrW) + 6, gutW = barX + barW + (narrow ? 18 : 24);   // century, bar, count
+    const ribW = narrow ? Math.min(150, W * 0.36) : clamp(W * 0.34, 170, 236), pitch = narrow ? 30 : 34, top = 26;
+    const H = top + cents.length * pitch + 8; size(svg, W, H);
+    const cx = gutW + 8 + ribW / 2, TILT = 0.06, dotR = narrow ? 1.05 : 1.3, leadX = cx + ribW / 2 + 12;
+    const yRow = i => top + (i + 0.5) * pitch, yYear = Y => top + (Y - cents[0]) / 100 * pitch;
+    // the twist: the ribbon turns over (edge-on) only in the gaps between rungs listed in TURNS, turning slowly while a
+    // rung faces the reader, so no century is seen edge-on and the narrowest rungs keep half their width. The turns sit
+    // beside small or empty centuries, so the 400s, 600s, 1300s, 1500s and 1600s face the reader.
+    const TURNS = [1.5, 6.5, 10.5, 16.5].filter(t => t < cents.length - 0.5);
+    const twist = s => {
+      let k = TURNS.findIndex(t => s < t); if (k < 0) k = TURNS.length;
+      const a = k ? TURNS[k - 1] : TURNS[0] - (TURNS[1] - TURNS[0]), b = k < TURNS.length ? TURNS[k] : TURNS[k - 1] + (TURNS[k - 1] - TURNS[k - 2]);
+      const f = (s - a) / (b - a) - 0.5;
+      return Math.PI * k + Math.PI * f - 0.5 * Math.sin(2 * Math.PI * f);
+    };
+    const at = (u, s) => { const a = twist(s), z = u * Math.sin(a); return [cx + u * ribW / 2 * Math.cos(a), top + (s + 0.5) * pitch + z * ribW / 2 * TILT, z]; };
+    const front = z => (z + 1) / 2;
+    const rows = cents.map((c, i) => {
+      const n = P.genomes[c] == null ? null : P.genomes[c];
+      const cells = n == null ? [] : lanes.filter(l => l.cells[c]).map(l => ({ l, c, i, k: l.cells[c][0], v: l.cells[c][1] }));
+      const max = d3.max(cells, d => d.v);
+      return { c, i, n, cells, max, lead: cells.filter(d => Math.abs(d.v - max) < 1e-6), thin: n != null && n < 5 };
     });
-    svg.append("text").attr("x", W).attr("y", top - 20).attr("text-anchor", "end").attr("class", "ax").text("total");
-    // rows
-    lastCat = null;
-    rowsIn.forEach((t, r) => {
-      const yy = ys[r];
-      if (t.cat !== lastCat) { lastCat = t.cat; svg.append("text").attr("x", 0).attr("y", yy - 5).attr("class", "grp").attr("fill", col(t)).text(CATNAME[t.cat].toUpperCase()); }
-      svg.append("text").attr("x", labW - 8).attr("y", yy + 10).attr("text-anchor", "end").attr("class", "rl").style("font-size", narrow ? "9.5px" : null).text(shortDisease(t));
-      svg.append("text").attr("x", labW - 8).attr("y", yy + 23).attr("text-anchor", "end").attr("class", "rs").style("font-size", narrow ? "8px" : null).text(t.taxon);
-      svg.append("text").attr("x", W).attr("y", yy + 16).attr("text-anchor", "end").attr("class", "ax").text(t.total);
-      svg.append("line").attr("x1", labW).attr("x2", W - totW).attr("y1", yy + rh - 0.5).attr("y2", yy + rh - 0.5).attr("stroke", "#dcdad3").attr("stroke-width", 0.5);
-      const cells = cents.map((c, i) => ({ c, i, v: t.cells[c], t })).filter(d => d.v);
-      const g = svg.append("g");
-      tipOn(g.selectAll("rect").data(cells).join("rect").attr("x", d => x(d.i) + 1).attr("y", yy + 1).attr("width", cw - 2).attr("height", rh - 3)
-        .attr("fill", col(t)).attr("fill-opacity", d => 0.1 + 0.9 * Math.min(1, d.v[1] / 90)),
-        d => "<b>" + esc(cap(shortDisease(t))) + "</b> <span class='m'>(" + esc(t.taxon) + ")</span><br>" + d.c + "s: " + d.v[0] + " of " + P.genomes[d.c] + " genomes · " + Math.round(d.v[1]) + "%");
-      if (cw >= 20) g.selectAll("text").data(cells).join("text").attr("x", d => x(d.i) + cw / 2).attr("y", yy + rh / 2 + 3).attr("text-anchor", "middle")
-        .attr("class", "cv").attr("fill", d => d.v[1] > 45 ? "#fbf8f1" : "#1a1a18").text(d => Math.round(d.v[1]));
+    const gapRow = s => rows.some(r => r.n == null && Math.abs(s - r.i) < 0.5);
+    // each century's 50 dots, shared out by largest remainder (every organism found keeps at least one), in key order,
+    // with one empty place between organisms
+    const dots = [];
+    rows.forEach(r => { if (!r.cells.length) return;
+      const q = r.cells.map(d => d.v / 100 * PX), n = q.map(v => Math.max(1, Math.floor(v)));
+      const byRem = d3.range(q.length).sort((a, b) => (q[b] - n[b]) - (q[a] - n[a]));
+      for (let left = PX - d3.sum(n), j = 0; left > 0; left--, j++) n[byRem[j % byRem.length]]++;
+      for (let over = d3.sum(n) - PX; over > 0; over--) n[d3.maxIndex(n)]--;
+      const places = PX + r.cells.length - 1, squeeze = clamp(Math.abs(Math.cos(twist(r.i))) * 1.15, 0.6, 1); let k = 0;   // smaller dots where a rung is turned away
+      r.cells.forEach((d, ci) => { d.px = n[ci]; d.dots = [];
+        for (let j = 0; j < n[ci]; j++, k++) { const u = -1 + 2 * (k + 0.5) / places, p = at(u * 0.94, r.i); const o = { d, j, x: p[0], y: p[1], z: p[2], sq: squeeze }; d.dots.push(o); dots.push(o); }
+        k++; });
     });
+    dots.sort((a, b) => a.z - b.z);
+
+    // world events, behind everything: a band across the figure, its label in the right-hand column, in the gap between
+    // rungs nearest the event's start
+    const ctxG = svg.append("g");
+    STRAND_CONTEXT.forEach(e => {
+      const y0 = yYear(e.from), y1 = Math.max(yYear(e.to + 1), y0 + 2.5), b = top + Math.round((e.from - cents[0]) / 100) * pitch;
+      ctxG.append("rect").attr("x", gutW - 6).attr("width", W - gutW + 6).attr("y", y0).attr("height", y1 - y0).attr("class", "ctxband");
+      const t = ctxG.append("text").attr("x", leadX).attr("y", b + 3.5).attr("class", "ctx").text((narrow ? e.short : e.label) + ", " + e.when);
+      for (let f = 9.5; f > 7.5 && leadX + t.node().getComputedTextLength() > W; f -= 0.5) t.style("font-size", f - 0.5 + "px");
+    });
+    // the ribbon's two edges, dotted, darker where they come towards the reader
+    const edge = [];
+    for (let s = -0.5; s <= cents.length - 0.5 + 1e-9; s += 3.2 / pitch) [-1, 1].forEach(u => edge.push({ s, p: at(u, s), gap: gapRow(s) }));
+    const edgeOp = d => (0.2 + 0.52 * front(d.p[2])) * (d.gap ? 0.35 : 1);
+    const edgeSel = svg.append("g").selectAll("circle").data(edge).join("circle").attr("cx", d => d.p[0]).attr("cy", d => d.p[1])
+      .attr("r", d => 0.7 + 1.1 * front(d.p[2])).attr("fill", "#1a1a18").attr("opacity", edgeOp);
+    rows.forEach(r => { if (r.n == null) svg.append("text").attr("x", cx).attr("y", yRow(r.i) + 3.5).attr("text-anchor", "middle").attr("class", "gapl").text("no samples"); });
+    // the chosen organism's line: through the middle of its dots, broken where a century holds none of it
+    const laneG = svg.append("g");
+    function laneLine(l) {
+      laneG.selectAll("*").remove(); if (!l) return;
+      const mids = rows.map(r => { const d = r.cells.find(x => x.l === l); if (!d) return null; const m = d.dots[Math.floor(d.dots.length / 2)]; return [m.x, m.y]; });
+      laneG.append("path").attr("d", d3.line().defined(p => p).curve(d3.curveCatmullRom)(mids)).attr("fill", "none").attr("stroke", colOf(l)).attr("stroke-width", 1).attr("opacity", 0.55);
+    }
+    const dotSel = svg.append("g").selectAll("circle").data(dots).join("circle").attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => dotR * (0.8 + 0.4 * front(d.z)) * d.sq);
+    const dotOp = d => (rows[d.d.i].thin ? 0.45 : 0.62 + 0.38 * front(d.z));
+    // default: the century's largest share dark, the rest grey; a chosen organism in its colour, the rest faded
+    function paint(hl) {
+      dotSel.attr("fill", o => hl ? (o.d.l === hl ? colOf(hl) : "#a9a7a0") : rows[o.d.i].lead.includes(o.d) ? "#1a1a18" : "#a9a7a0")
+        .attr("opacity", o => hl ? (o.d.l === hl ? 1 : 0.35) : dotOp(o));
+      laneLine(hl);
+    }
+    // the side columns: century and its genomes on the left; on the right, each century's largest share
+    const labG = svg.append("g");
+    labG.append("text").attr("x", barX).attr("y", top - 10).attr("class", "ax").text("genomes");
+    labG.append("text").attr("x", cx).attr("y", top - 10).attr("text-anchor", "middle").attr("class", "ax").text(narrow ? "one dot = 2%" : "one dot = 2% of the century's genomes");
+    rows.forEach(r => {
+      labG.append("text").attr("x", 0).attr("y", yRow(r.i) + 3.5).attr("class", "cyr").style("font-size", cyrFont).text(r.c + "s");
+      if (r.n == null) return;
+      const bw = Math.max(1, barW * r.n / maxN);
+      labG.append("rect").attr("x", barX).attr("y", yRow(r.i) - 3).attr("width", bw).attr("height", 6).attr("fill", "#b9b7b0");
+      labG.append("text").attr("x", barX + bw + 4).attr("y", yRow(r.i) + 3.5).attr("class", "ax").text(r.n);
+    });
+    const leadG = svg.append("g");
+    if (!narrow) leadG.append("text").attr("x", leadX).attr("y", top - 10).attr("class", "ax").text("largest share (dark dots)");
+    else leadG.append("text").attr("x", leadX).attr("y", top - 10).attr("class", "ax").text("largest share");
+    rows.forEach(r => { if (!r.cells.length) return;
+      const t = leadG.append("text").attr("x", leadX).attr("y", yRow(r.i) + 3.5).attr("class", r.thin ? "ld thin" : "ld");
+      if (r.lead.length > 1) t.text(numWord(r.lead.length) + " tied, " + pct0(r.max) + " each");
+      else { t.append("tspan").text(r.lead[0].l.name + " "); t.append("tspan").attr("class", "pc").text(pct0(r.max)); } });
+    // the pull-out: the chosen organism's dots fly out of every rung and line up, 50 places to 100%
+    const pullG = svg.append("g"), unit = Math.min(4, (W - leadX - (narrow ? 34 : 70)) / PX);
+    function pull(hl, animate) {
+      pullG.selectAll("*").interrupt(); pullG.selectAll("*").remove();
+      leadG.interrupt().transition().duration(animate ? 250 : 0).attr("opacity", hl ? 0 : 1);
+      if (!hl) return;
+      [0, 50, 100].forEach(v => { const x = leadX + v / 100 * PX * unit;
+        pullG.append("text").attr("x", x).attr("y", top - 10).attr("text-anchor", v ? "middle" : "start").attr("class", "ax").text(v ? v + "%" : "0");
+        if (v) pullG.append("line").attr("x1", x).attr("x2", x).attr("y1", top - 5).attr("y2", H - 4).attr("class", "grid50"); });
+      rows.forEach(r => { const d = r.cells.find(x => x.l === hl); if (!d) return;
+        const y = yRow(r.i), end = j => leadX + (j + 0.5) * unit;
+        const px = pullG.selectAll(null).data(d.dots).join("circle").attr("r", Math.min(unit * 0.42, dotR + 0.3)).attr("fill", colOf(hl));
+        if (animate) px.attr("cx", o => o.x).attr("cy", o => o.y).transition().delay(o => r.i * 16 + o.j * 7).duration(560).ease(d3.easeCubicOut).attr("cx", o => end(o.j)).attr("cy", y);
+        else px.attr("cx", o => end(o.j)).attr("cy", y);
+        const t = pullG.append("text").attr("x", leadX + d.px * unit + 5).attr("y", y + 3.5).attr("class", r.thin ? "ld thin" : "ld");
+        t.append("tspan").text(pct0(d.v));
+        if (!narrow) t.append("tspan").attr("class", "pc").text("  " + d.k + "/" + r.n);
+        if (animate) t.attr("opacity", 0).transition().delay(r.i * 16 + d.px * 7 + 300).duration(300).attr("opacity", 1);
+      });
+    }
+    // the key (which organisms, of what kind, how many genomes) and a line that reads the chosen one out
+    const fig = d3.select(svg.node().parentNode);
+    const key = fig.insert("div", "svg").attr("class", "keylist strand-key");
+    KINDS.forEach(k => { const ls = lanes.filter(l => l.kind === k); if (!ls.length) return;
+      key.append("span").attr("class", "kind").html("<i style='background:" + colOf(ls[0]) + "'></i>" + STRAND_KIND[k][0]);
+      const row = key.append("span").attr("class", "items");
+      ls.forEach(l => row.append("button").attr("type", "button").attr("data-id", l.id).attr("aria-pressed", "false").attr("title", l.taxon || "")
+        .style("--c", colOf(l)).html(esc(l.name) + "<small>" + l.total + "</small>")
+        .on("click", () => select(strandSel === l.id ? null : l.id, true))
+        .on("mouseenter", () => preview(l)).on("mouseleave", () => preview(null))); });
+    const read = fig.insert("p", "svg").attr("class", "keylist strand-read").attr("aria-live", "polite");
+    const sampled = rows.filter(r => r.n != null).length;
+    function readText(l) {
+      if (!l) return "Choose an organism, or any dot, to pull its share out of the strand.";
+      const own = rows.filter(r => r.cells.some(d => d.l === l)), led = own.filter(r => r.lead.some(d => d.l === l));
+      const peak = own.map(r => r.cells.find(d => d.l === l)).reduce((a, d) => !a || d.v > a.v ? d : a, null);
+      return (l.taxon ? "<b>" + esc(cap(l.name)) + "</b> <i>" + esc(l.taxon) + "</i>, " + STRAND_KIND[l.kind][1] : "<b>Not named</b>: genomes counted in a century's total whose organism the index does not name") + ". " + l.total + " of " + total +
+        " genomes, found in " + own.length + " of the " + sampled + " sampled centuries" + (led.length ? ", with the largest share in " + led.length + " of them" : "") +
+        ". Its peak: " + pct0(peak.v) + " of the " + peak.c + "s (" + peak.k + " of " + rows[peak.i].n + "). <button class='link' type='button'>Clear</button>";
+    }
+    let shown = null;   // what the strand shows now: the chosen organism, or the one under the pointer
+    function preview(l) { if (strandSel) return; if (l !== shown) { shown = l; paint(l); } }
+    function select(id, animate) {
+      strandSel = id; const l = lanes.find(x => x.id === id) || null; shown = l;
+      key.selectAll("button").attr("aria-pressed", function () { return this.dataset.id === id ? "true" : "false"; });
+      paint(l); pull(l, animate && !REDUCED); read.html(readText(l));
+      read.select("button").on("click", () => select(null, true));
+    }
+    fig.on("keydown.strand", ev => { if (ev.key === "Escape" && strandSel) select(null, true); });
+    // hovering: each organism's run of dots on a rung is one target
+    const segs = rows.flatMap(r => r.cells);
+    const segSel = svg.append("g").selectAll("path").data(segs).join("path").attr("d", d => d3.line()(d.dots.map(o => [o.x, o.y]).concat(d.dots.length < 2 ? [[d.dots[0].x + 0.1, d.dots[0].y]] : [])))
+      .attr("fill", "none").attr("stroke", "transparent").attr("stroke-width", Math.min(14, pitch - 10)).attr("stroke-linecap", "round").style("cursor", "pointer");
+    tipOn(segSel, d => "<b>" + esc(cap(d.l.name)) + "</b>" + (d.l.taxon ? " <span class='m'>(" + esc(d.l.taxon) + ")</span>" : "") + "<br>" + d.c + "s: " + d.k + " of " + rows[d.i].n +
+      " genomes, " + pct0(d.v) + (rows[d.i].thin ? "<br><span class='m'>fewer than five genomes that century</span>" : ""));
+    segSel.on("mouseenter.pv", (ev, d) => preview(d.l)).on("mouseleave.pv", () => preview(null))
+      .on("click", (ev, d) => { hideTip(); select(strandSel === d.l.id ? null : d.l.id, true); });
+    // a century's whole rung, from its label or its leader
+    const hit = svg.append("g");
+    rows.forEach(r => { if (r.n == null) return;
+      const html = "<b>" + r.c + "s</b>, " + r.n + " genomes<br>" + r.cells.slice().sort((a, b) => b.v - a.v).map(d => esc(d.l.name) + ": " + d.k + " (" + pct0(d.v) + ")").join("<br>");
+      [[0, gutW], [leadX - 4, W - leadX + 4]].forEach(([x, w]) => tipOn(hit.append("rect").attr("x", x).attr("y", yRow(r.i) - pitch / 2 + 6).attr("width", w).attr("height", pitch - 12).attr("fill", "transparent"), () => html)); });
+    select(strandSel, false);
+    // on the first view of a visit, the strand assembles from the top, century by century, once it scrolls into sight
+    if (!strandShown && !REDUCED) {
+      strandShown = true;
+      edgeSel.attr("opacity", 0); dotSel.attr("opacity", 0); leadG.attr("opacity", 0);
+      const run = () => {
+        edgeSel.transition().delay(d => (d.s + 0.5) * 60).duration(260).attr("opacity", edgeOp);
+        dotSel.transition().delay(o => o.d.i * 60 + 120 + o.d.dots.indexOf(o) * 4).duration(320).attr("opacity", o => strandSel ? (o.d.l.id === strandSel ? 1 : 0.35) : dotOp(o));
+        if (!strandSel) leadG.transition().delay(cents.length * 60 + 200).duration(400).attr("opacity", 1);
+      };
+      if (window.IntersectionObserver) { const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); run(); } }, { threshold: 0.15 }); io.observe(svg.node()); }
+      else run();
+    }
   }
   // morphology 1: mean molar wear, period × age at death
   function drawWear(svg, W) {

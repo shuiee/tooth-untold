@@ -80,27 +80,21 @@ a{color:inherit}
 #radial{position:fixed;inset:0;z-index:3;background:var(--bg)}
 #radial[hidden]{display:none}
 .rd{display:block;width:100%;height:100%;font-family:var(--label)}
-.rd-teeth,.rd-inside,.rd-ghosts,.rd-stems,.rd-read{pointer-events:none}
-.rd-ghost{fill:rgba(26,26,24,.3);stroke:none}
-.rd-ghost-soft{stroke:rgba(26,26,24,.28);stroke-width:1.4;fill:none}
-.rd-stem{stroke:rgba(26,26,24,.7);fill:none}
-.rd-stem-soft{stroke:rgba(26,26,24,.62);stroke-width:2;fill:none}
+.rd-teeth,.rd-inside,.rd-stems,.rd-read,.rd-hub{pointer-events:none}
+.rd-stem{fill:rgba(26,26,24,.55);stroke:none}
+.rd-stem-soft{stroke:rgba(26,26,24,.5);stroke-width:1.6;fill:none}
 .rd-inside{opacity:.6}
-.rd-hit{stroke:transparent;stroke-width:18;fill:none;pointer-events:stroke}
+.rd-hub{fill:var(--bg);stroke:var(--ink)}
 .rd-span{fill:var(--ink);stroke:none;pointer-events:none}
-.rd-lift{fill:var(--ink);stroke:none;opacity:0;pointer-events:none;transition:opacity .15s ease}
-.rd-lift.on{opacity:1}
-.rd-mark{fill:var(--bg);stroke:var(--ink);pointer-events:none}
-.rd-mark.edge{fill:var(--ink);stroke:none}
-.rd-markhit{fill:transparent;cursor:pointer;outline:none}
-.rd-end{fill:var(--ink);cursor:pointer;outline:none}
-.rd-vol{fill:rgba(138,109,71,.12);stroke:var(--dentine-ink);stroke-width:.9;opacity:0;pointer-events:none;transition:opacity .4s ease}
-.rd [data-cat].open .rd-vol{opacity:1}
-.rd [data-cat].open .rd-span,.rd [data-cat].open .rd-lift{fill:var(--dentine-ink)}
-.rd [data-cat].open .rd-mark{stroke:var(--dentine-ink)}
-.rd [data-cat].open .rd-mark.edge,.rd [data-cat].open .rd-end{fill:var(--dentine-ink)}
+.rd-dot{fill:var(--bg);stroke:var(--ink);pointer-events:none;transition:fill .15s ease}
+.rd-dot.nocount{stroke-dasharray:2.2 1.8}
+.rd-dot.on{fill:var(--ink)}
+.rd-hit{fill:transparent;cursor:pointer;outline:none}
+.rd-hitline{stroke:transparent;stroke-width:16;fill:none;pointer-events:stroke}
+.rd-rings{pointer-events:none}
+.rd-yring{fill:none;stroke:rgba(26,26,24,.22);stroke-width:.8;stroke-dasharray:1 4}
+.rd-ylab{font-family:var(--label);font-size:10px;font-style:italic;fill:var(--ink-3);paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round}
 .rd-name{fill:var(--ink);font-family:var(--label);font-weight:500;cursor:pointer;outline:none;paint-order:stroke;stroke:var(--bg);stroke-width:6px;stroke-linejoin:round}
-.rd-name.open{fill:var(--dentine-ink)}
 .rd-name.go:hover{text-decoration:underline;text-underline-offset:4px}
 .rd [data-cat],.rd-name{transition:opacity .25s ease}
 .rd.rd-dim [data-cat]:not(.lit),.rd.rd-dim .rd-name:not(.lit){opacity:.16}
@@ -112,9 +106,6 @@ a{color:inherit}
 .rd-ct{fill:var(--ink-2);font-size:13px;font-style:italic}
 .rd-ring{fill:none;stroke:var(--ink);stroke-width:1.2;opacity:0;pointer-events:none}
 .rd-ring.on{opacity:1}
-.rd-foot{position:fixed;left:28px;bottom:26px;z-index:4;max-width:min(560px,calc(100vw - 56px));margin:0;font-family:var(--label);font-size:11.5px;line-height:1.45;color:var(--ink-2)}
-.rd-foot[hidden]{display:none}
-.rd-foot b{color:var(--ink);font-weight:600;margin-right:.25em}
 #stage.radial .tooth canvas,#stage.radial #ov{opacity:0;transition-duration:.3s}
 #stage.radial .tcap{visibility:hidden}
 #again{position:absolute;right:28px;bottom:26px;z-index:6;display:none}
@@ -171,12 +162,30 @@ a{color:inherit}
 .dp svg text{font-family:var(--label);font-size:10px}
 .dp svg text.ax{font-size:9.5px;fill:var(--ink-3)}
 .dp svg text.rl{font-size:11px;fill:var(--ink)}
-.dp svg text.rs{font-size:9px;font-style:italic;fill:var(--ink-3)}
-.dp svg text.grp{font-size:9px;font-weight:600;letter-spacing:.09em}
 .dp svg text.cv{font-size:10px;font-weight:600}
 .dp svg text.cn{font-size:7.5px}
 .dp svg text.big{font-size:17px;fill:var(--ink)}
-.dp svg .nodata{fill:#dedcd5;fill-opacity:.55}
+/* Fig. 2.2, the pathogen strand (drawPathogenStrand in app.js) */
+.dp svg .rung{stroke:var(--ink);stroke-opacity:.1;stroke-width:.6}
+.dp svg .ctxband{fill:var(--ink);fill-opacity:.045}
+.dp svg .grid50{stroke:var(--ink-3);stroke-width:.6;stroke-dasharray:1 3}
+.dp svg text.ctx,.dp svg text.gapl{font-size:9.5px;font-style:italic;fill:var(--ink-3)}
+.dp svg text.ctx{paint-order:stroke;stroke:var(--bg);stroke-width:3px;stroke-linejoin:round}
+.dp svg text.cyr{font-size:10px;fill:var(--ink-2)}
+.dp svg text.ld{font-size:10.5px;fill:var(--ink)}
+.dp svg text.ld.thin{fill:var(--ink-3)}
+.dp svg text.ld .pc{fill:var(--ink-3);font-size:9.5px}
+.keylist.strand-key{display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 14px;margin:2px 0 12px;font-family:var(--label);font-size:11.5px;line-height:1.55}
+.strand-key .kind{font-size:9px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);padding-top:2px;white-space:nowrap}
+.strand-key .kind i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.strand-key button{font:inherit;color:var(--ink);background:none;border:0;padding:0 3px;margin:0 7px 0 -3px;cursor:pointer;text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:3px;transition:background .15s ease,color .15s ease}
+.strand-key button small{font-size:9.5px;color:var(--ink-3);margin-left:4px}
+.strand-key button:hover{text-decoration-color:var(--c)}
+.strand-key button[aria-pressed="true"]{background:var(--c);color:var(--bg);text-decoration:none}
+.strand-key button[aria-pressed="true"] small{color:inherit;opacity:.8}
+.keylist.strand-read{display:block;margin:0 0 10px;min-height:3em;font-size:12px;line-height:1.5;color:var(--ink-2);max-width:74ch}
+.strand-read b{color:var(--ink);font-weight:600}
+.strand-read .link{margin-left:4px;font-size:10px}
 .dp svg rect,.dp svg circle{cursor:default}
 .keylist{display:flex;flex-wrap:wrap;gap:3px 14px;margin-top:8px;font-family:var(--label);font-size:10.5px;color:var(--ink-3)}
 .keylist b{font-weight:500;color:var(--ink)}
@@ -216,11 +225,11 @@ a{color:inherit}
   .rh-idx{margin-left:0;width:100%;gap:14px;flex-wrap:wrap}
   .rh-idx #rhBack{padding-left:14px}
   .folio.l{left:16px}.folio.r{right:16px}
-  .rd-foot{left:16px;bottom:22px}
   #stage.dashboard #pair{grid-template-columns:0 minmax(0,1fr) minmax(0,1fr) 0}
   #again{right:16px;bottom:22px}
-  .rd-foot{left:16px;right:104px;max-width:none}
   #stage.radial .rh{left:16px;right:16px}
+  .keylist.strand-key{grid-template-columns:minmax(0,1fr);gap:0}
+  .strand-key .kind{padding-top:6px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -258,7 +267,6 @@ a{color:inherit}
   <button class="btn" id="skip">Skip intro</button>
   <button class="btn" id="again">Replay</button>
   <div id="radial" hidden></div>
-  <p class="rd-foot" id="radialFoot" hidden><b>Plate II</b> How far back each record reaches, drawn in perspective: the teeth sit deepest and the records come towards you. A line's length is the time its record covers, on one scale for all five, and a gap is a stretch with no record. Circles mark the records within each line. A name opens its section; the circle at a line's end shows how much was gathered per year.</p>
   <span class="folio l fade" id="folioL"></span><span class="folio r fade" id="folioR"></span>
 </div>
 <div id="tip" hidden></div>
