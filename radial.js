@@ -2,8 +2,8 @@
 
    Five lines leave the centre of the page, one for each kind of record: caries, pathogens, wear and LEH, metals,
    artificial interventions. The centre point sits in the gap between a first molar (left, as on every other plate)
-   and a canine (right). Along each line a hollow circle marks the year each record begins, read against the dotted
-   year rings, and the line is darker over the years its records cover, so a gap in the record is a pale stretch.
+   and a canine (right). Along each line a hollow circle marks the year each record begins, and the line is darker
+   over the years its records cover, so a gap in the record is a pale stretch.
    Every name is the same size, at the far end of its line.
 
    Drawn in perspective: the teeth and the centre sit deep in the page and the lines come out towards the viewer,
@@ -22,16 +22,14 @@
   // RMAX    radius of the oldest year in the data
   // NOW     the latest year in the data; distance from the centre is how many years before NOW a year is
   // Radius for a year A years before NOW: R0 + sqrt(A / MAX_AGE) * (RMAX - R0). The square root gives the last two
-  // thousand years room beside the six thousand of the metals record; the rings (RINGS, calendar years) mark the
-  // scale. The figure is projected (see Perspective) and scaled by one factor so every circle and name stays on
-  // canvas, with the centre point fixed at the centre of the page.
+  // thousand years room beside the six thousand of the metals record. The figure is projected (see Perspective) and
+  // scaled by one factor so every circle and name stays on canvas, with the centre point fixed at the centre of the page.
   const R0 = 230, RMAX = 585;
   const DATA = window.RADIAL_DATA || [];
   const NOW = Math.max(...DATA.map(c => c.segs[c.segs.length - 1][1]));
   const MAX_AGE = NOW - Math.min(...DATA.map(c => c.segs[0][0]));
   const rAge = a => R0 + Math.sqrt(Math.max(0, a) / MAX_AGE) * (RMAX - R0);
   const rYear = y => rAge(NOW - y);
-  const RINGS = [1800, 1500, 1000, 500, -1000, -3000], RING_AT = 72;   // RING_AT: the direction their labels sit in
   // Tall, narrow containers turn the whole set (the teeth stay upright) to whichever angle lets the figure be
   // largest. On small screens, names of more than one word longer than WRAP_AT characters break onto two lines.
   const PORTRAIT = 1.05, TURN_STEP = 6, WRAP_AT = 10;
@@ -150,7 +148,7 @@
       const maskIn = el("mask", { id: "rd-in", maskUnits: "userSpaceOnUse", x: 0, y: 0, width: W, height: H }, defs);
       const maskOut = el("mask", { id: "rd-out", maskUnits: "userSpaceOnUse", x: 0, y: 0, width: W, height: H }, defs);
       el("rect", { width: W, height: H, fill: "#fff" }, maskOut);
-      const T = opts.teeth, sHub = depthScale(0), teethBoxes = [];
+      const T = opts.teeth, sHub = depthScale(0);
       if (T && T.canine && T.molar) {
         const size = key => { const t = T[key], h = TOOTH_H[key] * k * sHub; return { t, h, w: h * t.w / t.h }; };
         const m = size("molar"), c = size("canine"), g = GAP * k * sHub;
@@ -163,7 +161,6 @@
         }
         [["molar", m, C[0] - g / 2 - m.w * s], ["canine", c, C[0] + g / 2]].forEach(([key, o, x]) => {
           const box = { x, y: C[1] - o.h * s / 2, width: o.w * s, height: o.h * s, preserveAspectRatio: "none" };
-          teethBoxes.push({ x: box.x, y: box.y, width: box.width, height: box.height });
           el("image", Object.assign({ href: o.t.art }, box), teethG);
           el("image", Object.assign({ href: o.t.white }, box), maskIn);
           el("image", Object.assign({ href: o.t.black }, box), maskOut);
@@ -173,8 +170,6 @@
         .appendChild(el("feGaussianBlur", { stdDeviation: Math.max(1.6, 2.6 * k * sHub) }));
 
       // ---- layers, back to front
-      el("clipPath", { id: "rd-band" }, defs).appendChild(el("rect", { x: 0, y: padTop, width: W, height: H - padTop - padBottom }));
-      const ringG = el("g", { class: "rd-rings", "clip-path": "url(#rd-band)", "aria-hidden": "true" }, svg);
       const stems = el("g", { class: "rd-stems", mask: "url(#rd-out)", "aria-hidden": "true" }, svg);
       svg.appendChild(teethG);
       const inside = el("g", { class: "rd-inside", mask: "url(#rd-in)", "aria-hidden": "true" }, svg);
@@ -185,12 +180,6 @@
       const read = el("g", { class: "rd-read", "aria-hidden": "true" }, svg);
       const ring = el("circle", { class: "rd-ring", r: 0 }, svg);
       const ringBox = el("rect", { class: "rd-ring", width: 0, height: 0, rx: 3 }, svg);
-      // the year rings, on the cone: faint and dotted (kept between the running head and the Replay button)
-      RINGS.forEach(Y => {
-        const w = rYear(Y), pts = [];
-        for (let a = 0; a <= 360; a += 4) pts.push(P(a, w).map(v => v.toFixed(1)).join(","));
-        el("polyline", { class: "rd-yring", points: pts.join(" ") }, ringG);
-      });
 
       // ---- readout: years and amount on a short leader, on whichever side touches no name and stays on canvas
       const rLine = el("line", {}, read), rYr = el("text", { class: "rd-yr" }, read), rCount = el("text", { class: "rd-ct" }, read);
@@ -289,16 +278,6 @@
         });
         if (!moved) break;
       }
-      // ---- the rings' year labels, in the widest gap between lines; a label that would touch another label, a name, a
-      // circle or the teeth, or leave the band between the running head and the Replay button, is left out
-      const placed = nameEls.map(n => n.getBBox()).concat(dots.map(dotBox), teethBoxes);
-      RINGS.forEach(Y => {
-        const q = P(RING_AT + turn, rYear(Y));
-        const t = el("text", { class: "rd-ylab", x: q[0] + 4, y: q[1] - 4 }, ringG); t.textContent = Y < 0 ? -Y + " BCE" : Y + " CE";
-        const b = t.getBBox();
-        if (b.y < padTop + 2 || b.y + b.height > H - padBottom - 2 || b.x < pad || b.x + b.width > W - pad || placed.some(p => meets(b, p))) t.remove(); else placed.push(b);
-      });
-
       // ---- one entrance: each line shoots out of the centre towards the viewer, one after another, dropping its
       // circles as it passes their years; then the names
       if (animate && !REDUCED) {

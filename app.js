@@ -31,7 +31,7 @@
   // The four sections, one per record on the radial timeline (same keys as radial-data.js). Their charts come from
   // data/layers.js (see CHARTS below). The events are PLACEHOLDERS until their dates and pictures arrive: nothing
   // in them is data. Event pictures: save images/event-<name>.jpg (e.g. event-justinian.jpg) and bundle.py embeds it.
-  //   dek    the line under the section title    plate  the end of the plate caption: what the teeth show here
+  //   dek    the line under the section title (the pages carry no captions; each figure keeps its numbered notes)
   //   view   how each tooth is drawn on the section's plate, chosen for what the record is about:
   //          "cut"     a cross-section, for what sits inside the tooth (decay reaching in, DNA, lead in the enamel)
   //          "whole"   the whole tooth from the side, out of its jaw like an atlas specimen, for marks on its
@@ -40,28 +40,18 @@
   const LAYERS = [
     { key: "caries", n: 1, name: "Caries", dek: "Decay in adults of six periods, by age at death and by how many teeth",
       view: { molar: "cut", canine: "cut" },
-      plate: "cut open, as a ground section, to show how far decay reaches into the tooth; the cavity grows with the share of teeth that were carious.",
-      human: "Human × caries correlations across time",
       events: [{ label: "Refined sugar", when: "Year–Year", img: "event-sugar" }] },
     { key: "pathogens", n: 2, name: "Pathogens", dek: "Disease DNA recovered from European teeth, 100–1800 CE",
       view: { molar: "cut", canine: "cut" },
-      plate: "cut open, because pathogen DNA is recovered from inside the tooth, where the nerve and blood vessels run: one mark per genome, placed for illustration (bacteria as rods, viruses as spiked spheres, malaria parasites inside a red blood cell), and the tartar some were found in.",
-      human: "Human × pathogen correlations across time",
       events: [{ label: "Plague of Justinian", when: "541–750s", img: "event-justinian" }, { label: "The Black Plague", when: "Year–Year", img: "event-blackdeath" }] },
     { key: "wear", n: 3, name: "Wear and LEH", dek: "Chewing wear and childhood stress lines in adults of six periods",
       view: { molar: "aerial", canine: "whole" },
-      plate: "the molar seen from above, where chewing wears the crown flat (the dashed line is the unworn crown), and the canine whole, where stress lines run as bands around the enamel.",
-      human: "Human × wear correlations across time",
       events: [{ label: "Roller mill invented", when: "Year–Year", img: "event-rollermill" }] },
     { key: "metals", n: 4, name: "Metals", dek: "Lead and other metals in childhood enamel, from the Neolithic to the 20th century",
       view: { molar: "cut", canine: "cut" },
-      plate: "cut open, because lead is locked inside the enamel as it forms, and with the particles held in the tartar.",
-      human: "Human × metal correlations across time",
       events: [{ label: "Industrial Revolution", when: "Year–Year", img: "event-industrial" }] },
     { key: "interventions", n: 5, name: "Artificial interventions", dek: "Teeth somebody repaired, from medieval graves to the 2009 dental survey",
       view: { molar: "whole", canine: "whole" },
-      plate: () => "whole, as an examiner sees them, with no repairs drawn: the archaeological samples hold " + LD.interventions.marks.filter(m => m.series === "archaeological").map(m => d3.format(".1f")(m.per100)).join(", ") + " repaired teeth per 100 people, too few to place on a composite tooth.",
-      human: "Human × intervention correlations across time",
       events: [{ label: "Amalgam fillings", when: "Year–Year", img: "event-amalgam" }] },
   ];
   const layerOf = k => LAYERS.find(L => L.key === k);
@@ -525,20 +515,18 @@
     return out.canine && out.molar ? out : null;
   }
   // ------------------------------------------------------------------ the journal frame: running head, captions, page numbers
-  const STAT = "Statistical tooth: a composite visualization generated from multiple samples";
   function setPage() {
     const L = S.scene === "layer" ? layerOf(S.layer) : null, onRadial = S.scene === "radial";
     $("#rhPlate").innerHTML = L ? "<b>Section " + L.n + "</b><span>" + esc(L.name) + "</span>"
       : onRadial ? "<b>Plate II</b><span>How far back each record reaches</span>" : "<b>Plate I</b><span>The composite teeth, 300–1900 CE</span>";
     document.querySelectorAll("#rhIdx [data-l]").forEach(b => b.setAttribute("aria-current", L && b.dataset.l === L.key ? "page" : "false"));
     $("#rhBack").hidden = !L;
-    $("#capText").innerHTML = L ? "<b>Fig. " + L.n + ".1</b> " + STAT + ", all periods pooled, " + esc(typeof L.plate === "function" ? (LD ? L.plate() : "") : L.plate)
-      : "";   // the overview and the timeline carry no caption
     const pages = L ? [2 + 2 * L.n, 3 + 2 * L.n] : onRadial ? [2, 3] : [1, null];
     $("#folioL").textContent = pages[0] || ""; $("#folioR").textContent = pages[1] || "";
   }
   function enterRadial(animate) {
     clearTimeout(layersTimer); pause();
+    if (S.scene === "intro") { endIntro(); drawCloud(0, 0); pairEl.style.transform = ""; }
     S.scene = "radial"; S.layer = null; S.show = "all"; S.t = T_ALL; G = composite(T_ALL); readout();
     stage.classList.remove("dashboard", "haspanel"); panelEl.hidden = true; panelEl.innerHTML = "";
     gParts.selectAll("*").remove(); gLabels.selectAll("*").remove(); setPage();
@@ -564,6 +552,7 @@
   function openLayer(k) {
     const L = layerOf(k); if (!L) return;
     clearTimeout(layersTimer); pause();
+    if (S.scene === "intro") { endIntro(); drawCloud(0, 0); pairEl.style.transform = ""; }
     if (S.scene !== "layer" || S.layer !== k) { strandSel = null; strandShown = false; }   // a fresh visit, not a resize
     S.scene = "layer"; S.layer = k; S.show = k; S.t = T_ALL; G = composite(T_ALL); readout();
     leaveRadial(); stage.classList.add("dashboard", "haspanel");
@@ -584,7 +573,7 @@
         "Periods follow Wittwer-Backofen and Engel (2019), as in the team's draft. Source: Global History of Health Project, European module, decoded for this project; adults 18–69."] },
       { id: "csev", title: "Fewer people escaped, and those who did not had it worse",
       sub: () => { const V = LD.caries.severity, five = p => V[p].shares[3] + V[p].shares[4]; return "Adults by how many of their own teeth were carious. The share with none falls from " + pct1c(V["High medieval"].shares[0]) + " in the High medieval period to " + pct1c(V.Industrial.shares[0]) + " in the Industrial; five or more carious teeth rises from " + pct1c(five("High medieval")) + " to " + pct1c(five("Industrial")) + "."; },
-      notes: ["Age is not controlled here; this figure is about the shape of the distribution. Fig. 1.2 has age as its axis."] }],
+      notes: ["Age is not controlled here; this figure is about the shape of the distribution. The chart above it has age as its axis."] }],
     pathogens: [{ id: "pstrand", title: "Which disease dominated the record, century by century",
       sub: "The record drawn as a strand. Each rung is a century from 100 to 1800 CE, made of 50 dots shared among the organisms recovered from it, one dot for every 2% of the century's genomes. The dark dots are the century's largest share, named on the right; the bar beside each century counts its genomes. Choose an organism to light its dots in every century and pull them out of the strand.",
       notes: () => { const un = strandUnnamed(); return ["Compare runs of dots on the same rung. A share cancels out how much digging and sequencing each century received, but it is not prevalence, and not a share of the oral microbiome: the denominator is genomes recovered, not people alive.",
@@ -615,18 +604,18 @@
       sub: "Modern enamel (20th-century births) against archaeological enamel pooled from 4040 BCE to 1775 CE (n = 38), same tissue and laboratory. Four metals rise nine- to fourteenfold; strontium falls.",
       notes: ["Source: Kamenov et al. 2018, Table 1, via the team's particulates and metals dataset."] }],
   };
-  // the right-hand page: section opener, then each figure with its caption and numbered notes
+  // the right-hand page: section opener, then each figure with its numbered notes. There are no captions on the page;
+  // a figure's title and the line that reads it out stay in its aria-label for screen readers.
   function dashHTML(L) {
     const figs = CHARTS[L.key] || [], fig = i => "Fig. " + L.n + "." + (i + 2);
     const ev = L.events.map((e, i) => "<figure class='ev' style='left:" + ((i + 1) / (L.events.length + 1) * 100).toFixed(1) + "%'><figcaption><b>" + esc(e.label) + "</b>" + esc(e.when) + "</figcaption>" +
       (IMG[e.img] ? "<img src='" + IMG[e.img] + "' alt=''>" : "<div class='slot'>Image</div>") + "</figure>").join("");
-    const charts = figs.map((c, i) => "<figure class='fig'><svg class='chart' id='ch-" + c.id + "' role='img' aria-label='" + esc(fig(i) + " " + c.title) + "'></svg>" +
-      "<figcaption><b>" + fig(i) + "</b> " + esc(c.title) + ". " + esc(typeof c.sub === "function" ? (LD ? c.sub() : "") : c.sub) + "</figcaption>" +
+    const charts = figs.map((c, i) => "<figure class='fig'><svg class='chart' id='ch-" + c.id + "' role='img' aria-label='" + esc(fig(i) + " " + c.title + ". " + (typeof c.sub === "function" ? (LD ? c.sub() : "") : c.sub)) + "'></svg>" +
       "<ol class='notes'>" + (typeof c.notes === "function" ? (LD ? c.notes() : []) : c.notes).map(n => "<li>" + esc(n) + "</li>").join("") + "</ol></figure>").join("");
     return "<div class='dp'><header class='sec'><span class='no'>" + L.n + "</span><h2>" + esc(L.name) + "</h2><p class='dek'>" + esc(L.dek) + "</p></header>" +
       (LD ? charts : "<p class='dek'>data/layers.js is missing: run build_layers.py.</p>") +
       "<figure class='fig'><div class='events'>" + ev + "</div><div class='axis'><span>Time 1</span><span>Time 2</span></div>" +
-      "<figcaption><b>" + fig(figs.length) + "</b> " + esc(L.human) + ". Placeholders: these events, their dates and pictures are still to come.</figcaption></figure></div>";
+      "<ol class='notes'><li>Placeholders: these events, their dates and pictures are still to come.</li></ol></figure></div>";
   }
   function drawCharts(L) {
     if (!LD) return;
@@ -1193,8 +1182,13 @@
     await wait(900);
     if (S.scene === "main") play();
   }
+  // leaving the intro by any way out (its own end, Skip intro): stop its sequence and clear what it set inline, which
+  // would otherwise beat the stylesheet and leave the title on later pages
+  function endIntro() {
+    introRun++; $("#introText").style.opacity = ""; lineup.innerHTML = ""; jawLayer.style.opacity = 0; stage.classList.remove("intro");
+  }
   function enterMain(fromIntro) {
-    introRun++; clearTimeout(layersTimer);
+    endIntro(); clearTimeout(layersTimer);
     S.scene = "main"; S.layer = null; S.show = "all"; lineup.innerHTML = ""; jawLayer.style.opacity = 0;
     if (!fromIntro) drawCloud(0, 0);
     pairEl.style.transform = "";

@@ -29,13 +29,13 @@ GUIDE = """<!--
                through 300-1900 CE (no timeline); every kind of mark arrives century by century.
     Timeline   Plate II, the radial timeline in perspective (radial.js, data in radial-data.js): five lines from
                the centre of the page, between the large, deep-set molar (left) and canine (right), one per kind
-               of record, with a circle at the year each record begins (square-root scale, dotted year rings).
+               of record, with a circle at the year each record begins (square-root scale).
                A name opens that record's section.
     Sections   1 Caries, 2 Pathogens, 3 Wear and LEH, 4 Metals, 5 Artificial interventions, each a journal spread: the plate (the 3D teeth,
                in the view that suits the record, labelled) on the left, numbered figures drawn from the
                team's datasets (window.LAYER_DATA) on the right. The event strips are still placeholders.
-    Journal    a running head (title, plate or section, section index), captions under every plate and
-               figure, page numbers. setPage() in app.js writes them; .rh / .fig / .sec rules in the styles.
+    Journal    a running head (title, plate or section, section index), numbered notes under each figure
+               (no captions), page numbers. setPage() in app.js writes them; .rh / .fig / .sec rules in the styles.
 
   WHAT IS IN THIS FILE (top to bottom)
     1. <head>       styles. Colours, fonts and layout are CSS variables in :root.
@@ -53,7 +53,7 @@ GUIDE = """<!--
     7. Start call   window.startStatisticalTooth() runs the page once the data has loaded.
 
   COMMON EDITS (all in app.js unless noted)
-    Sections          LAYERS: number, name, dek, plate caption and placeholder events for each section. Event pictures are window.ERA_IMAGES["event-..."] (images/event-*.jpg in the source).
+    Sections          LAYERS: number, name, dek, plate views and placeholder events for each section. Event pictures are window.ERA_IMAGES["event-..."] (images/event-*.jpg in the source).
     Dashboard         CHARTS: each layer's chart titles, subtitles and notes. dashHTML() lays out the panel;
                       drawPathogenStrand(), drawWear(), drawLEH(), drawLead() and drawElements() draw the charts.
     Realistic section tooth.js realCut() (cut face) and the uReal branch of the surface shading; the nerve and
@@ -63,7 +63,7 @@ GUIDE = """<!--
     Which marks show  paramsFor() and showsRec() keep only the chosen layer's traces in the teeth.
     Overview speed    SPEED is years per second; stepPlay() holds briefly at 1900, then enterRadial() runs.
     Radial timeline   radial-data.js holds the five kinds of record (edit numbers there). radial.js: R0, RMAX, NOW,
-                      rAge() and RINGS at the top set the geometry, TOOTH_H the teeth; radialTeeth() in app.js makes the tooth pictures.
+                      rAge() at the top set the geometry, TOOTH_H the teeth; radialTeeth() in app.js makes the tooth pictures.
     Pathogen strand   drawPathogenStrand() in app.js: STRAND_NAME (names), STRAND_CONTEXT (world events, context
                       only), TURNS (where the ribbon turns over). One dot = 2% of a century's genomes.
     Intro jaw         loadJaw(), jawInk() and jawPose(). The picture is window.ERA_IMAGES["jaw-arches"]:
