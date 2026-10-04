@@ -41,7 +41,7 @@ GUIDE = """<!--
     1. <head>       styles. Colours, fonts and layout are CSS variables in :root.
     2. <body>       page markup: layer tabs, teeth, layer sheets, dashboard panel, intro layers.
     3. Library      d3 7.9.0 from a public CDN.
-    4. tooth.js     the 3D renderer. radial-data.js + radial.js (4b) are the radial timeline. The tooth is a signed-distance shape ray-marched in a WebGL2
+    4. tooth.js     the 3D renderer. radial-data.js + radial.js (4b) are the radial timeline; caries.js (4c) is section 1's caries plate; wearleh.js (4d) and lehfigs.js (4e) draw section 3's figures. The tooth is a signed-distance shape ray-marched in a WebGL2
                     shader and drawn as an engraving. shape() holds the anatomy of each tooth type.
     5. app.js       the storyline: intro, pooling of the data per 100-year window, particles,
                     overview playback, layer sheets and dashboards.
@@ -92,7 +92,7 @@ GUIDE = """<!--
     100 years. Historical text and pictures are context, not data. Entry routes are illustrations.
 
   To regenerate the data, or to edit the code as separate files, ask for the source folder:
-  build_data.py, bundle.py, share.py, index.html, app.js, tooth.js, data/.
+  build_data.py, bundle.py, share.py, index.html, app.js, tooth.js, caries.js, wearleh.js, lehfigs.js, data/.
 -->"""
 
 data = "\n".join(
@@ -108,6 +108,9 @@ doc = ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
        "<!-- 4 · renderer -->\n<script>\n" + rd("tooth.js").replace("</script", "<\\/script") + "\n</script>\n\n"
        "<!-- 4b · radial timeline: data, then drawing -->\n<script>\n" + rd("radial-data.js").replace("</script", "<\\/script") + "\n</script>\n"
        "<script>\n" + rd("radial.js").replace("</script", "<\\/script") + "\n</script>\n\n"
+       "<!-- 4c · caries plate (section 1) -->\n<script>\n" + rd("caries.js").replace("</script", "<\\/script") + "\n</script>\n\n"
+       "<!-- 4d · wear and LEH figures (section 3) -->\n<script>\n" + rd("wearleh.js").replace("</script", "<\\/script") + "\n</script>\n\n"
+       "<!-- 4e · stress-line figures (section 3) -->\n<script>\n" + rd("lehfigs.js").replace("</script", "<\\/script") + "\n</script>\n\n"
        "<!-- 5 · storyline and interface -->\n<script>\n" + app.replace("</script", "<\\/script") + "\n</script>\n\n"
        "<!-- 6 · generated data -->\n" + data + "\n\n"
        "<!-- 7 · start -->\n<script>window.startStatisticalTooth();</script>\n</body>\n</html>\n")
