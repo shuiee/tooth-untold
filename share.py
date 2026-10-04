@@ -25,9 +25,11 @@ GUIDE = """<!--
 
   THE FLOW
     Intro      the engraved jaw opens, four teeth line up, the first molar and canine become point clouds.
-    Overview   the two teeth alone play through 300-1900 CE (no timeline); marks arrive century by century.
-    Timeline   Plate II, the radial timeline in perspective (radial.js, data in radial-data.js): five records
-               come towards you from a point between the deep-set teeth; line length is the time each covers.
+    Overview   the two teeth alone, as realistic sections with their nerves (no gum or bone, no caption), play
+               through 300-1900 CE (no timeline); every kind of mark arrives century by century.
+    Timeline   Plate II, the radial timeline in perspective (radial.js, data in radial-data.js): five lines from
+               the centre of the page, between the large, deep-set molar (left) and canine (right), one per kind
+               of record, with a circle at the year each record begins (square-root scale, dotted year rings).
                A name opens that record's section.
     Sections   1 Caries, 2 Pathogens, 3 Wear and LEH, 4 Metals, 5 Artificial interventions, each a journal spread: the plate (the 3D teeth,
                in the view that suits the record, labelled) on the left, numbered figures drawn from the
@@ -53,13 +55,17 @@ GUIDE = """<!--
   COMMON EDITS (all in app.js unless noted)
     Sections          LAYERS: number, name, dek, plate caption and placeholder events for each section. Event pictures are window.ERA_IMAGES["event-..."] (images/event-*.jpg in the source).
     Dashboard         CHARTS: each layer's chart titles, subtitles and notes. dashHTML() lays out the panel;
-                      drawPathogenMatrix(), drawWear(), drawLEH(), drawLead() and drawElements() draw the charts.
+                      drawPathogenStrand(), drawWear(), drawLEH(), drawLead() and drawElements() draw the charts.
+    Realistic section tooth.js realCut() (cut face) and the uReal branch of the surface shading; the nerve and
+                      vessels follow canalSegs(). app.js microbe() draws the realistic pathogens on section plates.
     Plate views       LAYERS[].view: "cut" (cross-section, in the jaw), "whole" (uncut, out of the jaw) or "aerial"
                       (the crown from above), per tooth. frameView() sets the camera; plateLabels() labels each view.
     Which marks show  paramsFor() and showsRec() keep only the chosen layer's traces in the teeth.
     Overview speed    SPEED is years per second; stepPlay() holds briefly at 1900, then enterRadial() runs.
-    Radial timeline   radial-data.js holds the four records (edit numbers there). radial.js: R0, RMAX, MAX_SPAN at
-                      the top set the geometry; radialTeeth() in app.js makes the tooth pictures.
+    Radial timeline   radial-data.js holds the five kinds of record (edit numbers there). radial.js: R0, RMAX, NOW,
+                      rAge() and RINGS at the top set the geometry, TOOTH_H the teeth; radialTeeth() in app.js makes the tooth pictures.
+    Pathogen strand   drawPathogenStrand() in app.js: STRAND_NAME (names), STRAND_CONTEXT (world events, context
+                      only), TURNS (where the ribbon turns over). One dot = 2% of a century's genomes.
     Intro jaw         loadJaw(), jawInk() and jawPose(). The picture is window.ERA_IMAGES["jaw-arches"]:
                       both arches opened flat, the hinge on the horizontal centre line. JAW_TEETH places the rings.
     Intro timing      intro(): the wait(...) and tween(...) durations, in ms.
