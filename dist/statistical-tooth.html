@@ -66,6 +66,7 @@ a{color:inherit}
 #ov{overflow:visible}
 #ov .pt{pointer-events:auto;cursor:default}
 #ov .pl{font-family:var(--label);font-size:11px;font-style:italic;fill:var(--ink-2);paint-order:stroke;stroke:rgba(233,232,228,.85);stroke-width:3px;stroke-linejoin:round}
+#ov .pl-sub{font-size:9.5px;font-style:normal;fill:var(--ink-3)}
 #ov .pl-lead{fill:none;stroke:var(--ink);stroke-width:.6}
 #ov .pl-dot{fill:var(--ink)}
 #ov .tname{font-family:var(--label);font-size:10.5px;font-weight:600;letter-spacing:.08em;fill:var(--ink)}
@@ -300,11 +301,16 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 /* caries, pathogens and metals: the molar alone, centred */
 #pair.solo #tCanine{display:none}
 #pair.solo #tMolar{grid-column:1 / -1}
+/* Wear and LEH: the molar's canvas spans the plate (its camera places it, large in the middle, then over the left column) */
+#pair.wearplate #tMolar{grid-column:1 / -1;grid-row:1}
+#pair.wearplate #tCanine{grid-row:1;z-index:1}
+#pair.molar-only #tCanine{pointer-events:none}
 /* a section's plate: the teeth's frame starts below the row of names and Replay, so nothing on the teeth can reach it */
 #stage.haspanel #pair .tooth{margin-top:44px}   /* the whole plate, margins too, so a zoomed molar is not cut off at its sides */
 .dp.wl.wear-only #wlLehBox{display:none}
 #wlLehBox{animation:dpIn .7s ease both}
-.wl-box{position:relative;flex:1 1 0;min-height:0;overflow-y:auto;border:1px solid var(--ink);background:var(--card);padding:12px 14px 14px}
+.wl-box{position:relative;flex:1 1 0;min-height:0;overflow-y:auto;padding:12px 2px 14px}
+#wlLehBox{border-top:1px solid var(--rule)}   /* no boxes: one thin line between the two panels */
 .wl-box .fig{padding-top:8px}
 .wl-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
 .wl-top .wl-st{margin-left:auto}
@@ -387,16 +393,24 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 .lf-c9.side{flex-direction:row;align-items:flex-start;gap:24px}
 .lf-c9.side .lf-c9a{flex:0 0 58%}.lf-c9.side .lf-c9b{flex:1;min-width:0}
 .lf-band{cursor:pointer;transition:opacity .4s}
-.lf-band .fill{fill:var(--c);fill-opacity:.1}
-.lf-band .ribs{fill:none;stroke:var(--c);stroke-opacity:.28;stroke-width:.5}
-.lf-band .edge{fill:none;stroke:var(--c);stroke-opacity:.55;stroke-width:.7}
-.lf-band .fit{fill:none;stroke:var(--c);stroke-width:2.6;stroke-linecap:round}
-.lf-band circle{fill:var(--c);fill-opacity:.7}
+/* C9: the fitted line is the reading (heavy, opaque); the ribbon is faint drawing and takes no pointer */
+.lf-band .fill{fill:var(--c);fill-opacity:.12}
+.lf-band .ribs line{stroke:var(--c);stroke-width:.6}
+.lf-band .edge{fill:none;stroke:var(--c);stroke-opacity:.3;stroke-width:.6}
+.lf-band .edge.mirror{stroke-dasharray:2 2}
+.lf-band .fill,.lf-band .ribs,.lf-band .edge{pointer-events:none}
+.lf-band .fit{fill:none;stroke:var(--c);stroke-width:3;stroke-linecap:round;stroke-opacity:1}
+.lf-band circle{stroke:var(--c);stroke-width:1.1}
+.lf-band circle.full{fill:var(--c)}
+.lf-band circle.thin{fill:var(--bg)}
+.lf-check{font-size:13px;margin:0 0 10px;color:var(--ink-2)}
+.lf-check b{color:var(--ink);font-weight:600;margin-right:4px}
 .lf-band .hit{fill:none;stroke:transparent;stroke-width:14}
 .lf-c9a-svg.picked .lf-band:not(.sel) .fill{fill-opacity:.04}
-.lf-c9a-svg.picked .lf-band:not(.sel) .ribs,.lf-c9a-svg.picked .lf-band:not(.sel) .edge{stroke-opacity:.12}
+.lf-c9a-svg.picked .lf-band:not(.sel) .ribs{opacity:.3}
+.lf-c9a-svg.picked .lf-band:not(.sel) .edge{stroke-opacity:.12}
 .lf-c9a-svg.picked .lf-band:not(.sel) .fit{stroke-opacity:.35}
-.lf-c9a-svg .lf-band.sel .fill{fill-opacity:.18}
+.lf-c9a-svg .lf-band.sel .fill{fill-opacity:.16}
 .lf-c9a-svg .lf-band.sel .fit{stroke-width:3.4}
 .lf-bl{font-size:10.5px;font-weight:600;cursor:pointer;transition:opacity .3s}
 .lf-bl.dim{opacity:.4}
@@ -414,14 +428,11 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 .lf-pv{font-size:10.5px;font-weight:600;fill:var(--ink)}
 .lf-dot{cursor:pointer}
 .lf-dot circle{transition:transform .2s;transform-box:fill-box;transform-origin:center}
-.lf-c8col.wig .lf-dot circle{animation:lfWiggle .45s ease-in-out infinite}
 .lf-c8col .hov{fill:transparent;pointer-events:all}
 .lf-c8col{cursor:pointer}
 .lh-btns .btn:disabled{opacity:.4;cursor:default}
 .lh-btns .btn:disabled:hover{background:transparent;color:inherit}
-@keyframes lfWiggle{0%,100%{transform:translate(0,0)}25%{transform:translate(-1.6px,.8px) rotate(-6deg)}75%{transform:translate(1.6px,-.8px) rotate(6deg)}}
 .lf-fly{position:absolute;z-index:5;pointer-events:none}
-@media (prefers-reduced-motion:reduce){.lf-c8col.wig .lf-dot circle{animation:none}}
 /* the caries plate's decay on the 3D molar (app.js, drawCariesOverlay()) */
 #ov .cp3-ring .lt{fill:none;stroke:#fbf8f1;stroke-width:2.4;stroke-opacity:.45}
 #ov .cp3-ring .dk{fill:none;stroke:#3b3a35;stroke-width:1;stroke-dasharray:4 2}
@@ -2562,6 +2573,11 @@ window.TOOTH_MESHES={"UL3":{"v":"/NZkGBz879YXGI7+6taqGHoA+9bKGgz6pNbLGln8e9Y3G/3
         cells.push({ i, j, pk, t });
       }
     });
+    // fit the view box to what is drawn (peaks, labels, the age axis and its title), so the chart sits in the middle of
+    // its panel with nothing cut off and no empty band above the back peaks; room on top for a playing row's lift
+    const fit = () => { let b; try { b = svg.getBBox(); } catch (_) { return; } if (!b || !b.width) return;
+      svg.setAttribute("viewBox", (b.x - 6).toFixed(1) + " " + (b.y - 16).toFixed(1) + " " + (b.width + 12).toFixed(1) + " " + (b.height + 24).toFixed(1)); };
+    fit(); requestAnimationFrame(fit);   // again once laid out, in case the panel was not yet measured
     return {
       // one row bright and lifted while its period plays; -1 settles every row
       highlight(i) { svg.classList.toggle("playing", i >= 0); rows.forEach((g, k) => { g.classList.toggle("hi", k === i); labs[k].classList.toggle("hi", k === i); rowLab[k].classList.toggle("hi", k === i); }); },
@@ -2582,14 +2598,15 @@ window.TOOTH_MESHES={"UL3":{"v":"/NZkGBz879YXGI7+6taqGHoA+9bKGgz6pNbLGln8e9Y3G/3
      bar is drawn like a groove on a tooth (wavy edges, ribs across it), but it starts at 0 and ends at its value, so its
      length reads against the axis. show(k) grows bar k from left to right. { show(k, ms), showAll, live, select, barRect, col }
      opt.onPick(k) on a click on bar k once live.
-   LEHFigs.c9(el, L, opt)    C9A: by age at death, each period's gap from its own share, as a ribbon twisted around its
-     fitted (least-squares) line: one edge passes through the age bands' values, the other mirrors them across the line,
-     so the ribbon pinches where the data cross the trend. C9B: the slope in each cemetery of the chosen period.
+   LEHFigs.c9(el, L, opt)    C9A: a check, not a finding: by age at death, each period's gap from its own share. The
+     fitted (least-squares) line is the reading, heavy and opaque; each age band is a dot, filled at n >= 40 and hollow
+     below; a faint, non-interactive ribbon runs between the bands and their mirror across the line (drawing, not
+     uncertainty), its ribs fading with the band's sample. C9B: the slope in each cemetery of the chosen period.
      { showBands(done), focus(k) }; opt.onPick(k) when a band is clicked.
    LEHFigs.c8(el, L, opt)    C8A: each period's adults by how many lines the canine carries; C8B: each cemetery's share
      with two or more lines, sized by sample, against the period's pooled value. { rowRect(k), landRow(k), revealRow(k),
-     showSites(k), focus(k), pin(k) }. Hovering a period's column shakes all its cemeteries and dims the other periods in both
-     panels; leaving puts them back.
+     showSites(k), focus(k), pin(k) }. Hovering a period's column dims the other periods in both panels; leaving puts
+     them back.
    LEHFigs.fly(box, from, to, cols, land, all)  copies of C10's bars fly down inside the panel to C8A's rows, widen and
      flatten into rectangles. */
 (function () {
@@ -2598,7 +2615,8 @@ window.TOOTH_MESHES={"UL3":{"v":"/NZkGBz879YXGI7+6taqGHoA+9bKGgz6pNbLGln8e9Y3G/3
   const REDUCED = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   // the bars' blue: light for the earliest period, deep for the latest (as in the draft)
   const barCol = (k, n) => d3.interpolateLab("#8fbbee", "#173f86")(k / Math.max(1, n - 1));
-  // a groove's edge: a few slow sine waves, fixed per bar
+  // a groove's edge: a few slow sine waves, fixed per bar. In pixels (about ±1.5), and kept so: never scaled with the
+  // chart, so it stays well under half a percentage point of the axis
   const wob = (x, k, s) => 1.5 * Math.sin(x * 0.045 + k * 1.7 + s) + 0.9 * Math.sin(x * 0.13 + k * 0.9 + 2 * s) + 0.5 * Math.sin(x * 0.31 + k * 2.3);
 
   // ------------------------------------------------------------------ C10
@@ -2692,15 +2710,22 @@ window.TOOTH_MESHES={"UL3":{"v":"/NZkGBz879YXGI7+6taqGHoA+9bKGgz6pNbLGln8e9Y3G/3
     A.forEach((a, i) => { if (WA >= 440 || i % 2 === 0 || i === A.length - 1) svg.append("text").attr("class", "lf-ax").attr("x", x(a)).attr("y", H - m.b + 16).attr("text-anchor", "middle").text(a); });
     svg.append("text").attr("class", "lf-ax").attr("x", (m.l + WA - m.r) / 2).attr("y", H - 2).attr("text-anchor", "middle").text("age at death");
     const P = (pts) => "M" + pts.map(q => q[0].toFixed(1) + "," + y(q[1]).toFixed(1)).join("L");
+    const nMax = d3.max(E, e => d3.max(e.cells, c => c.n));
     const bands = E.map((e, k) => {
       const xs = e.cells.map(c => x(c.a)), data = monotone(xs, e.cells.map(c => c.dev), 3), fitS = monotone(xs, e.cells.map(c => c.fit), 3);
       const mirror = data.map((q, i) => [q[0], 2 * fitS[i][1] - q[1]]), col = cols[e.p] || "#55544f";
       const g = svg.append("g").attr("class", "lf-band").style("--c", col).attr("opacity", 0).style("pointer-events", "none");
       g.append("path").attr("class", "fill").attr("d", P(data) + "L" + mirror.slice().reverse().map(q => q[0].toFixed(1) + "," + y(q[1]).toFixed(1)).join("L") + "Z");
-      g.append("path").attr("class", "ribs").attr("d", data.filter((q, i) => i % 2 === 0).map((q, i) => "M" + q[0].toFixed(1) + "," + y(q[1]).toFixed(1) + "V" + y(mirror[i * 2][1]).toFixed(1)).join(""));
-      g.append("path").attr("class", "edge").attr("d", P(data)); g.append("path").attr("class", "edge").attr("d", P(mirror));
+      // each rib's strength follows the sample under it (interpolated between the age bands), so the pinches that rest on
+      // few adults recede on their own
+      const nAt = xx => { let i = Math.max(0, Math.min(xs.length - 2, d3.bisectRight(xs, xx) - 1)); const u = Math.max(0, Math.min(1, (xx - xs[i]) / ((xs[i + 1] - xs[i]) || 1)));
+        return e.cells[i].n + (e.cells[i + 1].n - e.cells[i].n) * u; };
+      const ribs = g.append("g").attr("class", "ribs");
+      data.forEach((q, i) => { if (i % 2) return; ribs.append("line").attr("x1", q[0]).attr("x2", q[0]).attr("y1", y(q[1])).attr("y2", y(mirror[i][1])).attr("stroke-opacity", (0.05 + 0.4 * Math.sqrt(nAt(q[0]) / nMax)).toFixed(3)); });
+      g.append("path").attr("class", "edge").attr("d", P(data)); g.append("path").attr("class", "edge mirror").attr("d", P(mirror));
       g.append("path").attr("class", "fit").attr("d", P(fitS));
-      g.selectAll("circle").data(e.cells).join("circle").attr("cx", c => x(c.a)).attr("cy", c => y(c.dev)).attr("r", 2.4).append("title").text(c => e.p + ", died " + c.a + ": " + c.pct + "% (" + (c.dev > 0 ? "+" : "") + c.dev.toFixed(1) + " points from the period's " + e.pct + "%), n = " + c.n);
+      g.selectAll("circle").data(e.cells).join("circle").attr("class", c => c.n >= 40 ? "full" : "thin").attr("cx", c => x(c.a)).attr("cy", c => y(c.dev)).attr("r", 2.8)
+        .append("title").text(c => e.p + ", died " + c.a + ": " + c.pct + "% (" + (c.dev > 0 ? "+" : "") + c.dev.toFixed(1) + " points from the period's " + e.pct + "%), n = " + c.n + (c.n < 40 ? " (fewer than 40)" : ""));
       g.append("path").attr("class", "hit").attr("d", P(fitS));
       g.on("click", () => { if (opt.onPick) opt.onPick(k); });
       return { g, e, col, endY: y(fitS[fitS.length - 1][1]) };
@@ -2715,6 +2740,9 @@ window.TOOTH_MESHES={"UL3":{"v":"/NZkGBz879YXGI7+6taqGHoA+9bKGgz6pNbLGln8e9Y3G/3
     // ---- B: cemeteries of one period
     function drawB(k) {
       const e = E[k], S = e.sites.filter(s => s.slope != null), rows = S.concat([{ name: "POOLED", n: e.n, pct: e.pct, slope: e.slope, pooled: true }]);
+      // the period's own colour, as its line in the chart beside: a dark shade for cemeteries that slope down, a light one
+      // for those that slope up
+      const base = cols[e.p] || "#55544f", dark = d3.color(base).darker(0.9).formatHex(), light = d3.interpolateLab(base, "#ffffff")(0.5);
       const rh = 22, mB = { l: side ? 112 : 124, r: side ? 92 : 128, t: 34, b: 34 }, HB = mB.t + rows.length * rh + mB.b;
       const big = d3.max(rows, r => Math.abs(r.slope)), xl = Math.max(4, Math.ceil(big * 1.3 + 0.5));   // room for the value labels
       const xb = d3.scaleLinear().domain([-xl, xl]).range([mB.l, WB - mB.r]);
@@ -2728,11 +2756,11 @@ window.TOOTH_MESHES={"UL3":{"v":"/NZkGBz879YXGI7+6taqGHoA+9bKGgz6pNbLGln8e9Y3G/3
         sb.append("text").attr("class", "lf-ax").attr("x", xb(v)).attr("y", mB.t + rows.length * rh + 14).attr("text-anchor", "middle").text(v); });
       sb.append("text").attr("class", "lf-ax").attr("x", (mB.l + WB - mB.r) / 2).attr("y", HB - 4).attr("text-anchor", "middle").text("slope on age at death, points per decade");
       rows.forEach((r, i) => {
-        const yy = mB.t + i * rh + rh / 2, pos = r.slope > 0, c = pos ? "#b9b6ad" : "#1a1a18", g = sb.append("g").attr("class", "lf-site" + (r.pooled ? " pooled" : ""));
+        const yy = mB.t + i * rh + rh / 2, pos = r.slope > 0, c = pos ? light : dark, g = sb.append("g").attr("class", "lf-site" + (r.pooled ? " pooled" : ""));
         g.append("text").attr("class", "lf-sn").attr("x", mB.l - 8).attr("y", yy + 4).attr("text-anchor", "end").text(r.name.length > 18 ? r.name.slice(0, 17) + "…" : r.name).append("title").text(r.name);
-        g.append("line").attr("x1", xb(0)).attr("x2", xb(r.slope)).attr("y1", yy).attr("y2", yy).attr("stroke", c).attr("stroke-opacity", pos ? 0.8 : 0.55).attr("stroke-width", 5);
+        g.append("line").attr("x1", xb(0)).attr("x2", xb(r.slope)).attr("y1", yy).attr("y2", yy).attr("stroke", c).attr("stroke-opacity", 0.85).attr("stroke-width", 5);
         g.append("circle").attr("cx", xb(r.slope)).attr("cy", yy).attr("r", r.pooled ? 6 : 4.6).attr("fill", c).attr("stroke", "#f3f2ee").attr("stroke-width", 1.5);
-        g.append("text").attr("class", "lf-sv").attr("x", xb(r.slope) + (pos ? 10 : -10)).attr("y", yy + 4).attr("text-anchor", pos ? "start" : "end").style("fill", pos ? "#8a8983" : "#1a1a18").text((pos ? "+" : "") + r.slope.toFixed(2));
+        g.append("text").attr("class", "lf-sv").attr("x", xb(r.slope) + (pos ? 10 : -10)).attr("y", yy + 4).attr("text-anchor", pos ? "start" : "end").style("fill", pos ? base : dark).text((pos ? "+" : "") + r.slope.toFixed(2));
         g.append("text").attr("class", "lf-ax").attr("x", WB - mB.r + 10).attr("y", yy + 4).text("n = " + r.n + " · " + Math.round(r.pct) + "%");
         g.append("title").text(r.name + ": " + (pos ? "+" : "") + r.slope.toFixed(2) + " points per decade; " + r.n + " scorable canines, " + r.pct + "% with a line");
       });
@@ -2796,7 +2824,7 @@ window.TOOTH_MESHES={"UL3":{"v":"/NZkGBz879YXGI7+6taqGHoA+9bKGgz6pNbLGln8e9Y3G/3
     const colsB = E.map((e, k) => {
       const cx = mb.l + cw * (k + 0.5), g = sb.append("g").attr("class", "lf-c8col").attr("data-k", k).attr("opacity", 0).style("pointer-events", "none");
       g.append("rect").attr("class", "hov").attr("x", cx - cw / 2).attr("width", cw).attr("y", mb.t - 6).attr("height", HB - mb.t - mb.b + 40);
-      g.on("mouseenter", () => { g.classed("wig", true); focus(k, false); }).on("mouseleave", () => { g.classed("wig", false); focus(-1, false); }).on("click", () => focus(k, true));
+      g.on("mouseenter", () => focus(k, false)).on("mouseleave", () => focus(-1, false)).on("click", () => focus(k, true));
       g.append("text").attr("class", "lf-rl").attr("x", cx).attr("y", HB - mb.b + 30).attr("text-anchor", "middle").style("font-size", narrow ? "9.5px" : null).text(narrow ? e.p.replace(" medieval", " med.").replace("Early modern", "E. modern") : e.p);
       g.append("text").attr("class", "lf-ax").attr("x", cx).attr("y", HB - mb.b + 14).attr("text-anchor", "middle").text(e.sites.length + " sites");
       g.append("line").attr("class", "pool").attr("x1", cx - cw * 0.34).attr("x2", cx + cw * 0.34).attr("y1", yB(e.comp[2])).attr("y2", yB(e.comp[2]));
@@ -3410,8 +3438,42 @@ function renderKPIs(p) {
         cam.dist = Math.max(hh * cam.focal / 0.84, r.width > 0 ? half * cam.focal * r.height / (r.width * 0.8) : 0);
       }
       if (S.scene === "layer" && S.viewMode === "perspective") Object.assign(cam, { yaw: VIEW.yaw, pitch: 0.38 });   // the view buttons belong to the sections; the overview keeps its own view
+      if (wearMolar(T)) { const f = wearFrame(T, wearAct2()); cam.dist = f.dist; cam.target = f.target; S.mShift = f.shift; }
       cam.home = cam.target.slice();
     });
+  }
+  // The Wear and LEH plate: the molar's canvas spans the whole plate. In the first act (the molar alone) it is framed
+  // large in the middle, as on the caries plate; in the second, when the canine comes in, it sits over the left column
+  // at the size the two-tooth layout gives it. wearFrame() is that framing for the tooth's current rotation; S.mShift is
+  // how far left of the plate's middle the molar is drawn (its name follows it).
+  const wearMolar = T => S.scene === "layer" && S.layer === "wear" && T.key === "molar";
+  const wearAct2 = () => S.wlStage != null && S.wlStage !== "wear";
+  function wearFrame(T, act2) {
+    const SH = T.R.st.S, cam = T.R.st.cam, v = viewOf(T), el = T.el, can = (TEETH.find(U => U.key === "canine") || T).el;
+    const H = el.clientHeight || 1, colW = can.offsetWidth || el.clientWidth / 2, w = act2 ? colW : el.clientWidth;
+    const shift = act2 ? (can.offsetLeft - colW / 2) - (el.offsetLeft + el.clientWidth / 2) : 0;
+    let target, dist;
+    if (v === "aerial") { const half = Math.max(-SH.boxMin[0], SH.boxMax[0], -SH.boxMin[2], SH.boxMax[2]) * 0.95; target = [0, SH.top * 0.8, 0]; dist = half * cam.focal / Math.min(0.8, 0.8 * w / Math.max(1, H)); }
+    else { const hh = (SH.top - SH.rootMin) / 2, half = Math.max(-SH.boxMin[0], SH.boxMax[0]); target = [0, (SH.top + SH.rootMin) / 2, 0]; dist = Math.max(hh * cam.focal / 0.84, half * cam.focal * H / (w * 0.8)); }
+    if (shift) { const { rt } = camAxes(cam), k = 2 * dist / (H * cam.focal); target = target.map((x, i) => x - shift * k * rt[i]); }
+    return { target, dist, shift };
+  }
+  // between the acts the molar glides there (or back, on Replay), keeping however the reader has turned it; any zoom or
+  // pan is undone on the way, on both teeth
+  function wearShift(act2, ms) {
+    const T = TEETH.find(U => U.key === "molar"); if (!GL || !T || !T.R) return;
+    ms = REDUCED ? 0 : ms || 1300;
+    const cam = T.R.st.cam, end = wearFrame(T, act2), d0 = cam.dist * (cam.zoom || 1), t0 = cam.target.slice(), s0 = S.mShift || 0;
+    S.zoom = 1; cam.zoom = 1;
+    TEETH.forEach(U => { if (U !== T && U.R) { U.R.st.cam.zoom = 1; U.R.st.cam.target = (U.R.st.cam.home || U.R.st.cam.target).slice(); } });
+    const id = S.mTween = (S.mTween || 0) + 1, t00 = performance.now();
+    const step = now => {
+      if (id !== S.mTween) return;
+      const u = ms ? Math.min(1, (now - t00) / ms) : 1, e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+      cam.dist = d0 + (end.dist - d0) * e; cam.target = t0.map((v, i) => v + (end.target[i] - v) * e); S.mShift = s0 + (end.shift - s0) * e;
+      if (u < 1) { requestRender(true); requestAnimationFrame(step); } else { cam.home = end.target.slice(); requestRender(false); }
+    };
+    if (ms) requestAnimationFrame(step); else step(t00);
   }
   const NEUTRAL = SH => ({ wearY: SH.top + 0.02, caries: [0, 0, 0, 0], leh: [0, 0], lehY: [0, 0], calc: 0, pb: 0, cutX: 5, jaw: false });
   function insideSolid(T, p, m) {
@@ -3546,7 +3608,7 @@ function renderKPIs(p) {
     // are framed or zoomed; elsewhere they sit just above the crowns, set when a view is framed and held while it turns
     const y = S.scene === "layer" ? 24 : fixedNameY != null ? fixedNameY : (fixedNameY = nameY());
     if (!replayEl.hidden) replayEl.style.top = (pairEl.offsetTop + y - 11) + "px";   // level with the names' tops
-    const nameX = T => S.scene === "layer" ? T.el.offsetLeft + T.el.offsetWidth / 2 : toPair(T, [0, 0, 0])[0];   // a plate's names never move
+    const nameX = T => S.scene !== "layer" ? toPair(T, [0, 0, 0])[0] : T.el.offsetLeft + T.el.offsetWidth / 2 + (wearMolar(T) ? S.mShift || 0 : 0);   // a plate's names hold still (the Wear and LEH molar's moves with it between the acts)
     TEETH.filter(T => !wlHidden(T)).forEach(T => gLabels.append("text").attr("class", "tname").attr("x", nameX(T)).attr("y", y).attr("text-anchor", "middle").text(T.label));
   }
   // Atlas-style labels on a section's plate: the anatomy and the traces the section shows, each on a hairline
@@ -3558,7 +3620,7 @@ function renderKPIs(p) {
       if (wlHidden(T)) return;
       const SH = T.R.st.S, P = T.R.st.P, top = SH.top, left = T.key === "molar", b = T.R.st.basis, v = viewOf(T);
       if (!b) return;
-      const add = (t, p) => { if (!p) return; const xy = toPair(T, p); if (inTeeth(xy)) sides[T.key].push({ t, xy }); };   // not if its point is cropped off
+      const add = (t, p, sub) => { if (!p) return; const xy = toPair(T, p); if (inTeeth(xy)) sides[T.key].push({ t, xy, sub }); };   // not if its point is cropped off; sub: a small second line
       // the visible surface point on the way from the camera to a target inside the tooth
       const seen = target => { const d = [target[0] - b.ro[0], target[1] - b.ro[1], target[2] - b.ro[2]], l = Math.hypot(...d), h = T.R.march(b.ro, d.map(x => x / l), l + 2); return h && h.p; };
       if (v === "cut") {
@@ -3597,9 +3659,10 @@ function renderKPIs(p) {
     Object.entries(sides).forEach(([k, list]) => {
       const left = k === "molar", x = left ? 6 : W - 6;
       list.sort((a, b) => a.xy[1] - b.xy[1]);
-      let last = -1e9; list.forEach(l => { l.y = Math.min(H - 8, Math.max(l.xy[1], last + 18, 24)); last = l.y; });
+      let last = -1e9, lastSub = false; list.forEach(l => { l.y = Math.min(H - 8, Math.max(l.xy[1], last + (lastSub ? 30 : 18), 24)); last = l.y; lastSub = !!l.sub; });
       list.forEach(l => {
         const t = gLabels.append("text").attr("class", "pl").attr("x", x).attr("y", l.y + 3.5).attr("text-anchor", left ? "start" : "end").text(l.t);
+        if (l.sub) gLabels.append("text").attr("class", "pl pl-sub").attr("x", x).attr("y", l.y + 16).attr("text-anchor", left ? "start" : "end").text(l.sub);
         const w = t.node().getComputedTextLength(), x0 = left ? x + w + 5 : x - w - 5;
         gLabels.append("path").attr("class", "pl-lead").attr("d", "M" + x0 + "," + l.y + "H" + (l.xy[0] + (left ? -10 : 10)) + "L" + l.xy[0] + "," + l.xy[1]);
         gLabels.append("circle").attr("class", "pl-dot").attr("cx", l.xy[0]).attr("cy", l.xy[1]).attr("r", 1.6);
@@ -4079,7 +4142,7 @@ function renderKPIs(p) {
     if (S.scene === "intro") { endIntro(); drawCloud(0, 0); pairEl.style.transform = ""; }
     if (k !== "wear" || S.layer !== "wear") leaveWear();
     if (S.layer !== k || !S.viewMode) S.viewMode = defView(L);   // a new section opens in its own view
-    pairEl.classList.toggle("solo", SOLO.has(k));
+    pairEl.classList.toggle("solo", SOLO.has(k)); pairEl.classList.toggle("wearplate", k === "wear");
     stage.classList.remove("metals-on"); if (window.MetalPlate) MetalPlate.hide();   // metals uses the same molar, views and labels as every other section
     const fresh = S.scene !== "layer" || S.layer !== k;   // a fresh visit, not a resize
     if (fresh) { strandSel = null; strandShown = false; stopPseq(); hidePop(); popOpen = false; }
@@ -4205,7 +4268,7 @@ function renderKPIs(p) {
   }; });
   function leaveWear() {
     if (wl) { wl.run = -1; clearTimeout(wl.timer); cancelAnimationFrame(wl.raf); }
-    wl = null; S.wl = null; S.wlStage = null; pairEl.classList.remove("molar-only", "solo"); eraEl.hidden = true; stage.classList.remove("eraline");
+    wl = null; S.wl = null; S.wlStage = null; pairEl.classList.remove("molar-only", "solo", "wearplate"); S.mShift = 0; eraEl.hidden = true; stage.classList.remove("eraline");
     panelEl.classList.remove("twin"); viewsEl.hidden = replayEl.hidden = true;
   }
   const spanTxt = e => e.span[0] + "–" + e.span[1] + " CE";
@@ -4231,10 +4294,10 @@ function renderKPIs(p) {
       "<section class='wl-box' id='wlLehBox' aria-label='Linear enamel hypoplasia'><div class='wl-top'><h3>Stress lines on the lower canine, period by period</h3><span class='wl-st' id='wlLehSt'>Click a bar to open its period</span><button class='wl-tog' type='button' data-box='leh' aria-expanded='true' aria-label='Minimize the stress-line panel'></button></div>" +
       "<figure class='fig'><div id='wlC10' role='group' aria-label='Fig. 3.3 The curve does not tilt, it lifts: the share of adults with at least one stress line (linear enamel hypoplasia) on the lower canine, by period, with 95% intervals. Each bar is drawn like a groove on the tooth, but starts at 0 and ends at its value. Click a bar to open its period.'></div>" +
       "<ol class='notes'><li>What a bar is: the share of adults in the period whose lower canine carries at least one line. The marker forms before about age six and enamel never remodels, so each bar is a measure of childhood, carried by an adult skeleton.</li>" +
-      "<li>The whisker is a 95% Wilson interval. The Industrial bar does not overlap any period before the Late medieval, and the three medieval periods and the Early modern overlap heavily: the safe reading is a low plateau, a step up around the Late medieval period, and a second step at industrialisation.</li>" +
-      "<li>Age-standardising every period to the pooled age distribution of all " + fmtN(LC.n) + " adults moves each value by at most " + d3.max(LC.eras, c => Math.abs(c.pct - c.std)).toFixed(1) + " points (in each period's detail; it differs from the draft's column by at most 0.1).</li>" +
+      "<li>The whisker is a 95% Wilson interval. " + lehTiers(LC) + "</li>" +
+      "<li>Age-standardising every period to the pooled age distribution of all " + fmtN(LC.n) + " adults moves each value by at most " + d3.max(LC.eras, c => Math.abs(c.pct - c.std)).toFixed(1) + " points (in each period's detail).</li>" +
       "<li>One tooth, deliberately: scoring the worst of up to four teeth rewards people who kept more of them. The lower canine is the best-covered single tooth, and the one this project models. On the plate it is drawn after Schultz's standard, exaggerated so it reads: one groove as strong as the share with a line (full at " + d3.max(LC.eras, c => c.pct).toFixed(1) + "%), three more as the share with two or more (full at " + d3.max(LC.eras, c => c.comp[2]).toFixed(1) + "%).</li>" +
-      "<li>Source: Global History of Health Project, European module, decoded for this project; adults 18–69 with a scorable lower canine; scoring after Schultz (1988). After the team's draft C10.</li></ol></figure>" +
+      "<li>Source: Global History of Health Project, European module, decoded for this project; adults 18–69 with a scorable lower canine; scoring after Schultz (1988).</li></ol></figure>" +
       "<div id='wlLehDetail' class='wl-detail lh' hidden><div class='lh-corr'></div><div class='lh-btns' role='group' aria-label='Break down Fig. 3.3'><button type='button' class='btn' data-v='age'>Break down by age</button><button type='button' class='btn' data-v='sev'>Break down by severity</button></div><div class='lh-body'></div></div></section></div>";
   }
   // set the teeth to a period's values (or between two), re-render, and name the period under the plate
@@ -4293,7 +4356,8 @@ function renderKPIs(p) {
     });
   }
   function wlStage(st) {
-    S.wlStage = st;
+    const was = S.wlStage; S.wlStage = st;
+    if (was != null && (was !== "wear") !== (st !== "wear")) wearShift(st !== "wear");   // into the second act, or back on Replay
     const wearOnly = st === "wear";
     pairEl.classList.toggle("molar-only", wearOnly);
     const dp = panelEl.querySelector(".dp.wl"); if (dp) dp.classList.toggle("wear-only", wearOnly);
@@ -4379,6 +4443,24 @@ function renderKPIs(p) {
     el.querySelectorAll(".lh-btns button").forEach(b => { if (!b.onclick) b.onclick = () => lehView(wl.lehView === b.dataset.v ? null : b.dataset.v); });
     if (on) lehCorr(wl.lehK == null ? LD.morphology.leh_canine.eras.length - 1 : wl.lehK);
   }
+  // What the 95% intervals of Fig. 3.3 show, read from them: the tiers that overlap within themselves, Industrial's
+  // distance from every other period, and the bridges between the two lower tiers (pairs whose intervals overlap).
+  function lehTiers(LC) {
+    const E = LC.eras, ci = p => (E.find(e => e.p === p) || {}).ci, ov = (a, b) => Math.min(ci(a)[1], ci(b)[1]) - Math.max(ci(a)[0], ci(b)[0]);
+    if (!["Pre-medieval", "Early medieval", "High medieval", "Late medieval", "Early modern", "Industrial"].every(ci)) return "";
+    const ind = ci("Industrial"), rest = E.filter(e => e.p !== "Industrial"), top = rest.reduce((a, b) => (b.ci[1] > a.ci[1] ? b : a));
+    const pts = v => Math.abs(v - 0.1) < 0.05 ? "a tenth of a point" : v.toFixed(1) + (Math.abs(v - 1) < 1e-9 ? " point" : " points"), num = ["no", "one", "two", "three", "four", "five", "six"];
+    const low = ["Pre-medieval", "Early medieval", "High medieval"], mid = ["Late medieval", "Early modern"];
+    const bridges = [];
+    low.forEach(a => mid.forEach(b => { const o = ov(a, b); if (o >= 0) bridges.push({ a, b, o }); }));
+    bridges.sort((p, q) => q.o - p.o);
+    const lone = mid.filter(b => !bridges.some(r => r.b === b));
+    const say = bridges.length === 0 ? "No interval in the lower tier reaches the middle one."
+      : bridges.length === 1 ? "The only bridge between the lower two tiers is " + bridges[0].a + " to " + bridges[0].b + ", by " + pts(bridges[0].o) + "."
+      : "Between the lower two tiers there are " + (num[bridges.length] || bridges.length) + " bridges: " + bridges.map(r => r.a + " to " + r.b + " (by " + pts(r.o) + ")").join(" and ") + (lone.length ? "; the " + lone.join(" and ") + " touches none of the lower three." : ".");
+    return "The intervals fall into three tiers. Pre-medieval, Early medieval and High medieval overlap one another. Late medieval and Early modern overlap one another. Industrial (" + ind[0].toFixed(1) + " to " + ind[1].toFixed(1) + ") overlaps nothing: the highest upper bound anywhere else is the " + top.p + "'s " + top.ci[1].toFixed(1) + ". " + say +
+      " The safe reading is a low plateau, a step up around the Late medieval period, and a second, clear step at industrialisation.";
+  }
   function lehView(v) {
     const M = LD.morphology, LC = M.leh_canine, el = $("#wlLehDetail"), body = el.querySelector(".lh-body"), n = LC.eras.length;
     wl.lehView = v; wl.c9 = wl.c8 = null; wl.c9done = false; wl.lehRun = (wl.lehRun || 0) + 1;
@@ -4387,11 +4469,13 @@ function renderKPIs(p) {
     if (!v) { body.innerHTML = ""; return; }
     if (v === "age") {
       const I = LC.eras[n - 1], neg = I.sites.filter(s => s.slope < 0);
-      body.innerHTML = "<figure class='fig'><div id='wlC9' role='group' aria-label='Fig. 3.4 A childhood scar cannot appear later in life. Left: in each period, the share of adults with a line at each age at death, as a gap from the period&#39;s own share; each ribbon twists around its fitted line (one edge through the age bands, the other mirrored across the line). Right: the slope in each cemetery of one period. Click a ribbon or its name to see its cemeteries.'></div>" +
+      body.innerHTML = "<figure class='fig'><p class='lf-check'><b>Does the marker behave?</b> A test before the comparison</p>" +
+        "<div id='wlC9' role='group' aria-label='Fig. 3.4 A test before the comparison: does the marker behave? A childhood scar cannot appear later in life, so the share with a line should not change with age at death. Left: for each period, a fitted line of that share by age at death, as a gap from the period&#39;s own share, with each age band as a dot (filled where it rests on at least 40 adults, hollow below) and a faint ribbon between the band and its mirror across the line. Right: the slope in each cemetery of one period. Click a line or its name to see its cemeteries.'></div>" +
         "<ol class='notes'><li>Why zero is the expectation: the defect forms before about age six in enamel that never remodels, so how long someone lived cannot change whether they carry it. A slightly negative slope is also expected, as childhood stress shortens life. Five periods land between " + d3.min(LC.eras.slice(0, -1), q => q.slope).toFixed(2) + " and " + d3.max(LC.eras.slice(0, -1), q => q.slope).toFixed(2) + " points per decade; the Industrial period at " + (I.slope > 0 ? "+" : "") + I.slope.toFixed(2) + " does not.</li>" +
         "<li>Inside the Industrial period, " + neg.length + " of its " + I.sites.length + " cemeteries slope down (" + neg.map(s => s.name + " " + s.slope.toFixed(2)).join(", ") + "); the others slope up and carry the pooled value with them. An aggregate pointing the way most of its parts do not is Simpson's paradox: composition, not biology.</li>" +
         "<li>The lines are ordinary least squares of the 0/1 marker on age in years, on individuals, scaled to a decade and drawn at the age bands' midpoints as a gap from the period's share, so only a line's tilt carries information. Cemeteries are shown when they have at least " + LC.sites_min + " scorable canines.</li>" +
-        "<li>Source: Global History of Health Project, European module, decoded for this project; scoring after Schultz (1988). After the team's draft C9.</li></ol></figure>";
+        "<li>The ribbon is drawing, not uncertainty. Its lower edge mirrors its upper edge across the line, so it is widest where an age band strays furthest from the trend, which is most often where the band rests on fewest adults. Its ribs fade with the band's sample, and a band's dot is hollow below 40 adults; the fitted line is the reading.</li>" +
+        "<li>Source: Global History of Health Project, European module, decoded for this project; scoring after Schultz (1988).</li></ol></figure>";
       const mine = wl.c9 = LEHFigs.c9($("#wlC9"), LC, { colours: M.leh_colour, onPick: j => { if (wl.c9done) mine.focus(j); } });
       box.scrollTo({ top: body.offsetTop - 8, behavior: REDUCED ? "auto" : "smooth" });
       mine.showBands(() => { if (wl && wl.c9 === mine) { wl.c9done = true; mine.focus(n - 1); } });   // the Industrial cemeteries first
@@ -4405,7 +4489,7 @@ function renderKPIs(p) {
       "<ol class='notes'><li>Why not an average score: the codes are 1 no line, 2 one line, 3 two or more, and the step from none to one is not the same quantity as from one to two, so the composition is shown instead.</li>" +
       "<li>A recording effect may be live: in the Industrial period the one-line share falls (" + I.comp[1].toFixed(1) + "%, below every period since Pre-medieval) while two or more triples. Intensifying stress should move people from one line to two, not empty the middle; observers counting lines differently would produce this shape.</li>" +
       "<li>Read the bottom panel before quoting the top: the Industrial reading rests on " + I.sites.length + " cemeteries, from " + lo.multi.toFixed(1) + "% (" + lo.name + ") to " + hi.multi.toFixed(1) + "% (" + hi.name + ") with two or more lines.</li>" +
-      "<li>Source: Global History of Health Project, European module, decoded for this project; scoring after Schultz (1988): linear grooves only, visible to the naked eye. After the team's draft C8.</li></ol></figure>";
+      "<li>Source: Global History of Health Project, European module, decoded for this project; scoring after Schultz (1988): linear grooves only, visible to the naked eye.</li></ol></figure>";
     const mine = wl.c8 = LEHFigs.c8($("#wlC8"), LC, {}), run = wl.lehRun, alive = () => wl && wl.c8 === mine && wl.lehRun === run;
     const c10 = box.querySelector(".lf-c10");
     box.scrollTop = Math.max(0, c10.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 12);   // start where the bars are

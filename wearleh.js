@@ -118,6 +118,11 @@
         cells.push({ i, j, pk, t });
       }
     });
+    // fit the view box to what is drawn (peaks, labels, the age axis and its title), so the chart sits in the middle of
+    // its panel with nothing cut off and no empty band above the back peaks; room on top for a playing row's lift
+    const fit = () => { let b; try { b = svg.getBBox(); } catch (_) { return; } if (!b || !b.width) return;
+      svg.setAttribute("viewBox", (b.x - 6).toFixed(1) + " " + (b.y - 16).toFixed(1) + " " + (b.width + 12).toFixed(1) + " " + (b.height + 24).toFixed(1)); };
+    fit(); requestAnimationFrame(fit);   // again once laid out, in case the panel was not yet measured
     return {
       // one row bright and lifted while its period plays; -1 settles every row
       highlight(i) { svg.classList.toggle("playing", i >= 0); rows.forEach((g, k) => { g.classList.toggle("hi", k === i); labs[k].classList.toggle("hi", k === i); rowLab[k].classList.toggle("hi", k === i); }); },

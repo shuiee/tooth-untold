@@ -5,14 +5,15 @@
      bar is drawn like a groove on a tooth (wavy edges, ribs across it), but it starts at 0 and ends at its value, so its
      length reads against the axis. show(k) grows bar k from left to right. { show(k, ms), showAll, live, select, barRect, col }
      opt.onPick(k) on a click on bar k once live.
-   LEHFigs.c9(el, L, opt)    C9A: by age at death, each period's gap from its own share, as a ribbon twisted around its
-     fitted (least-squares) line: one edge passes through the age bands' values, the other mirrors them across the line,
-     so the ribbon pinches where the data cross the trend. C9B: the slope in each cemetery of the chosen period.
+   LEHFigs.c9(el, L, opt)    C9A: a check, not a finding: by age at death, each period's gap from its own share. The
+     fitted (least-squares) line is the reading, heavy and opaque; each age band is a dot, filled at n >= 40 and hollow
+     below; a faint, non-interactive ribbon runs between the bands and their mirror across the line (drawing, not
+     uncertainty), its ribs fading with the band's sample. C9B: the slope in each cemetery of the chosen period.
      { showBands(done), focus(k) }; opt.onPick(k) when a band is clicked.
    LEHFigs.c8(el, L, opt)    C8A: each period's adults by how many lines the canine carries; C8B: each cemetery's share
      with two or more lines, sized by sample, against the period's pooled value. { rowRect(k), landRow(k), revealRow(k),
-     showSites(k), focus(k), pin(k) }. Hovering a period's column shakes all its cemeteries and dims the other periods in both
-     panels; leaving puts them back.
+     showSites(k), focus(k), pin(k) }. Hovering a period's column dims the other periods in both panels; leaving puts
+     them back.
    LEHFigs.fly(box, from, to, cols, land, all)  copies of C10's bars fly down inside the panel to C8A's rows, widen and
      flatten into rectangles. */
 (function () {
@@ -21,7 +22,8 @@
   const REDUCED = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   // the bars' blue: light for the earliest period, deep for the latest (as in the draft)
   const barCol = (k, n) => d3.interpolateLab("#8fbbee", "#173f86")(k / Math.max(1, n - 1));
-  // a groove's edge: a few slow sine waves, fixed per bar
+  // a groove's edge: a few slow sine waves, fixed per bar. In pixels (about ±1.5), and kept so: never scaled with the
+  // chart, so it stays well under half a percentage point of the axis
   const wob = (x, k, s) => 1.5 * Math.sin(x * 0.045 + k * 1.7 + s) + 0.9 * Math.sin(x * 0.13 + k * 0.9 + 2 * s) + 0.5 * Math.sin(x * 0.31 + k * 2.3);
 
   // ------------------------------------------------------------------ C10
@@ -115,15 +117,22 @@
     A.forEach((a, i) => { if (WA >= 440 || i % 2 === 0 || i === A.length - 1) svg.append("text").attr("class", "lf-ax").attr("x", x(a)).attr("y", H - m.b + 16).attr("text-anchor", "middle").text(a); });
     svg.append("text").attr("class", "lf-ax").attr("x", (m.l + WA - m.r) / 2).attr("y", H - 2).attr("text-anchor", "middle").text("age at death");
     const P = (pts) => "M" + pts.map(q => q[0].toFixed(1) + "," + y(q[1]).toFixed(1)).join("L");
+    const nMax = d3.max(E, e => d3.max(e.cells, c => c.n));
     const bands = E.map((e, k) => {
       const xs = e.cells.map(c => x(c.a)), data = monotone(xs, e.cells.map(c => c.dev), 3), fitS = monotone(xs, e.cells.map(c => c.fit), 3);
       const mirror = data.map((q, i) => [q[0], 2 * fitS[i][1] - q[1]]), col = cols[e.p] || "#55544f";
       const g = svg.append("g").attr("class", "lf-band").style("--c", col).attr("opacity", 0).style("pointer-events", "none");
       g.append("path").attr("class", "fill").attr("d", P(data) + "L" + mirror.slice().reverse().map(q => q[0].toFixed(1) + "," + y(q[1]).toFixed(1)).join("L") + "Z");
-      g.append("path").attr("class", "ribs").attr("d", data.filter((q, i) => i % 2 === 0).map((q, i) => "M" + q[0].toFixed(1) + "," + y(q[1]).toFixed(1) + "V" + y(mirror[i * 2][1]).toFixed(1)).join(""));
-      g.append("path").attr("class", "edge").attr("d", P(data)); g.append("path").attr("class", "edge").attr("d", P(mirror));
+      // each rib's strength follows the sample under it (interpolated between the age bands), so the pinches that rest on
+      // few adults recede on their own
+      const nAt = xx => { let i = Math.max(0, Math.min(xs.length - 2, d3.bisectRight(xs, xx) - 1)); const u = Math.max(0, Math.min(1, (xx - xs[i]) / ((xs[i + 1] - xs[i]) || 1)));
+        return e.cells[i].n + (e.cells[i + 1].n - e.cells[i].n) * u; };
+      const ribs = g.append("g").attr("class", "ribs");
+      data.forEach((q, i) => { if (i % 2) return; ribs.append("line").attr("x1", q[0]).attr("x2", q[0]).attr("y1", y(q[1])).attr("y2", y(mirror[i][1])).attr("stroke-opacity", (0.05 + 0.4 * Math.sqrt(nAt(q[0]) / nMax)).toFixed(3)); });
+      g.append("path").attr("class", "edge").attr("d", P(data)); g.append("path").attr("class", "edge mirror").attr("d", P(mirror));
       g.append("path").attr("class", "fit").attr("d", P(fitS));
-      g.selectAll("circle").data(e.cells).join("circle").attr("cx", c => x(c.a)).attr("cy", c => y(c.dev)).attr("r", 2.4).append("title").text(c => e.p + ", died " + c.a + ": " + c.pct + "% (" + (c.dev > 0 ? "+" : "") + c.dev.toFixed(1) + " points from the period's " + e.pct + "%), n = " + c.n);
+      g.selectAll("circle").data(e.cells).join("circle").attr("class", c => c.n >= 40 ? "full" : "thin").attr("cx", c => x(c.a)).attr("cy", c => y(c.dev)).attr("r", 2.8)
+        .append("title").text(c => e.p + ", died " + c.a + ": " + c.pct + "% (" + (c.dev > 0 ? "+" : "") + c.dev.toFixed(1) + " points from the period's " + e.pct + "%), n = " + c.n + (c.n < 40 ? " (fewer than 40)" : ""));
       g.append("path").attr("class", "hit").attr("d", P(fitS));
       g.on("click", () => { if (opt.onPick) opt.onPick(k); });
       return { g, e, col, endY: y(fitS[fitS.length - 1][1]) };
@@ -138,6 +147,9 @@
     // ---- B: cemeteries of one period
     function drawB(k) {
       const e = E[k], S = e.sites.filter(s => s.slope != null), rows = S.concat([{ name: "POOLED", n: e.n, pct: e.pct, slope: e.slope, pooled: true }]);
+      // the period's own colour, as its line in the chart beside: a dark shade for cemeteries that slope down, a light one
+      // for those that slope up
+      const base = cols[e.p] || "#55544f", dark = d3.color(base).darker(0.9).formatHex(), light = d3.interpolateLab(base, "#ffffff")(0.5);
       const rh = 22, mB = { l: side ? 112 : 124, r: side ? 92 : 128, t: 34, b: 34 }, HB = mB.t + rows.length * rh + mB.b;
       const big = d3.max(rows, r => Math.abs(r.slope)), xl = Math.max(4, Math.ceil(big * 1.3 + 0.5));   // room for the value labels
       const xb = d3.scaleLinear().domain([-xl, xl]).range([mB.l, WB - mB.r]);
@@ -151,11 +163,11 @@
         sb.append("text").attr("class", "lf-ax").attr("x", xb(v)).attr("y", mB.t + rows.length * rh + 14).attr("text-anchor", "middle").text(v); });
       sb.append("text").attr("class", "lf-ax").attr("x", (mB.l + WB - mB.r) / 2).attr("y", HB - 4).attr("text-anchor", "middle").text("slope on age at death, points per decade");
       rows.forEach((r, i) => {
-        const yy = mB.t + i * rh + rh / 2, pos = r.slope > 0, c = pos ? "#b9b6ad" : "#1a1a18", g = sb.append("g").attr("class", "lf-site" + (r.pooled ? " pooled" : ""));
+        const yy = mB.t + i * rh + rh / 2, pos = r.slope > 0, c = pos ? light : dark, g = sb.append("g").attr("class", "lf-site" + (r.pooled ? " pooled" : ""));
         g.append("text").attr("class", "lf-sn").attr("x", mB.l - 8).attr("y", yy + 4).attr("text-anchor", "end").text(r.name.length > 18 ? r.name.slice(0, 17) + "…" : r.name).append("title").text(r.name);
-        g.append("line").attr("x1", xb(0)).attr("x2", xb(r.slope)).attr("y1", yy).attr("y2", yy).attr("stroke", c).attr("stroke-opacity", pos ? 0.8 : 0.55).attr("stroke-width", 5);
+        g.append("line").attr("x1", xb(0)).attr("x2", xb(r.slope)).attr("y1", yy).attr("y2", yy).attr("stroke", c).attr("stroke-opacity", 0.85).attr("stroke-width", 5);
         g.append("circle").attr("cx", xb(r.slope)).attr("cy", yy).attr("r", r.pooled ? 6 : 4.6).attr("fill", c).attr("stroke", "#f3f2ee").attr("stroke-width", 1.5);
-        g.append("text").attr("class", "lf-sv").attr("x", xb(r.slope) + (pos ? 10 : -10)).attr("y", yy + 4).attr("text-anchor", pos ? "start" : "end").style("fill", pos ? "#8a8983" : "#1a1a18").text((pos ? "+" : "") + r.slope.toFixed(2));
+        g.append("text").attr("class", "lf-sv").attr("x", xb(r.slope) + (pos ? 10 : -10)).attr("y", yy + 4).attr("text-anchor", pos ? "start" : "end").style("fill", pos ? base : dark).text((pos ? "+" : "") + r.slope.toFixed(2));
         g.append("text").attr("class", "lf-ax").attr("x", WB - mB.r + 10).attr("y", yy + 4).text("n = " + r.n + " · " + Math.round(r.pct) + "%");
         g.append("title").text(r.name + ": " + (pos ? "+" : "") + r.slope.toFixed(2) + " points per decade; " + r.n + " scorable canines, " + r.pct + "% with a line");
       });
@@ -219,7 +231,7 @@
     const colsB = E.map((e, k) => {
       const cx = mb.l + cw * (k + 0.5), g = sb.append("g").attr("class", "lf-c8col").attr("data-k", k).attr("opacity", 0).style("pointer-events", "none");
       g.append("rect").attr("class", "hov").attr("x", cx - cw / 2).attr("width", cw).attr("y", mb.t - 6).attr("height", HB - mb.t - mb.b + 40);
-      g.on("mouseenter", () => { g.classed("wig", true); focus(k, false); }).on("mouseleave", () => { g.classed("wig", false); focus(-1, false); }).on("click", () => focus(k, true));
+      g.on("mouseenter", () => focus(k, false)).on("mouseleave", () => focus(-1, false)).on("click", () => focus(k, true));
       g.append("text").attr("class", "lf-rl").attr("x", cx).attr("y", HB - mb.b + 30).attr("text-anchor", "middle").style("font-size", narrow ? "9.5px" : null).text(narrow ? e.p.replace(" medieval", " med.").replace("Early modern", "E. modern") : e.p);
       g.append("text").attr("class", "lf-ax").attr("x", cx).attr("y", HB - mb.b + 14).attr("text-anchor", "middle").text(e.sites.length + " sites");
       g.append("line").attr("class", "pool").attr("x1", cx - cw * 0.34).attr("x2", cx + cw * 0.34).attr("y1", yB(e.comp[2])).attr("y2", yB(e.comp[2]));

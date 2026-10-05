@@ -66,6 +66,7 @@ a{color:inherit}
 #ov{overflow:visible}
 #ov .pt{pointer-events:auto;cursor:default}
 #ov .pl{font-family:var(--label);font-size:11px;font-style:italic;fill:var(--ink-2);paint-order:stroke;stroke:rgba(233,232,228,.85);stroke-width:3px;stroke-linejoin:round}
+#ov .pl-sub{font-size:9.5px;font-style:normal;fill:var(--ink-3)}
 #ov .pl-lead{fill:none;stroke:var(--ink);stroke-width:.6}
 #ov .pl-dot{fill:var(--ink)}
 #ov .tname{font-family:var(--label);font-size:10.5px;font-weight:600;letter-spacing:.08em;fill:var(--ink)}
@@ -300,11 +301,16 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 /* caries, pathogens and metals: the molar alone, centred */
 #pair.solo #tCanine{display:none}
 #pair.solo #tMolar{grid-column:1 / -1}
+/* Wear and LEH: the molar's canvas spans the plate (its camera places it, large in the middle, then over the left column) */
+#pair.wearplate #tMolar{grid-column:1 / -1;grid-row:1}
+#pair.wearplate #tCanine{grid-row:1;z-index:1}
+#pair.molar-only #tCanine{pointer-events:none}
 /* a section's plate: the teeth's frame starts below the row of names and Replay, so nothing on the teeth can reach it */
 #stage.haspanel #pair .tooth{margin-top:44px}   /* the whole plate, margins too, so a zoomed molar is not cut off at its sides */
 .dp.wl.wear-only #wlLehBox{display:none}
 #wlLehBox{animation:dpIn .7s ease both}
-.wl-box{position:relative;flex:1 1 0;min-height:0;overflow-y:auto;border:1px solid var(--ink);background:var(--card);padding:12px 14px 14px}
+.wl-box{position:relative;flex:1 1 0;min-height:0;overflow-y:auto;padding:12px 2px 14px}
+#wlLehBox{border-top:1px solid var(--rule)}   /* no boxes: one thin line between the two panels */
 .wl-box .fig{padding-top:8px}
 .wl-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
 .wl-top .wl-st{margin-left:auto}
@@ -387,16 +393,24 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 .lf-c9.side{flex-direction:row;align-items:flex-start;gap:24px}
 .lf-c9.side .lf-c9a{flex:0 0 58%}.lf-c9.side .lf-c9b{flex:1;min-width:0}
 .lf-band{cursor:pointer;transition:opacity .4s}
-.lf-band .fill{fill:var(--c);fill-opacity:.1}
-.lf-band .ribs{fill:none;stroke:var(--c);stroke-opacity:.28;stroke-width:.5}
-.lf-band .edge{fill:none;stroke:var(--c);stroke-opacity:.55;stroke-width:.7}
-.lf-band .fit{fill:none;stroke:var(--c);stroke-width:2.6;stroke-linecap:round}
-.lf-band circle{fill:var(--c);fill-opacity:.7}
+/* C9: the fitted line is the reading (heavy, opaque); the ribbon is faint drawing and takes no pointer */
+.lf-band .fill{fill:var(--c);fill-opacity:.12}
+.lf-band .ribs line{stroke:var(--c);stroke-width:.6}
+.lf-band .edge{fill:none;stroke:var(--c);stroke-opacity:.3;stroke-width:.6}
+.lf-band .edge.mirror{stroke-dasharray:2 2}
+.lf-band .fill,.lf-band .ribs,.lf-band .edge{pointer-events:none}
+.lf-band .fit{fill:none;stroke:var(--c);stroke-width:3;stroke-linecap:round;stroke-opacity:1}
+.lf-band circle{stroke:var(--c);stroke-width:1.1}
+.lf-band circle.full{fill:var(--c)}
+.lf-band circle.thin{fill:var(--bg)}
+.lf-check{font-size:13px;margin:0 0 10px;color:var(--ink-2)}
+.lf-check b{color:var(--ink);font-weight:600;margin-right:4px}
 .lf-band .hit{fill:none;stroke:transparent;stroke-width:14}
 .lf-c9a-svg.picked .lf-band:not(.sel) .fill{fill-opacity:.04}
-.lf-c9a-svg.picked .lf-band:not(.sel) .ribs,.lf-c9a-svg.picked .lf-band:not(.sel) .edge{stroke-opacity:.12}
+.lf-c9a-svg.picked .lf-band:not(.sel) .ribs{opacity:.3}
+.lf-c9a-svg.picked .lf-band:not(.sel) .edge{stroke-opacity:.12}
 .lf-c9a-svg.picked .lf-band:not(.sel) .fit{stroke-opacity:.35}
-.lf-c9a-svg .lf-band.sel .fill{fill-opacity:.18}
+.lf-c9a-svg .lf-band.sel .fill{fill-opacity:.16}
 .lf-c9a-svg .lf-band.sel .fit{stroke-width:3.4}
 .lf-bl{font-size:10.5px;font-weight:600;cursor:pointer;transition:opacity .3s}
 .lf-bl.dim{opacity:.4}
@@ -414,14 +428,11 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 .lf-pv{font-size:10.5px;font-weight:600;fill:var(--ink)}
 .lf-dot{cursor:pointer}
 .lf-dot circle{transition:transform .2s;transform-box:fill-box;transform-origin:center}
-.lf-c8col.wig .lf-dot circle{animation:lfWiggle .45s ease-in-out infinite}
 .lf-c8col .hov{fill:transparent;pointer-events:all}
 .lf-c8col{cursor:pointer}
 .lh-btns .btn:disabled{opacity:.4;cursor:default}
 .lh-btns .btn:disabled:hover{background:transparent;color:inherit}
-@keyframes lfWiggle{0%,100%{transform:translate(0,0)}25%{transform:translate(-1.6px,.8px) rotate(-6deg)}75%{transform:translate(1.6px,-.8px) rotate(6deg)}}
 .lf-fly{position:absolute;z-index:5;pointer-events:none}
-@media (prefers-reduced-motion:reduce){.lf-c8col.wig .lf-dot circle{animation:none}}
 /* the caries plate's decay on the 3D molar (app.js, drawCariesOverlay()) */
 #ov .cp3-ring .lt{fill:none;stroke:#fbf8f1;stroke-width:2.4;stroke-opacity:.45}
 #ov .cp3-ring .dk{fill:none;stroke:#3b3a35;stroke-width:1;stroke-dasharray:4 2}
