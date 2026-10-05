@@ -144,8 +144,8 @@ a{color:inherit}
 #stage.dashboard #pair{grid-template-columns:96px minmax(0,1fr) minmax(0,1fr) 96px}
 /* no scroll bars anywhere on the page: the article column, the Wear and LEH boxes and the page itself still scroll by
    wheel, trackpad, touch and keys, but draw no bar */
-html,body,.panel,.wl-box{scrollbar-width:none}
-html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-box::-webkit-scrollbar{display:none}
+html,body,.panel,.wl-box,.dz-pop{scrollbar-width:none}
+html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-box::-webkit-scrollbar,.dz-pop::-webkit-scrollbar{display:none}
 #stage.dashboard .panel{justify-content:flex-start;overflow-y:auto;padding:0 8px 0 30px;border-left:1px solid var(--rule);box-shadow:inset 16px 0 20px -18px rgba(26,26,24,.22)}
 .dp{display:flex;flex-direction:column;animation:dpIn .7s ease both}
 @keyframes dpIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -173,6 +173,8 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 .dp svg text.ld{font-size:10.5px;fill:var(--ink)}
 .dp svg text.ld.thin{fill:var(--ink-3)}
 .dp svg text.ld .pc{fill:var(--ink-3);font-size:9.5px}
+.dp svg .leads text.ld .pv,.dp svg text.ld.top .pv{font-weight:700}   /* the share of the century's genomes, bold where it was the century's largest */
+.dp svg .leads text.ld tspan:not(.pv){fill:var(--ink-2)}
 .keylist.strand-key{display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 14px;margin:16px 0 12px;font-family:var(--label);font-size:11.5px;line-height:1.55}
 .strand-key .kind{font-size:9px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);padding-top:2px;white-space:nowrap}
 .strand-key .kind i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
@@ -181,6 +183,25 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 .strand-key button:hover{text-decoration-color:var(--c)}
 .strand-key button[aria-pressed="true"]{background:var(--c);color:var(--bg);text-decoration:none}
 .strand-key button[aria-pressed="true"] small{color:inherit;opacity:.8}
+/* the disease pop-up on the Pathogens page (popFor in app.js): a small panel beside the point that was clicked */
+.dz-pop{position:fixed;z-index:30;box-sizing:border-box;overflow-y:auto;background:var(--card);border:1px solid var(--ink);box-shadow:0 18px 36px -18px rgba(26,26,24,.42);padding:12px 14px 12px;font-family:var(--label);color:var(--ink);animation:dzIn .35s cubic-bezier(.2,.7,.2,1) both}
+.dz-pop[hidden]{display:none}
+@keyframes dzIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.dz-x{position:absolute;top:8px;right:10px;border:0;background:none;font:inherit;font-size:20px;line-height:1;color:var(--ink-2);cursor:pointer;padding:4px}
+.dz-x:hover{color:var(--ink)}
+.dz-k{margin:0;font-size:9px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2)}
+.dz-k i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.dz-pop h3{margin:3px 26px 3px 0;font-size:18px;font-weight:500;line-height:1.15}
+.dz-sub{margin:0 0 10px;font-size:11.5px;line-height:1.45;color:var(--ink-2)}
+.dz-h{margin:0 0 10px;padding-top:10px;border-top:1px solid var(--rule);font-size:9px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2)}
+.dz-ev{margin:0 0 10px;display:grid;grid-template-columns:84px minmax(0,1fr);gap:10px;align-items:start}   /* a thumbnail beside each event */
+.dz-ev img,.dz-ev .slot{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}
+.dz-ev .slot{display:grid;place-items:center;border:1px solid var(--rule);background:repeating-linear-gradient(135deg,transparent 0 6px,rgba(26,26,24,.06) 6px 7px);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.dz-ev figcaption{margin:0;font-size:11px;line-height:1.42;color:var(--ink-2)}
+.dz-ev figcaption b{display:block;font-size:12px;font-weight:600;color:var(--ink)}
+.dz-ev figcaption span{display:block;font-size:11px;color:var(--ink-3);margin-bottom:3px}
+.dz-note{margin:2px 0 0;font-size:10.5px;line-height:1.4;font-style:italic;color:var(--ink-3)}
+@media (prefers-reduced-motion:reduce){.dz-pop{animation:none}}
 .keylist.strand-read{display:block;margin:0 0 10px;min-height:3em;font-size:12px;line-height:1.5;color:var(--ink-2);max-width:74ch}
 .strand-read b{color:var(--ink);font-weight:600}
 .strand-read .link{margin-left:4px;font-size:10px}
