@@ -145,6 +145,7 @@
   // the worn surface's ripple, the same as wearN() in the shader; wearAt() is the surface height at (x, z)
   const wearN = (x, z) => 0.5 * Math.sin(x * 9.1 + 1.3) * Math.sin(z * 7.7 + 0.4) + 0.3 * Math.sin(x * 17.3 - z * 13.1 + 2) + 0.2 * Math.sin(x * 27 + z * 23 + 0.7);
   const pad4 = (a, fill) => [0, 1, 2, 3].map(i => a && a[i] != null ? a[i] : fill);   // stress lines: up to four grooves
+  const pad8 = (a, n) => { const o = new Float32Array(n || 8); o.set(a.slice(0, o.length)); return o; };   // the wrapped grooves' bands
   const wearAt = (P, x, z) => P.wearY + (P.wearAmp || 0) * wearN(x, z);
   function outerJS(p, S) {
     if (S.mesh) return volSample(S.vol, p, 0);
@@ -185,6 +186,11 @@ uniform float uCapS[8]; uniform vec3 uCapC[8]; uniform int uCapN;
 // scale from tooth units to the outlines' units); uCavD = how deep each layer cuts in. uCavOn = 0: no carving.
 uniform vec4 uCavC; uniform vec4 uCavR[48]; uniform vec3 uCavD; uniform float uCavOn;
 uniform vec4 uLeh, uLehY;
+// Section 3's canine (uLehN > 0): the main groove wraps round the crown by the share of adults with a line, from
+// uLehStart (an angle about the crown's centre uLehO) towards the viewer, in age-band segments: uLehEnd[k] is where
+// band k's part ends (cumulative, as a fraction of the circumference), uLehC[k] its colour. The second, thinner groove
+// wraps by uLehMulti, the share with two or more lines. uLeh and uLehY then only switch the grooves on and place them.
+uniform float uLehStart, uLehEnd[8], uLehTot, uLehMulti; uniform vec3 uLehC[8]; uniform int uLehN; uniform vec2 uLehO;
 uniform vec4 uCaries;
 uniform vec3 uBoxMin, uBoxMax;
 uniform float uJaw; uniform vec3 uJawMin, uJawMax;
@@ -252,12 +258,38 @@ vec3 capCol(float y){
 }
 // stress lines (LEH), drawn after Schultz's standard and exaggerated so they read: up to four grooves round the crown,
 // each wavy (lehWave), deep, and with a low ridge just below it. uLeh = each groove's strength 0..1, uLehY = its height.
-float lehWave(vec3 p){ float a=atan(p.z,p.x); return .014*sin(a*3.+1.)+.007*sin(a*7.+2.3)+.004*sin(a*13.+p.y*20.); }
-float bandF(float y,float yb){ float u=(y-yb)/.022; return exp(-u*u); }
-float ridgeF(float y,float yb){ float u=(y-yb)/.022+1.7; return exp(-u*u); }
+// the angle round the crown (about uLehO: 0 except on Section 3's canine, where it is the crown's own centre)
+float lehAng(vec3 p){ vec2 q=p.xz-uLehO; return atan(q.y,q.x); }
+float lehWaveA(float a,float y){ return .014*sin(a*3.+1.)+.007*sin(a*7.+2.3)+.004*sin(a*13.+y*20.); }
+float lehWave(vec3 p){ return lehWaveA(lehAng(p),p.y); }
+float bandW(float y,float yb,float w){ float u=(y-yb)/w; return exp(-u*u); }
+float ridgeW(float y,float yb,float w){ float u=(y-yb)/w+1.7; return exp(-u*u); }
+float bandF(float y,float yb){ return bandW(y,yb,.022); }
+float ridgeF(float y,float yb){ return ridgeW(y,yb,.022); }
 float crownMask(float y){ return smoothstep(.03,.12,y)*(1.-smoothstep(uTop-.14,uTop-.03,y)); }
 float lehAt(float y,float s,float yb){ return s*(bandF(y,yb)-.55*ridgeF(y,yb)); }
-float lehD(vec3 p){ float y=p.y+lehWave(p); return crownMask(p.y)*(lehAt(y,uLeh.x,uLehY.x)+lehAt(y,uLeh.y,uLehY.y)+lehAt(y,uLeh.z,uLehY.z)+lehAt(y,uLeh.w,uLehY.w)); }
+// the wrapped grooves (uLehN > 0): how far round the crown p is from the start, as a fraction of the circumference
+// (a little below 0 just before the start), and a soft mask that is 1 along an arc of length len and tapers to 0 over
+// LEH_TAPER either side of each end, so the groove stops on purpose. Their width (LEH_W1, LEH_W2) and depth (LEH_S1,
+// LEH_S2) are fixed, a little wider and deeper than the overview's grooves.
+const float LEH_TAPER=.022, LEH_W1=.03, LEH_W2=.019, LEH_S1=1.3, LEH_S2=1.;
+float lehTA(float a){ return fract((uLehStart-a)/6.2831853+2.*LEH_TAPER)-2.*LEH_TAPER; }
+float lehT(vec3 p){ return lehTA(lehAng(p)); }
+float lehArc(float t,float len){ return len<=0.?0.:smoothstep(-LEH_TAPER,LEH_TAPER,t)*(1.-smoothstep(len-LEH_TAPER,len+LEH_TAPER,t)); }
+// the main groove's colour where p is: the age band its point on the arc falls in, blended into the next over a short
+// width at each join (as capCol() blends the molar's layers)
+vec3 lehSeg(float t){
+  vec3 c=uLehC[0];
+  for(int k=1;k<8;k++){ if(k>=uLehN) break; c=mix(c,uLehC[k],smoothstep(uLehEnd[k-1]-.006,uLehEnd[k-1]+.006,t)); }
+  return c;
+}
+// the two wrapped grooves' strength at p (x main, y second), before the crown mask
+vec2 lehArcs(vec3 p,float y){ float t=lehT(p);
+  return vec2(step(.001,uLeh.x)*lehArc(t,uLehTot)*bandW(y,uLehY.x,LEH_W1), LEH_S2*step(.001,uLeh.y)*lehArc(t,uLehMulti)*bandW(y,uLehY.y,LEH_W2)); }
+// the grooves' depth at p: four grooves of strength uLeh round the whole crown, or (uLehN > 0) the two wrapped ones
+float lehD(vec3 p){ float a=lehAng(p), y=p.y+lehWaveA(a,p.y); vec4 s=uLeh; float w1=.022, w2=.022;
+  if(uLehN>0){ float t=lehTA(a); s=vec4(LEH_S1*lehArc(t,uLehTot),LEH_S2*lehArc(t,uLehMulti),0.,0.)*step(.001,uLeh); w1=LEH_W1; w2=LEH_W2; }
+  return crownMask(p.y)*(s.x*(bandW(y,uLehY.x,w1)-.55*ridgeW(y,uLehY.x,w1))+s.y*(bandW(y,uLehY.y,w2)-.55*ridgeW(y,uLehY.y,w2))+lehAt(y,s.z,uLehY.z)+lehAt(y,s.w,uLehY.w)); }
 float cavR(int layer,float a){ float f=a*64.; int i=int(floor(f))%64; int j=(i+1)%64; int bi=layer*64+i, bj=layer*64+j;
   return mix(uCavR[bi/4][bi%4],uCavR[bj/4][bj%4],fract(f)); }
 // how far the surface is carved in at p: each layer's depth, faded across its outline and towards the crown's sides
@@ -268,7 +300,10 @@ float cavDepth(vec3 p){
   float m=uCavD.x*smoothstep(-w,w,cavR(0,a)-rho)+uCavD.y*smoothstep(-w,w,cavR(1,a)-rho)+uCavD.z*smoothstep(-w,w,cavR(2,a)-rho);
   return m*smoothstep(uTop*.5,uTop*.8,p.y);
 }
-float lehInk(vec3 p){ float y=p.y+lehWave(p); return max(max(uLeh.x*bandF(y,uLehY.x),uLeh.y*bandF(y,uLehY.y)),max(uLeh.z*bandF(y,uLehY.z),uLeh.w*bandF(y,uLehY.w))); }
+float lehInk(vec3 p){ float y=p.y+lehWave(p); if(uLehN>0){ vec2 a=lehArcs(p,y); return max(a.x,a.y); } return max(max(uLeh.x*bandF(y,uLehY.x),uLeh.y*bandF(y,uLehY.y)),max(uLeh.z*bandF(y,uLehY.z),uLeh.w*bandF(y,uLehY.w))); }
+// the main groove's age-band colour at p and how much of it to mix into the enamel (fixed strength, along the groove)
+vec4 lehTint(vec3 p){ if(uLehN<=0) return vec4(0.); float y=p.y+lehWave(p), t=lehT(p);
+  return vec4(lehSeg(t),.8*step(.001,uLeh.x)*lehArc(t,uLehTot)*bandW(y,uLehY.x,LEH_W1)*crownMask(p.y)); }
 float crownW(vec3 p){ if(uMesh==1 && volOut(p)<=0.) return smoothstep(.35,.65,texture(uVol,volTC(p)).g)*smoothstep(-.03,.02,p.y); return smoothstep(-.005,.2,p.y); }
 float enamT(vec3 p){ return uEnamel*crownW(p)*(.75+.35*smoothstep(.45,.95,p.y/uTop)); }
 float pulpD(vec3 p){
@@ -386,7 +421,8 @@ vec3 realCut(vec3 p,float dU,float dC,float pxw,bool worn){
     col=mix(vec3(.955,.958,.95),vec3(.85,.865,.86),u*.75);
     col*=1.-.04*smoothstep(.55,1.,.5+.5*sin(inn*380.+fbm(p*40.)*3.));
     col*=1.-.035*smoothstep(.5,.85,vnoise(vec3(p.x*620.,p.y*620.,inn*30.)));
-    float bl=max(uLeh.x*bandF(p.y,uLehY.x),uLeh.y*bandF(p.y,uLehY.y)); col*=1.-.42*clamp(bl*1.6,0.,1.);
+    float bl=uLehN>0?lehInk(p):max(uLeh.x*bandF(p.y,uLehY.x),uLeh.y*bandF(p.y,uLehY.y)); col*=1.-.42*clamp(bl*1.6,0.,1.);
+    vec4 lt=lehTint(p); col=mix(col,lt.rgb*.9,lt.a);
     if(uPb>0.){ float s=stipple(p,uPb*.22,190.,pxw); col=mix(col,vec3(.66,.47,.16),s*.75); }
   } else if(dp>=0.){
     // dentine: ivory at the enamel, warmer towards the pulp; tubules run out from the pulp as fine streaks,
@@ -530,7 +566,8 @@ void main(){
         b*=.93+.07*fbm(p*55.);
         float spec=pow(max(dot(reflect(-L,n),-rd),0.),28.)*.32*cw*(isCalc?0.:1.);
         col=b*(.62+.38*lam)*mix(.8,1.,ao)+spec;
-        if(!facet && !isCalc && p.y>0.){ float bb=lehInk(p); col*=1.-.45*clamp(bb*1.6,0.,1.)*crownMask(p.y); }   // the wavy stress-line grooves
+        if(!facet && !isCalc && p.y>0.){ float bb=lehInk(p); col*=1.-.45*clamp(bb*1.6,0.,1.)*crownMask(p.y);   // the wavy stress-line grooves
+          vec4 lt=lehTint(p); col=mix(col,lt.rgb*(.55+.45*lam)*mix(.8,1.,ao),lt.a); }   // Section 3: the main groove in its age bands' colours
         col*=1.-.4*rim;
       }
     }
@@ -647,6 +684,9 @@ void main(){
       gl.uniform1i(u("uCapN"), P.capS ? 8 : 0); if (P.capS) { gl.uniform1fv(u("uCapS"), P.capS); gl.uniform3fv(u("uCapC"), P.capC); } gl.uniform1f(u("uCutX"), P.cutX); gl.uniform1f(u("uCalc"), P.calc); gl.uniform1f(u("uPb"), P.pb);
       gl.uniform1f(u("uMetOn"), P.met ? P.metOn : 0); if (P.met) { gl.uniform3fv(u("uMetS"), P.met); gl.uniform4fv(u("uMetB"), P.metB); gl.uniform3fv(u("uMetC"), P.metC); gl.uniform1f(u("uMetT"), P.metT || 0); }
       gl.uniform4fv(u("uLeh"), pad4(P.leh, 0)); gl.uniform4fv(u("uLehY"), pad4(P.lehY, -9)); gl.uniform4fv(u("uCaries"), P.caries);
+      const A = P.lehArc; gl.uniform1i(u("uLehN"), A ? A.end.length : 0);   // the wrapped grooves (Section 3's canine)
+      gl.uniform2fv(u("uLehO"), A && A.o || [0, 0]);
+      if (A) { gl.uniform1f(u("uLehStart"), A.start); gl.uniform1fv(u("uLehEnd"), pad8(A.end)); gl.uniform1f(u("uLehTot"), A.end[A.end.length - 1] || 0); gl.uniform3fv(u("uLehC"), pad8(A.col.flat(), 24)); gl.uniform1f(u("uLehMulti"), A.multi); }
       gl.uniform3fv(u("uBoxMin"), S.rbMin); gl.uniform3fv(u("uBoxMax"), S.rbMax);
       gl.uniform1f(u("uJaw"), S.jaw && P.jaw !== false ? 1 : 0); gl.uniform3fv(u("uJawMin"), S.jawMin); gl.uniform3fv(u("uJawMax"), S.jawMax);
       gl.uniform1i(u("uMesh"), S.mesh ? 1 : 0);

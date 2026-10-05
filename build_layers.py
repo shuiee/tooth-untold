@@ -122,6 +122,10 @@ morphology = dict(periods=PERIODS, ages=AGES, wear=wear, leh=leh, leh_overall=le
 # band's share as a gap from the period's own share and the fitted line at the band's midpoint; and, for each cemetery
 # with at least 15 scorable canines, its share, its share with two or more lines and its own slope. Counts, intervals,
 # slopes, compositions and the industrial cemeteries all reproduce the drafts.
+# These shares are not the ones in c6c_leh_combined_data.csv, which counts a line on any of up to four teeth (upper and
+# lower canines and incisors, leh_present) among rows with consistent counts and observed dentition: Pre-medieval is
+# 34.3% (182 of 531) there and 26.7% (142 of 531) here, two different sets of 531 adults; on the 461 in both, 35.8%
+# against 27.5%. The row filter moves each period by under 3 points; the tooth makes the difference.
 import math
 MIDS = [21.5, 27.5, 32.5, 37.5, 42.5, 47.5, 55.0, 65.0]          # the age bands' midpoints, 18-24 ... 60+ (to 70)
 def wilson(k, n, z=1.96):
@@ -150,14 +154,16 @@ if GHHP:
         for b in range(8):
             B = [q for q in R if q[3] == b]
             if not B: continue
-            c = 100 * sum(q[2] >= 2 for q in B) / len(B)
-            cells.append(dict(a=AGES[b], n=len(B), pct=round(c, 1), dev=round(c - share, 2), fit=round(sl / 10 * (MIDS[b] - mage), 2)))
+            kb = sum(q[2] >= 2 for q in B); c = 100 * kb / len(B)
+            # k: the band's adults with a line, so the band's part of the period's share is k / the period's n
+            cells.append(dict(a=AGES[b], n=len(B), k=kb, pct=round(c, 1), dev=round(c - share, 2), fit=round(sl / 10 * (MIDS[b] - mage), 2)))
         sites = {}
         for q in R: sites.setdefault(q[4], []).append(q)
         st = [dict(name=nm, n=len(S), pct=round(100 * sum(q[2] >= 2 for q in S) / len(S), 1), multi=round(100 * sum(q[2] >= 3 for q in S) / len(S), 1),
                    slope=None if slope(S) is None else round(slope(S), 2)) for nm, S in sites.items() if len(S) >= 15]
         st.sort(key=lambda d: (d["slope"] is None, d["slope"] if d["slope"] is not None else 0))
         comp = [sum(q[2] == v for q in R) for v in (1, 2, 3)]
+        assert sum(c["k"] for c in cells) == k                     # the bands' carriers add up to the period's
         lc_eras.append(dict(p=p, n=n, k=k, pct=round(share, 1), ci=wilson(k, n), std=round(std, 1), slope=round(sl, 2), mean_age=round(mage, 1),
                             comp=[round(100 * c / n, 1) for c in comp], comp_n=comp, cells=cells, sites=st, sites_all=len(sites)))
     leh_canine = dict(eras=lc_eras, ages=AGES, n=len(can), sites_min=15,

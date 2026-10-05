@@ -3,7 +3,7 @@
 
    LEHFigs.c10(el, L, opt)   the share of adults with at least one line, one bar per period with its 95% interval. Each
      bar is drawn like a groove on a tooth (wavy edges, ribs across it), but it starts at 0 and ends at its value, so its
-     length reads against the axis. show(k) grows bar k from left to right. { show(k, ms), showAll, live, select, barRect, col }
+     length reads against the axis. show(k) grows bar k from left to right (over ms, with easing ez if given). { show(k, ms, ez), showAll, live, select, barRect, col }
      opt.onPick(k) on a click on bar k once live.
    LEHFigs.c9(el, L, opt)    C9A: a check, not a finding: by age at death, each period's gap from its own share. The
      fitted (least-squares) line is the reading, heavy and opaque; each age band is a dot, filled at n >= 40 and hollow
@@ -68,11 +68,11 @@
         .on("keydown", ev => { if ((ev.key === "Enter" || ev.key === " ") && svg.classed("live") && opt.onPick) { ev.preventDefault(); opt.onPick(k); } });
       return { g, clip, wk, x0, x1, bar };
     });
-    const grow = (k, ms) => { const r = rows[k]; r.g.classed("on", true);
-      (ms ? r.clip.transition().duration(ms).ease(d3.easeCubicOut) : r.clip).attr("width", r.x1 - r.x0 + 8);
+    const grow = (k, ms, ez) => { const r = rows[k]; r.g.classed("on", true);
+      (ms ? r.clip.transition().duration(ms).ease(ez || d3.easeCubicOut) : r.clip).attr("width", r.x1 - r.x0 + 8);
       (ms ? r.wk.transition().delay(ms * 0.8).duration(400) : r.wk).attr("opacity", 1); };
     return {
-      show(k, ms) { grow(k, REDUCED ? 0 : ms == null ? 1300 : ms); },
+      show(k, ms, ez) { grow(k, REDUCED ? 0 : ms == null ? 1300 : ms, ez); },
       showAll() { rows.forEach((r, k) => grow(k, 0)); },
       live(on) { svg.classed("live", on); rows.forEach(r => r.g.attr("tabindex", on ? 0 : -1)); },
       select(k) { svg.classed("picked", k >= 0); rows.forEach((r, j) => r.g.classed("sel", j === k)); },

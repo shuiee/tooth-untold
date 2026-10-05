@@ -131,5 +131,7 @@
     };
   }
 
-  window.WearLEH = { peaks, wearCol };
+  // an age band's own colour, at full strength (the age labels on the grid; the canine's stress-line segments)
+  const ageCol = (j, nJ) => d3.interpolateLab(AGE0, AGE1)(j / ((nJ || 8) - 1));
+  window.WearLEH = { peaks, wearCol, ageCol };
 })();

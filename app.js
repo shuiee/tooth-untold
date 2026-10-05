@@ -189,12 +189,30 @@
     const byW = d3.max(TEETH, T => { const S = T.R.st.S, r = T.el.getBoundingClientRect(), half = Math.max(-S.jawMin[0], S.jawMax[0], -S.jawMin[2], S.jawMax[2]) * 1.08; return r.width > 0 ? half * f * r.height / (r.width * 0.9) : 0; });
     TEETH.forEach(T => { T.R.setFrame((top + bottom) / 2 + 0.03, Math.max(byH, byW || 0)); Object.assign(T.R.st.cam, VIEW); });
   }
-  // The canine's stress lines in the Wear and LEH section, after Schultz's standard and exaggerated: one groove as strong
-  // as the share with any line, three more as the share with two or more, each full at the record's highest share.
-  function lehBands(v) {
-    const E = LD && LD.morphology && LD.morphology.leh_canine && LD.morphology.leh_canine.eras; if (!E) return [v.any / 100, v.multi / 100];
-    const a = clamp(v.any / d3.max(E, e => e.pct), 0, 1), m = clamp(v.multi / d3.max(E, e => e.comp[2]), 0, 1);
-    return [a, m, m * 0.85, m * 0.7];
+  // The canine's stress lines in the Wear and LEH section, after Schultz's standard and exaggerated, with a fixed depth:
+  // the share is how far the groove wraps round the crown. The main groove (at least one line) runs from the canine's
+  // left edge in the side view towards the reader, one segment per age band, each as long as that band's adults with a
+  // line over all the period's adults (so together they make the period's share), in the band's colour on the wear
+  // grid; the second, thinner groove just below wraps by the share with two or more lines, in ink.
+  const CANINE_YAW = 1.0;                                 // the canine's side view (frameView), turned to show its cusp in profile
+  // The canine turns with its groove: in the side and perspective views of Section 3 its camera keeps the middle of the
+  // main groove towards the reader, so the tooth follows the groove round as it grows or shrinks and both ends stay in
+  // sight. lehTurn is that camera's yaw relative to the side view (0 when the groove reaches halfway round).
+  const lehShare = v => v && v.segs ? v.segs.reduce((a, b) => a + b, 0) : 0;
+  const lehTurn = v => Math.PI * lehShare(v) - Math.PI / 2;
+  const lehTurns = T => T.key === "canine" && S.scene === "layer" && S.layer === "wear" && viewOf(T) === "whole";
+  function lehArcOf(T, v) {
+    if (!v.segs) return null;
+    let run = 0; const end = v.segs.map(f => (run += f));
+    return { start: Math.PI - CANINE_YAW, end, col: v.segs.map((f, k) => { const q = d3.rgb(WearLEH.ageCol(k, v.segs.length)); return [q.r / 255, q.g / 255, q.b / 255]; }),
+      multi: v.multi / 100, pct: v.any, mpct: v.multi, o: crownCentre(T) };
+  }
+  // the middle of the canine's crown, in plan, at the main groove's height: the point its grooves wrap round
+  function crownCentre(T) {
+    const SH = T.R.st.S; if (SH.lehO) return SH.lehO;
+    const y = 0.44 * SH.top, h = 0.01; let sx = 0, sz = 0, n = 0;
+    for (let x = SH.boxMin[0]; x <= SH.boxMax[0]; x += h) for (let z = SH.boxMin[2]; z <= SH.boxMax[2]; z += h) if (T.R.outerJS([x, y, z]) < 0) { sx += x; sz += z; n++; }
+    return (SH.lehO = n ? [sx / n, sz / n] : [0, 0]);
   }
   // the renderer's inputs for one tooth; S.show keeps only one layer's traces
   function paramsFor(T) {
@@ -203,7 +221,8 @@
     const SH = T.R.st.S, top = SH.top, L = S.show, wearOn = L === "all" || L === "wear", decay = L === "all" || L === "caries";
     // in the Wear and LEH section the teeth step through the periods (S.wl, from wearSeq()), not the pooled composite
     const wl = S.scene === "layer" && S.layer === "wear" ? S.wl : null;
-    const wear = wearOn && T.type === "molar" ? (wl ? wl.wear : G.wear) : null, leh = wearOn && T.type === "canine" ? (wl ? lehBands(wl) : G.leh) : null;
+    const wear = wearOn && T.type === "molar" ? (wl ? wl.wear : G.wear) : null, leh = wearOn && T.type === "canine" ? (wl ? (wl.any > 0 ? [1, wl.multi > 0 ? 1 : 0] : null) : G.leh) : null;
+    const lehArc = wl && leh ? lehArcOf(T, wl) : null;
     const wearY = wear != null ? top - (wear - 1) / 7 * 0.55 * top : top + 0.02;
     // on the caries plate the decay is carved into the molar's chewing surface (cavityOf()) instead of the pooled cavity
     const cariesPlate = S.scene === "layer" && S.layer === "caries";
@@ -218,7 +237,7 @@
     const wearAmp = wl && wear != null ? 0.035 * clamp((wear - 1) / 4, 0, 1) : 0, capTint = wl && T.type === "molar" ? [0.2, 0.36, 0.85, 0.72] : [0, 0, 0, 0];
     const strata = wl && T.type === "molar" && wl.strata ? wl.strata : null;
     const met = S.met && S.scene === "layer" && S.layer === "metals" && T.type === "molar" ? S.met : null;
-    return { met: met && met.s, metB: met && met.b, metC: met && met.c, metT: met ? met.t : 0, metOn: met ? met.on : 0, cav, wearY, wearAmp, capTint, capS: strata && strata.s, capC: strata && strata.c, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: leh && leh.length > 2 ? [0.44, 0.31, 0.56, 0.66].map(f => f * top) : [0.36 * top, 0.54 * top], calc, pb, cutX: S.reveal ? S.reveal.cut : viewOf(T) === "cut" ? 0 : 5, jaw: false, real: liveTeeth() };
+    return { met: met && met.s, metB: met && met.b, metC: met && met.c, metT: met ? met.t : 0, metOn: met ? met.on : 0, cav, wearY, wearAmp, capTint, capS: strata && strata.s, capC: strata && strata.c, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: wl ? [0.44 * top, 0.31 * top] : [0.36 * top, 0.54 * top], lehArc, calc, pb, cutX: S.reveal ? S.reveal.cut : viewOf(T) === "cut" ? 0 : 5, jaw: false, real: liveTeeth() };
   }
   // the view a tooth is drawn in: cut everywhere except on a section's plate, where the section decides
   // Every section's plate has four views (S.viewMode, the buttons under it): top, side, section (cut open) and
@@ -239,7 +258,7 @@
       if (v === "aerial") {
         const r = T.el.getBoundingClientRect(), half = Math.max(-SH.boxMin[0], SH.boxMax[0], -SH.boxMin[2], SH.boxMax[2]) * 0.95;
         Object.assign(cam, { yaw: 0.35, pitch: 1.36, target: [0, SH.top * 0.8, 0], dist: half * cam.focal / Math.min(0.8, 0.8 * r.width / Math.max(1, r.height)) });
-      } else if (v === "whole") Object.assign(cam, { yaw: T.key === "canine" ? 1.0 : 0.4, pitch: 0.12 });   // the canine turned to show its cusp in profile
+      } else if (v === "whole") Object.assign(cam, { yaw: T.key === "canine" ? CANINE_YAW : 0.4, pitch: 0.12 });   // the canine turned to show its cusp in profile
       else Object.assign(cam, { yaw: 0.3, pitch: 0.14 });   // a section faces the reader nearly square on
       if (v !== "aerial") {   // out of the jaw: frame the tooth itself, crown to root tip
         const r = T.el.getBoundingClientRect(), hh = (SH.top - SH.rootMin) / 2, half = Math.max(-SH.boxMin[0], SH.boxMax[0]);
@@ -247,42 +266,25 @@
         cam.dist = Math.max(hh * cam.focal / 0.84, r.width > 0 ? half * cam.focal * r.height / (r.width * 0.8) : 0);
       }
       if (S.scene === "layer" && S.viewMode === "perspective") Object.assign(cam, { yaw: VIEW.yaw, pitch: 0.38 });   // the view buttons belong to the sections; the overview keeps its own view
-      if (wearMolar(T)) { const f = wearFrame(T, wearAct2()); cam.dist = f.dist; cam.target = f.target; S.mShift = f.shift; }
+      if (lehTurns(T)) { T.turn = lehTurn(S.wl); cam.yaw = CANINE_YAW + T.turn; }
+      if (wearMolar(T)) { const f = wearFrame(T); cam.dist = f.dist; cam.target = f.target; S.mShift = f.shift; }
       cam.home = cam.target.slice();
     });
   }
-  // The Wear and LEH plate: the molar's canvas spans the whole plate. In the first act (the molar alone) it is framed
-  // large in the middle, as on the caries plate; in the second, when the canine comes in, it sits over the left column
-  // at the size the two-tooth layout gives it. wearFrame() is that framing for the tooth's current rotation; S.mShift is
-  // how far left of the plate's middle the molar is drawn (its name follows it).
+  // The Wear and LEH plate: the molar's canvas spans the whole plate, and its camera places it over the left column at
+  // the size the two-tooth layout gives it (molar and canine play together from the start). wearFrame() is that framing
+  // for the tooth's current rotation; S.mShift is how far left of the plate's middle the molar is drawn (its name
+  // follows it).
   const wearMolar = T => S.scene === "layer" && S.layer === "wear" && T.key === "molar";
-  const wearAct2 = () => S.wlStage != null && S.wlStage !== "wear";
-  function wearFrame(T, act2) {
+  function wearFrame(T) {
     const SH = T.R.st.S, cam = T.R.st.cam, v = viewOf(T), el = T.el, can = (TEETH.find(U => U.key === "canine") || T).el;
-    const H = el.clientHeight || 1, colW = can.offsetWidth || el.clientWidth / 2, w = act2 ? colW : el.clientWidth;
-    const shift = act2 ? (can.offsetLeft - colW / 2) - (el.offsetLeft + el.clientWidth / 2) : 0;
+    const H = el.clientHeight || 1, colW = can.offsetWidth || el.clientWidth / 2, w = colW;
+    const shift = (can.offsetLeft - colW / 2) - (el.offsetLeft + el.clientWidth / 2);
     let target, dist;
     if (v === "aerial") { const half = Math.max(-SH.boxMin[0], SH.boxMax[0], -SH.boxMin[2], SH.boxMax[2]) * 0.95; target = [0, SH.top * 0.8, 0]; dist = half * cam.focal / Math.min(0.8, 0.8 * w / Math.max(1, H)); }
     else { const hh = (SH.top - SH.rootMin) / 2, half = Math.max(-SH.boxMin[0], SH.boxMax[0]); target = [0, (SH.top + SH.rootMin) / 2, 0]; dist = Math.max(hh * cam.focal / 0.84, half * cam.focal * H / (w * 0.8)); }
     if (shift) { const { rt } = camAxes(cam), k = 2 * dist / (H * cam.focal); target = target.map((x, i) => x - shift * k * rt[i]); }
     return { target, dist, shift };
-  }
-  // between the acts the molar glides there (or back, on Replay), keeping however the reader has turned it; any zoom or
-  // pan is undone on the way, on both teeth
-  function wearShift(act2, ms) {
-    const T = TEETH.find(U => U.key === "molar"); if (!GL || !T || !T.R) return;
-    ms = REDUCED ? 0 : ms || 1300;
-    const cam = T.R.st.cam, end = wearFrame(T, act2), d0 = cam.dist * (cam.zoom || 1), t0 = cam.target.slice(), s0 = S.mShift || 0;
-    S.zoom = 1; cam.zoom = 1;
-    TEETH.forEach(U => { if (U !== T && U.R) { U.R.st.cam.zoom = 1; U.R.st.cam.target = (U.R.st.cam.home || U.R.st.cam.target).slice(); } });
-    const id = S.mTween = (S.mTween || 0) + 1, t00 = performance.now();
-    const step = now => {
-      if (id !== S.mTween) return;
-      const u = ms ? Math.min(1, (now - t00) / ms) : 1, e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
-      cam.dist = d0 + (end.dist - d0) * e; cam.target = t0.map((v, i) => v + (end.target[i] - v) * e); S.mShift = s0 + (end.shift - s0) * e;
-      if (u < 1) { requestRender(true); requestAnimationFrame(step); } else { cam.home = end.target.slice(); requestRender(false); }
-    };
-    if (ms) requestAnimationFrame(step); else step(t00);
   }
   const NEUTRAL = SH => ({ wearY: SH.top + 0.02, caries: [0, 0, 0, 0], leh: [0, 0], lehY: [0, 0], calc: 0, pb: 0, cutX: 5, jaw: false });
   function insideSolid(T, p, m) {
@@ -403,8 +405,8 @@
     return busy;
   }
 
-  // in the Wear and LEH section's first act only the molar is shown
-  const wlHidden = T => T.key === "canine" && (solo() || (S.scene === "layer" && S.layer === "wear" && S.wlStage === "wear"));
+  // caries, pathogens and metals show the molar alone
+  const wlHidden = T => T.key === "canine" && solo();
   // the tooth names are the only lettering beside the teeth
   function drawLabels() {
     gLabels.selectAll("*").remove();
@@ -458,9 +460,11 @@
         const cusp = P.wearY < top && SH.cusps && SH.cusps.slice().sort((a, b) => (left ? a[0] - b[0] : b[0] - a[0]))[0];
         if (cusp && cusp[1] > P.wearY) add("dentine worn through", seen([cusp[0], P.wearY, cusp[2]]));
         add("enamel", seen([(left ? -1 : 1) * SH.B[0] * 0.85, top * 0.7, SH.B[2] * 0.3]));
+        if (L === "wear" && P.lehArc) lehLabels(T, add);
       } else {
         add("crown", seen([0, top * 0.8, 0]));
-        if (L === "wear" && P.leh[0] > 0) add("stress lines", seen([0, P.lehY[0], 0]));
+        if (L === "wear" && P.lehArc) lehLabels(T, add);
+        else if (L === "wear" && P.leh[0] > 0) add("stress lines", seen([0, P.lehY[0], 0]));
         add("neck", seen([0, 0.02, 0]));
         add("root", seen([0, SH.rootMin * 0.5, 0]));
       }
@@ -477,6 +481,23 @@
         gLabels.append("circle").attr("class", "pl-dot").attr("cx", l.xy[0]).attr("cy", l.xy[1]).attr("r", 1.6);
       });
     });
+  }
+  // Section 3's canine: each wrapped groove's share, pinned where it ends; if the end has gone round the back, where the
+  // groove passes out of sight
+  function lehLabels(T, add) {
+    const P = T.R.st.P, A = P.lehArc;
+    const wave = (a, y) => 0.014 * Math.sin(a * 3 + 1) + 0.007 * Math.sin(a * 7 + 2.3) + 0.004 * Math.sin(a * 13 + y * 20);   // lehWaveA in tooth.js
+    const rim = (t, yb) => {   // the groove's centre on the crown's surface, a fraction t of the way round
+      const a = A.start - t * 2 * Math.PI, c = Math.cos(a), s = Math.sin(a);
+      let y = yb; for (let i = 0; i < 3; i++) y = yb - wave(a, y);
+      const at = r => [A.o[0] + r * c, y, A.o[1] + r * s];
+      let lo = 0, hi = 0.8; if (T.R.outerJS(at(hi)) < 0) return null;
+      for (let i = 0; i < 22; i++) { const m = (lo + hi) / 2; if (T.R.outerJS(at(m)) < 0) lo = m; else hi = m; }
+      return at(hi);
+    };
+    const pin = (len, yb) => { for (let k = 0; k <= 24; k++) { const p = rim(Math.max(0, len * (1 - k / 24) - 0.004), yb); if (p && T.R.visible(p)) return p; } return null; };
+    add(A.pct.toFixed(1) + "% of adults", pin(A.end[A.end.length - 1], P.lehY[0]));
+    if (P.leh[1] > 0) add(A.mpct.toFixed(1) + "% two or more lines", pin(A.multi, P.lehY[1]));
   }
   // one baseline for the names, a little above the highest point of any crown on screen (its top, or from above its rim)
   const nameY = () => Math.max(14, d3.min(TEETH.filter(T => !wlHidden(T)), T => { const SH = T.R.st.S, y = SH.top * 0.8;
@@ -1072,7 +1093,7 @@
   }; });
   function leaveWear() {
     if (wl) { wl.run = -1; clearTimeout(wl.timer); cancelAnimationFrame(wl.raf); }
-    wl = null; S.wl = null; S.wlStage = null; pairEl.classList.remove("molar-only", "solo", "wearplate"); S.mShift = 0; eraEl.hidden = true; stage.classList.remove("eraline");
+    wl = null; S.wl = null; S.wlStage = null; pairEl.classList.remove("solo", "wearplate"); S.mShift = 0; eraEl.hidden = true; stage.classList.remove("eraline");
     panelEl.classList.remove("twin"); viewsEl.hidden = replayEl.hidden = true;
   }
   const spanTxt = e => e.span[0] + "–" + e.span[1] + " CE";
@@ -1100,12 +1121,19 @@
       "<ol class='notes'><li>What a bar is: the share of adults in the period whose lower canine carries at least one line. The marker forms before about age six and enamel never remodels, so each bar is a measure of childhood, carried by an adult skeleton.</li>" +
       "<li>The whisker is a 95% Wilson interval. " + lehTiers(LC) + "</li>" +
       "<li>Age-standardising every period to the pooled age distribution of all " + fmtN(LC.n) + " adults moves each value by at most " + d3.max(LC.eras, c => Math.abs(c.pct - c.std)).toFixed(1) + " points (in each period's detail).</li>" +
-      "<li>One tooth, deliberately: scoring the worst of up to four teeth rewards people who kept more of them. The lower canine is the best-covered single tooth, and the one this project models. On the plate it is drawn after Schultz's standard, exaggerated so it reads: one groove as strong as the share with a line (full at " + d3.max(LC.eras, c => c.pct).toFixed(1) + "%), three more as the share with two or more (full at " + d3.max(LC.eras, c => c.comp[2]).toFixed(1) + "%).</li>" +
+      "<li>One tooth, deliberately: scoring the worst of up to four teeth rewards people who kept more of them. The lower canine is the best-covered single tooth, and the one this project models. On the plate it is drawn after Schultz's standard, exaggerated so it reads: a groove of fixed depth that wraps round the crown as far as the share with a line (all the way round would be 100%), from the canine's left edge towards you, in one segment per age band at death, each as long as that band's carriers over all the period's adults and coloured as on the wear grid. The thinner groove below wraps as far as the share with two or more lines.</li>" +
       "<li>Source: Global History of Health Project, European module, decoded for this project; adults 18–69 with a scorable lower canine; scoring after Schultz (1988).</li></ol></figure>" +
       "<div id='wlLehDetail' class='wl-detail lh' hidden><div class='lh-corr'></div><div class='lh-btns' role='group' aria-label='Break down Fig. 3.3'><button type='button' class='btn' data-v='age'>Break down by age</button><button type='button' class='btn' data-v='sev'>Break down by severity</button></div><div class='lh-body'></div></div></section></div>";
   }
   // set the teeth to a period's values (or between two), re-render, and name the period under the plate
-  function wlApply(v, low) { S.wl = v; if (GL) TEETH.forEach(T => T.R.setParams(paramsFor(T))); requestRender(low); }
+  function wlApply(v, low) {
+    S.wl = v;
+    if (GL) TEETH.forEach(T => {
+      T.R.setParams(paramsFor(T));
+      if (lehTurns(T)) { const k = lehTurn(v); T.R.st.cam.yaw += k - (T.turn == null ? k : T.turn); T.turn = k; }   // by the change, so a drag by hand is kept
+    });
+    requestRender(low);
+  }
   function wlWhen(e) { $("#when").textContent = e ? e.p + ", " + spanTxt(e) : ""; }
   // A period's lifetime of wear for the molar: its age bands' stages, each at least the one before (wear cannot be
   // undone), the molar worn to the last; each band's layer in its grid colour (WearLEH.wearCol, as in Fig. 3.2).
@@ -1115,13 +1143,17 @@
     const c = M.ages.flatMap((a, k) => { const q = d3.rgb(WearLEH.wearCol(s[k], k, M.ages.length)); return [q.r / 255, q.g / 255, q.b / 255]; });
     return { s, c, life: s[s.length - 1] };
   }
-  const eraVals = e => { const st = strataOf(e), c = lehOf(e); return { wear: st.life, any: c.pct, multi: c.comp[2], strata: st }; };
-  function wlTween(to, ms, done) {
+  // each age band's part of a period's share with a stress line: the band's adults with a line over all the period's adults
+  const segsOf = c => LD.morphology.ages.map(a => { const b = c.cells.find(q => q.a === a); return b ? b.k / c.n : 0; });
+  const eraVals = e => { const st = strataOf(e), c = lehOf(e); return { wear: st.life, any: c.pct, multi: c.comp[2], segs: segsOf(c), strata: st }; };
+  function wlTween(to, ms, done, ez) {
     const from = Object.assign({}, S.wl), t0 = performance.now(), run = wl.run;
     const tick = now => {
       if (!wl || wl.run !== run) return;
-      const k = REDUCED ? 1 : Math.min(1, (now - t0) / ms), e = ease(k);
-      wlApply({ wear: from.wear + (to.wear - from.wear) * e, any: from.any + (to.any - from.any) * e, multi: from.multi + (to.multi - from.multi) * e, strata: to.strata }, k < 1);
+      const k = REDUCED ? 1 : Math.min(1, (now - t0) / ms), e = (ez || ease)(k);
+      const s0 = from.segs || [], s1 = to.segs || [];   // the groove's age bands grow or shrink with it
+      wlApply({ wear: from.wear + (to.wear - from.wear) * e, any: from.any + (to.any - from.any) * e, multi: from.multi + (to.multi - from.multi) * e,
+        segs: s1.length || s0.length ? d3.range(Math.max(s0.length, s1.length)).map(j => (s0[j] || 0) + ((s1[j] || 0) - (s0[j] || 0)) * e) : null, strata: to.strata }, k < 1);
       if (k < 1) wl.raf = requestAnimationFrame(tick); else if (done) done();
     };
     wl.raf = requestAnimationFrame(tick);
@@ -1140,9 +1172,9 @@
     if (was || REDUCED) return wearFinish(true);
     wearSeq();
   }
-  // Two acts. First the molar alone, with the wear panel: it wears down period by period and each period's row of
-  // peaks lifts. Then the canine and the LEH panel come in: its grooves take each period's shares and each period's
-  // bar grows in Fig. 3.3. S.wlStage hides the canine (and its labels) during the first act.
+  // One run, both records together: period by period the molar wears down to the period and its row of peaks lifts in
+  // Fig. 3.2, while the canine's grooves take the period's shares and its bar grows in Fig. 3.3, over the same time, so
+  // all four finish together.
   // Either panel can be minimized to its title bar, so the other takes the whole column; both open share it half and
   // half. One always stays open: minimizing the second reopens the first. S.wlMin survives re-renders.
   function wlFold(k) {
@@ -1160,42 +1192,27 @@
     });
   }
   function wlStage(st) {
-    const was = S.wlStage; S.wlStage = st;
-    if (was != null && (was !== "wear") !== (st !== "wear")) wearShift(st !== "wear");   // into the second act, or back on Replay
-    const wearOnly = st === "wear";
-    pairEl.classList.toggle("molar-only", wearOnly);
-    const dp = panelEl.querySelector(".dp.wl"); if (dp) dp.classList.toggle("wear-only", wearOnly);
-    if (st === "leh" && S.wlMin && S.wlMin.leh) { S.wlMin.leh = false; wlFoldApply(); }   // the second act opens its panel
-    if (!wearOnly && !wl.c10) wl.c10 = LEHFigs.c10($("#wlC10"), LD.morphology.leh_canine, { onPick: lehPick });
+    S.wlStage = st;
+    if (!wl.c10) wl.c10 = LEHFigs.c10($("#wlC10"), LD.morphology.leh_canine, { onPick: lehPick });
     requestRender(false);
   }
   function wearSeq() {
-    const E = LD.morphology.eras, run = wl.run, last = E[E.length - 1];
-    wlStage("wear"); wlApply({ wear: 1, any: 0, multi: 0 }, false); wlWhen(null);
+    const E = LD.morphology.eras, run = wl.run;
+    if (S.wlMin && (S.wlMin.wear || S.wlMin.leh)) { S.wlMin = { wear: false, leh: false }; wlFoldApply(); }   // both panels open for the run
+    wlStage("play"); wlApply({ wear: 1, any: 0, multi: 0 }, false); wlWhen(null);
     let i = 0;
     const next = (fn, ms) => { wl.timer = setTimeout(() => { if (wl && wl.run === run) fn(); }, ms); };
-    const wearStep = () => {
+    // each period grows slowly and evenly (RUN ms, the same gentle easing for the teeth and the bar), then rests briefly
+    const RUN = 2800, REST = 900;
+    const step = () => {
       const e = E[i]; wlWhen(e);
-      const st = strataOf(e);
-      wlTween({ wear: st.life, any: 0, multi: 0, strata: st }, 1500, () => {
-        wl.peaks.highlight(i);
+      wl.peaks.highlight(i); wl.c10.show(i, REDUCED ? 0 : RUN, d3.easeSinInOut); lehFollow();
+      wlTween(eraVals(e), RUN, () => {
         i++;
-        if (i < E.length) next(wearStep, 1300);
-        else next(() => { wl.peaks.highlight(-1); wl.peaks.interactive(true); i = 0; wlStage("leh"); next(lehStep, 900); }, 1300);
-      });
+        next(() => { if (i < E.length) step(); else wearFinish(false); }, REST);
+      }, d3.easeSinInOut);
     };
-    // the canine takes each period's shares while that period's bar grows in Fig. 3.3, over the same time, so the two
-    // finish together
-    const lehStep = () => {
-      const e = E[i], c = lehOf(e); wlWhen(e);
-      const st = strataOf(last);
-      wl.c10.show(i, REDUCED ? 0 : 1500); lehFollow();
-      wlTween({ wear: st.life, any: c.pct, multi: c.comp[2], strata: st }, 1500, () => {
-        i++;
-        next(() => { if (i < E.length) lehStep(); else wearFinish(false); }, 1500);
-      });
-    };
-    next(wearStep, 700);
+    next(step, 700);
   }
   // keep Fig. 3.3 in view as its bars grow
   function lehFollow() {
@@ -1235,7 +1252,7 @@
     }
     const e = LD.morphology.eras[k];
     wl.lehK = k; wl.c10.select(k); wlWhen(e);
-    clearTimeout(wl.timer); cancelAnimationFrame(wl.raf); wlTween(eraVals(e), 900);
+    clearTimeout(wl.timer); cancelAnimationFrame(wl.raf); wlTween(eraVals(e), 1400, null, d3.easeSinInOut);
     lehCorr(k);
     if (wl.lehView === "age" && wl.c9 && wl.c9done) wl.c9.focus(k);
     const el = $("#wlLehDetail"), box = $("#wlLehBox"); box.scrollTo({ top: el.offsetTop - 8, behavior: REDUCED ? "auto" : "smooth" });
@@ -1321,7 +1338,7 @@
   function wearPick(i, j) {
     const M = LD.morphology, E = M.eras, e = E[i], p = M.periods[i], row = M.ages.map(a => M.wear[p][a]);
     wl.peaks.select(i, j); wlWhen(e);
-    clearTimeout(wl.timer); cancelAnimationFrame(wl.raf); wlTween(eraVals(e), 900);
+    clearTimeout(wl.timer); cancelAnimationFrame(wl.raf); wlTween(eraVals(e), 1400, null, d3.easeSinInOut);
     // how this row compares with a neighbouring period, age by age: whichever way holds at more ages
     const cmp = q => { if (q < 0 || q >= E.length) return null; const r = M.ages.map(a => M.wear[M.periods[q]][a]); let lower = 0, higher = 0, n = 0;
       row.forEach((v, k) => { if (v && r[k]) { n++; if (v[0] < r[k][0]) lower++; else if (v[0] > r[k][0]) higher++; } });
