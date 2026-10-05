@@ -9,7 +9,7 @@
   It needs an internet connection for the fonts and d3, and a browser with WebGL2 for the 3D teeth.
 
   THE FLOW
-    Intro      the engraved jaw opens, four teeth line up, the first molar and canine become point clouds.
+    Intro      the engraved jaw opens; the first molar and canine appear whole in 3D, then a cut opens them.
     Overview   the two teeth alone, as realistic sections with their nerves (no gum or bone, no caption), play
                through 300-1900 CE (no timeline); every kind of mark arrives century by century.
     Timeline   Plate II, the radial timeline in perspective (radial.js, data in radial-data.js): five lines from
@@ -63,7 +63,7 @@
     ?scene=radial             the radial timeline (&animate=1 plays its entrance)
     ?scene=layer&layer=metals one section (caries, pathogens, wear, metals, interventions)
     &still=1  &notrans=1      no travelling marks / no CSS transitions (for screenshots)
-    ?freeze=0|0.5|1|2|3       hold one intro frame (0 closed jaw, 0.5 half open, 1 open, 2 lineup, 3 cloud)
+    ?freeze=0|0.5|1|2|3       hold one intro frame (0 closed jaw, 0.5 half open, 1 open, 2 whole teeth, 3 half cut)
 
   DATA (window.TOOTH_DATA)
     Built by build_data.py from four supplied sources. No synthetic values anywhere.
@@ -102,7 +102,7 @@ html,body{height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--serif);font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums}
 button{font:inherit;color:inherit}
 /* labels, controls, numbers and tables use --label (see :root) */
-.btn,.link,#lineup .lbl,.ctxnote,.tcap{font-family:var(--label)}
+.btn,.link,.ctxnote,.tcap{font-family:var(--label)}
 :focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 a{color:inherit}
 .k{font-size:10.5px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
@@ -142,7 +142,7 @@ a{color:inherit}
 #tMolar{grid-column:2}#tCanine{grid-column:3}
 .tooth canvas{position:absolute;inset:0;width:100%;height:100%;display:block;transition:opacity 1.2s ease}
 #stage.intro .tooth canvas{opacity:0}
-#ov,#cloud{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#ov{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 #ov{overflow:visible}
 #ov .pt{pointer-events:auto;cursor:default}
 #ov .pl{font-family:var(--label);font-size:11px;font-style:italic;fill:var(--ink-2);paint-order:stroke;stroke:rgba(233,232,228,.85);stroke-width:3px;stroke-linejoin:round}
@@ -188,11 +188,6 @@ a{color:inherit}
 #stage.radial #again{display:inline-block}
 
 /* intro */
-#lineup{position:absolute;inset:0;pointer-events:none}
-#lineup canvas{position:absolute;top:0;transition:transform 1.2s cubic-bezier(.6,0,.2,1),opacity .9s ease}
-#lineup .box{position:absolute;border:1px solid var(--ink);opacity:0;transition:opacity .8s}
-#lineup .lbl{position:absolute;white-space:nowrap;font-size:11px;font-weight:600;letter-spacing:.08em;text-align:center;transform:translateX(-50%);transition:transform 1.2s cubic-bezier(.6,0,.2,1),opacity .8s;opacity:0}
-#lineup .arrows{position:absolute;left:0;right:0;text-align:center;font-size:22px;letter-spacing:.9em;color:var(--ink-2);opacity:0;transition:opacity .8s}
 #jawLayer{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;z-index:4;transition:transform 1.4s cubic-bezier(.6,0,.2,1),opacity 1s}
 #jaw{position:relative;height:min(78vh,640px);aspect-ratio:522/1010;perspective:2400px;perspective-origin:50% 42%}
 #jaw .rig{position:absolute;inset:0;transform-style:preserve-3d}
@@ -205,9 +200,6 @@ a{color:inherit}
 #jaw .rings.on{opacity:1}
 #jaw .rings circle{fill:none;stroke:var(--ink);stroke-width:2.2;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1s ease}
 #jaw .rings .halo{stroke:var(--card);stroke-width:6}
-#jaw .rings .pm{opacity:0;transition:opacity 1s ease .4s}
-#jaw .rings .pm .halo{stroke-width:4.5}
-#jaw .rings .dot{stroke-width:1.8;stroke-dasharray:.03 .022;stroke-dashoffset:0}
 #jaw .rings.on circle{stroke-dashoffset:0}
 #jaw .rings.on .pm{opacity:1}
 #introText{position:absolute;left:28px;bottom:44px;max-width:480px;z-index:5;transition:opacity .9s}
@@ -733,7 +725,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 .rd-shell{animation:rdDash 14s linear infinite}
 #metalPlate{position:absolute;top:0;bottom:0;left:0;right:34px;display:none;z-index:2}
 #stage.metals-on #metalPlate{display:block}
-#stage.metals-on #pair .tooth canvas,#stage.metals-on #ov,#stage.metals-on #cloud{opacity:0!important;pointer-events:none}
+#stage.metals-on #pair .tooth canvas,#stage.metals-on #ov{opacity:0!important;pointer-events:none}
 #stage.metals-on #views,#stage.metals-on .tcap{display:none}
 .mp-gl{position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
 .mp-gl.grab{cursor:grabbing}
@@ -1016,8 +1008,6 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
       <div id="pair">
         <div class="tooth" id="tMolar"><canvas></canvas></div>
         <div class="tooth" id="tCanine"><canvas></canvas></div>
-        <canvas id="cloud"></canvas>
-        <div id="lineup"></div>
         <svg id="ov"></svg>
       </div>
       <div id="metalPlate"></div>
@@ -3245,7 +3235,8 @@ function renderKPIs(p) {
 <!-- 5 · storyline and interface -->
 <script>
 /* The Tooth Untold: storyline build (v6).
-   Intro: engraved jaw, closed, swings open on its hinge -> four teeth line up -> first molar and canine close in -> 2D becomes a 3D point cloud.
+   Intro: engraved jaw, closed, swings open on its hinge -> the first molar and canine appear as whole 3D models, turning -> a cut
+   plane sweeps through them into the cross-section the overview plays on.
    Overview: the two composite teeth, cut open as realistic ground sections (no gum or bone; the nerve and vessels in
    their canals, as on the Pathogens plate), play through 300-1900 CE with no timeline; marks arrive as each
    century's records come in. Then the radial timeline (radial.js, data in radial-data.js): four records leave a point
@@ -3443,6 +3434,8 @@ window.startStatisticalTooth = (function () {
   }
   // the renderer's inputs for one tooth; S.show keeps only one layer's traces
   function paramsFor(T) {
+    // the intro's reveal: the whole tooth, untouched (no wear, decay, stress lines or lead), cut only by the sweeping plane
+    if (S.reveal) return Object.assign(NEUTRAL(T.R.st.S), { cutX: S.reveal.cut, real: true });
     const SH = T.R.st.S, top = SH.top, L = S.show, wearOn = L === "all" || L === "wear", decay = L === "all" || L === "caries";
     // in the Wear and LEH section the teeth step through the periods (S.wl, from wearSeq()), not the pooled composite
     const wl = S.scene === "layer" && S.layer === "wear" ? S.wl : null;
@@ -3460,7 +3453,7 @@ window.startStatisticalTooth = (function () {
     const calc = 0;
     const wearAmp = wl && wear != null ? 0.035 * clamp((wear - 1) / 4, 0, 1) : 0, capTint = wl && T.type === "molar" ? [0.2, 0.36, 0.85, 0.72] : [0, 0, 0, 0];
     const strata = wl && T.type === "molar" && wl.strata ? wl.strata : null;
-    return { cav, wearY, wearAmp, capTint, capS: strata && strata.s, capC: strata && strata.c, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: leh && leh.length > 2 ? [0.44, 0.31, 0.56, 0.66].map(f => f * top) : [0.36 * top, 0.54 * top], calc, pb, cutX: viewOf(T) === "cut" ? 0 : 5, jaw: false, real: liveTeeth() };
+    return { cav, wearY, wearAmp, capTint, capS: strata && strata.s, capC: strata && strata.c, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: leh && leh.length > 2 ? [0.44, 0.31, 0.56, 0.66].map(f => f * top) : [0.36 * top, 0.54 * top], calc, pb, cutX: S.reveal ? S.reveal.cut : viewOf(T) === "cut" ? 0 : 5, jaw: false, real: liveTeeth() };
   }
   // the view a tooth is drawn in: cut everywhere except on a section's plate, where the section decides
   // Every section's plate has four views (S.viewMode, the buttons under it): top, side, section (cut open) and
@@ -3504,7 +3497,7 @@ window.startStatisticalTooth = (function () {
   // trace being the lead stipple in the enamel.
   const showsRec = r => (S.show === "all" || S.show === "pathogens") && r.kind === "pathogen" && !/calculus/.test(r.material || "");
   function updateParticles(animate) {
-    if (!GL) return;
+    if (!GL || S.reveal) return;   // the intro's whole teeth carry no marks until the cut opens them
     const now = performance.now(), dense = everything();
     TEETH.forEach((T, ti) => {
       const want = new Map();
@@ -3864,12 +3857,13 @@ window.startStatisticalTooth = (function () {
   // the 100-year window (lead in the enamel) would otherwise blink out and back; it now recedes and returns over
   // a fraction of a second, and the pooled values at 1900 arrive the same way. Amounts ease; positions follow at once.
   const EASE_TAU = 0.35;   // seconds
+  let easeSlowUntil = 0;   // after the intro's cut, the year's traces settle onto the opened teeth more slowly
   const easeOf = P => ({ cr: P.caries[3], l0: P.leh[0], l1: P.leh[1], wearY: P.wearY, pb: P.pb });
   const withEase = (P, e) => Object.assign({}, P, { caries: [P.caries[0], P.caries[1], P.caries[2], e.cr], leh: [e.l0, e.l1], wearY: e.wearY, pb: e.pb });
   let easeAt = 0;
   function easeTeeth(now) {
-    if (!GL || S.scene !== "main") { easeAt = 0; return false; }
-    const dt = easeAt ? Math.min(0.1, (now - easeAt) / 1000) : 0, k = 1 - Math.exp(-dt / EASE_TAU);
+    if (!GL || S.scene !== "main" || S.reveal) { easeAt = 0; return false; }
+    const dt = easeAt ? Math.min(0.1, (now - easeAt) / 1000) : 0, k = 1 - Math.exp(-dt / (now < easeSlowUntil ? 0.6 : EASE_TAU));
     easeAt = now;
     let moving = false;
     TEETH.forEach(T => {
@@ -4036,8 +4030,8 @@ window.startStatisticalTooth = (function () {
   }
   function enterRadial(animate) {
     clearTimeout(layersTimer); pause();
-    if (S.scene === "intro") { endIntro(); drawCloud(0, 0); pairEl.style.transform = ""; }
-    leaveWear(); stopPseq(); hidePop(); popOpen = false; S.scene = "radial"; S.layer = null; S.show = "all"; S.t = T_ALL; G = composite(T_ALL); readout();
+    if (S.scene === "intro") { endIntro(); pairEl.style.transform = ""; }
+    leaveWear(); stopPseq(); hidePop(); popOpen = false; S.reveal = null; S.scene = "radial"; S.layer = null; S.show = "all"; S.t = T_ALL; G = composite(T_ALL); readout();
     stage.classList.remove("dashboard", "haspanel", "metals-on"); panelEl.hidden = true; panelEl.innerHTML = "";
     gParts.selectAll("*").remove(); gLabels.selectAll("*").remove(); setPage();
     requestAnimationFrame(() => {
@@ -4155,12 +4149,13 @@ window.startStatisticalTooth = (function () {
   function openLayer(k) {
     const L = layerOf(k); if (!L) return;
     clearTimeout(layersTimer); pause();
-    if (S.scene === "intro") { endIntro(); drawCloud(0, 0); pairEl.style.transform = ""; }
+    if (S.scene === "intro") { endIntro(); pairEl.style.transform = ""; }
     if (k !== "wear" || S.layer !== "wear") leaveWear();
     if (S.layer !== k || !S.viewMode) S.viewMode = defView(L);   // a new section opens in its own view
     pairEl.classList.toggle("solo", SOLO.has(k));
     stage.classList.remove("metals-on"); if (window.MetalPlate) MetalPlate.hide();   // metals uses the same molar, views and labels as every other section
     const fresh = S.scene !== "layer" || S.layer !== k;   // a fresh visit, not a resize
+    S.reveal = null;
     if (fresh) { strandSel = null; strandShown = false; stopPseq(); hidePop(); popOpen = false; }
     S.scene = "layer"; S.layer = k; S.show = k; S.t = T_ALL; G = composite(T_ALL); readout();
     leaveRadial(); stage.classList.add("dashboard", "haspanel");
@@ -4218,7 +4213,7 @@ window.startStatisticalTooth = (function () {
         "Pale rungs rest on fewer than five genomes (the 100s to 300s) and swing wildly. The 800s have no European dental samples." + (un.length ? " " + cap(numWord(d3.sum(un, u => u.k))) + " genomes in the century totals are not named in the index (" + un.map(u => numWord(u.k) + " in the " + u.c + "s").join(", ") + "); they keep their own run of dots, listed as not named." : ""),
         "Shares are rounded to whole dots, and every organism found keeps at least one, so a run can be a dot off; hovering a run, and the rows pulled out, give the exact numbers.",
         "The twist is drawing, not data. The ribbon turns only beside small or empty centuries, so the large ones face the reader; rungs on the far side of a turn read right to left.",
-        "Shaded bands are world events, for context and not from this dataset: " + STRAND_BANDS.map(e => "the " + e.label.charAt(0).toLowerCase() + e.label.slice(1) + " (" + e.when + ")").join(", ").replace(/, ([^,]*)$/, " and $1") + ", from the team's events list.",
+        "Shaded bands are world events, for context and not from this dataset: " + STRAND_BANDS.map(e => e.note + " (" + e.when + ")").join(", ").replace(/, ([^,]*)$/, " and $1") + ", from the team's events list.",
         "Source: AncientMetagenomeDir (SPAAM community, CC-BY 4.0), European dental samples; disease labels from the team's pathogen_reference.csv."]; } }],
     // wear: Section 3 draws its own two figures (wearHTML(), wearMount(); wearleh.js)
     interventions: [{ id: "repair", title: "Tooth repair, drawn straight through",
@@ -4575,16 +4570,18 @@ window.startStatisticalTooth = (function () {
     "Tannerella forsythia": "gum-disease bacterium", "Methanobrevibacter oralis": "oral archaeon" };
   const STRAND_KIND = { bacteria: ["Bacteria", "a bacterium"], virus: ["Viruses", "a virus"], parasite: ["Parasites", "a malaria parasite"],
     other: ["Not disease agents", "not an epidemic disease agent"], unnamed: ["Not named", ""] };
-  // The team's events list (research/Human Correlations/timeline_events_display.csv) for the diseases in this record:
-  // context, not data. taxa: the organisms whose pop-up lists the event; band: also shaded across the strand; img: the
-  // picture key (images/<img>.jpg; a hatched slot until it exists). The first pandemic is dated 541–750 (the list has
-  // 400–700, the span of its century bins).
+  // The pathogen events from the team's "Events To Include" list (#5, #6, #7), each with the team's reading of the record
+  // (text), checked against the genome data above; the events and their dates are context, not data. taxa: the
+  // organisms whose pop-up lists the event; band: also shaded across the strand; img: the picture key (images/<img>.jpg;
+  // a hatched slot until it exists). _x_ in a text sets x in italics. The list dates the first pandemic 5th–7th c.;
+  // it is given here as the documented 541–750, and the text names the 400s bin it cites.
   const STRAND_CONTEXT = [
-    { id: "EV027", from: 541, to: 750, label: "First plague pandemic", short: "Plague pandemic", when: "541–750", taxa: ["Yersinia pestis"], band: true, img: "event-justinian" },
-    { id: "EV014", from: 1347, to: 1351, label: "Black Death", short: "Black Death", when: "1347–1351", taxa: ["Yersinia pestis"], band: true, img: "event-blackdeath" },
-    { id: "EV015", from: 1495, to: 1700, label: "Spread of syphilis through Europe", short: "Syphilis in Europe", when: "1495–1700", taxa: ["Treponema pallidum"], band: true, img: "event-syphilis" },
-    { id: "EV028", from: 1000, to: 1400, label: "Leprosy rises and then recedes", when: "1000–1400", taxa: ["Mycobacterium leprae"], img: "event-leprosy" },
-    { id: "EV016", from: 1100, to: 1536, label: "Mercury used to treat leprosy and syphilis", when: "1100–1536", taxa: ["Mycobacterium leprae", "Treponema pallidum"], img: "event-mercury" },
+    { id: "EV027", from: 541, to: 750, label: "First plague pandemic", note: "the first plague pandemic", short: "Plague pandemic", when: "541–750", taxa: ["Yersinia pestis"], band: true, img: "event-justinian",
+      text: "_Y. pestis_ is 86% of the 5th-century bin (the 400s, 19 of 22 genomes) and 60% of the 7th (the 600s, 12 of 20)." },
+    { id: "EV014", from: 1347, to: 1351, label: "Black Death", note: "the Black Death", short: "Black Death", when: "1347–1351", taxa: ["Yersinia pestis"], band: true, img: "event-blackdeath",
+      text: "Read it as composition, not a spike: genome counts follow sequencing campaigns, but _Y. pestis_ is 69% of all genomes in the 1300s bin (35 of 51)." },
+    { id: "EV028", from: 1000, to: 1400, label: "Medieval leprosy", when: "1000–1400", taxa: ["Mycobacterium leprae"], img: "event-leprosy",
+      text: "_M. leprae_ rises to 55% of the 1200s bin (6 of 11), then falls to 6% of the 1300s (3 of 51), in step with the documented closure of leprosaria; the small 1400s bin (9 genomes) is back at 44%." },
   ];
   const STRAND_BANDS = STRAND_CONTEXT.filter(e => e.band);
   const numWord = n => ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"][n] || String(n);
@@ -4791,11 +4788,10 @@ window.startStatisticalTooth = (function () {
         "<p class='dz-k'><i style='background:" + colOf(l) + "'></i>" + esc(STRAND_KIND[l.kind][0]) + "</p>" +
         "<h3 id='dzT'>" + esc(cap(l.name)) + "</h3>" +
         "<p class='dz-sub'>" + (!l.taxon ? "Genomes the index counts but does not name. " : "<i>" + esc(l.taxon) + "</i>" + (!l.disease ? "" : l.kind === "other" ? ": " + esc(diseaseOf(l)) : ", the cause of " + esc(diseaseOf(l))) + ". ") + l.total + " of " + total + " genomes in the record.</p>" +
-        "<p class='dz-h'>What it led to</p>" +
-        (evs.length ? evs.map(e => "<figure class='dz-ev'>" + slot(e.img, e.label) + "<figcaption><b>" + esc(e.label) + "</b><span>" + esc(e.when) + "</span>" +
-            esc(cap(l.name)) + " in the record then: " + esc(shareIn(e).join("; ")) + ".</figcaption></figure>").join("")
-          : "<figure class='dz-ev'>" + slot(null, "") + "<figcaption>No event for this disease in the team's timeline yet.</figcaption></figure>") +
-        "<p class='dz-note'>Events are context from the team's timeline, not from the genome data. Pictures to come.</p>";
+        // "What it led to" only where the team's list has an event for this organism
+        (evs.length ? "<p class='dz-h'>What it led to</p>" + evs.map(e => "<figure class='dz-ev'>" + slot(e.img, e.label) + "<figcaption><b>" + esc(e.label) + "</b><span>" + esc(e.when) + "</span>" +
+            (e.text ? esc(e.text).replace(/_(.+?)_/g, "<i>$1</i>") : esc(cap(l.name)) + " in the record then: " + esc(shareIn(e).join("; ")) + ".") + "</figcaption></figure>").join("") +
+          "<p class='dz-note'>The events and their dates are context from the team's list; the numbers are read from the genome record on this page. Pictures to come.</p>" : "");
       // closing the pop-up lets go of the organism: its pixels go back into the strand
       pop.querySelector(".dz-x").onclick = () => select(null, true);
       pop.onkeydown = ev => { if (ev.key === "Escape") select(null, true); };
@@ -4898,16 +4894,15 @@ window.startStatisticalTooth = (function () {
   }
 
   // ------------------------------------------------------------------ intro
-  const jawLayer = $("#jawLayer"), lineup = $("#lineup"), cloud = $("#cloud");
-  const CLOUD = {};
+  const jawLayer = $("#jawLayer");
   let introRun = 0;
   // The jaw is an engraving of both arches opened out flat (images/jaw-arches.webp, cut out by prepare_jaw.py).
   // Its top half is the upper jaw and stays still. Its bottom half is the lower jaw, hinged on the centre line
   // like the real jaw joint: closed, it is folded up onto the upper teeth and we see the back of the print;
   // opening swings it down towards the viewer until the picture lies flat as drawn. Illustration, not data.
   const JAW = { ok: false, rig: $("#jaw .rig"), up: $("#jaw .jw-up"), lo: $("#jaw .jw-lo"), front: $("#jaw .front"), back: $("#jaw .back"), rings: $("#jaw .rings") };
-  // the lineup's four teeth on the lower right quadrant: [key, x, y, r] as fractions of the lower half's width and height
-  const JAW_TEETH = [["molar", .862, .526, .08], ["pm2", .860, .661, .052], ["pm1", .814, .754, .05], ["canine", .755, .824, .048]];
+  // the story's two teeth on the lower right quadrant: [key, x, y, r] as fractions of the lower half's width and height
+  const JAW_TEETH = [["molar", .862, .526, .08], ["canine", .755, .824, .048]];
   const PAPER = [238, 235, 226];
   async function loadJaw() {
     const src = IMG["jaw-arches"]; if (!src) return;
@@ -4932,8 +4927,8 @@ window.startStatisticalTooth = (function () {
     $("#jaw").style.aspectRatio = w + " / " + (2 * hh);
     JAW.up.getContext("2d").drawImage(JAW.upSrc, 0, 0);
     JAW.rings.setAttribute("viewBox", "0 0 " + w + " " + hh);
-    // molar and canine: drawn rings on a pale halo; premolars: dotted (they leave the story in the lineup)
-    JAW.rings.innerHTML = JAW_TEETH.map(([k, fx, fy, fr]) => { const c = "pathLength='1' cx='" + fx * w + "' cy='" + fy * hh + "' r='" + fr * w + "'"; return k[0] === "p" ? "<g class='pm'><circle class='halo' " + c + "/><circle class='dot' " + c + "/></g>" : "<circle class='halo' " + c + "/><circle " + c + "/>"; }).join("");
+    // the molar and the canine: drawn rings on a pale halo
+    JAW.rings.innerHTML = JAW_TEETH.map(([k, fx, fy, fr]) => { const c = "pathLength='1' cx='" + fx * w + "' cy='" + fy * hh + "' r='" + fr * w + "'"; return "<circle class='halo' " + c + "/><circle " + c + "/>"; }).join("");
     JAW.ok = true;
   }
   // 0 → 1: the paper appears, then the ink darkens in, darkest strokes first
@@ -4963,79 +4958,17 @@ window.startStatisticalTooth = (function () {
     if (!JAW.ok) return;
     JAW.up.style.opacity = 0; JAW.rings.classList.remove("on"); JAW.k = 0; jawInk(0);
   }
-  // point sets for the intro: the molar from the constructed shape, everything else from the sculpted models
-  const LINE = {};
-  function snapshots() {
-    if (!GL) return;
-    setShapes();
-    const mp = key => window.ToothGL.modelPoints(key);
-    CLOUD.molar = TEETH[0].R.samplePoints(2600, 11);
-    CLOUD.canine = TEETH[1].R.samplePoints(3200, 23);
-    LINE.molar = CLOUD.molar; LINE.canine = CLOUD.canine;
-    LINE.pm1 = mp(S.jaw + "_pm1") || []; LINE.pm2 = mp(S.jaw + "_pm2") || [];
-  }
-  const LV = [-0.35, 0.8, 0.55];
-  function dots(ctx, R, pts, b, ox, oy, alpha, zs, size) {
-    pts.forEach(q => {
-      const s = R.projectWith([q.p[0], q.p[1], q.p[2] * zs], b), l = Math.max(0, q.n[0] * LV[0] + q.n[1] * LV[1] + q.n[2] * LV[2]);
-      ctx.globalAlpha = alpha * (0.22 + 0.7 * (1 - l) * (1 - l) + (q.e < 0.5 ? 0.08 : 0));
-      ctx.beginPath(); ctx.arc(s.x + ox, s.y + oy, size, 0, 6.2832); ctx.fill();
-    });
-    ctx.globalAlpha = 1;
-  }
-  function drawCloud(k, alpha, sc) {
-    const ctx = cloud.getContext("2d"), dpr = Math.min(devicePixelRatio || 1, 2), W = pairEl.clientWidth, H = pairEl.clientHeight;
-    if (cloud.width !== Math.round(W * dpr) || cloud.height !== Math.round(H * dpr)) { cloud.width = Math.round(W * dpr); cloud.height = Math.round(H * dpr); }
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
-    if (!GL || alpha <= 0) return;
-    const e = ease(k), cam = { yaw: VIEW.yaw * e, pitch: VIEW.pitch * e };
-    ctx.fillStyle = "#1a1a18";
-    TEETH.forEach(T => {
-      const pts = CLOUD[T.key]; if (!pts) return;
-      const cx = T.el.offsetLeft + T.el.clientWidth / 2, cy = T.el.offsetTop + H / 2, f = sc || 1;
-      ctx.save(); ctx.translate(cx, cy); ctx.scale(f, f); ctx.translate(-cx, -cy);
-      dots(ctx, T.R, pts, T.R.basisFor(cam), T.el.offsetLeft, T.el.offsetTop, alpha, 0.08 + 0.92 * e, 0.8);
-      ctx.restore();
-    });
-  }
   function tween(ms, f) { return new Promise(res => { const t0 = performance.now(); const st = now => { const k = Math.min(1, (now - t0) / ms); f(k); if (k < 1) requestAnimationFrame(st); else res(); }; requestAnimationFrame(st); }); }
   function centerPair(on) {
     pairEl.style.transition = "none"; pairEl.style.transform = "";
     if (on) { const sr = stage.getBoundingClientRect(), pr = pairEl.getBoundingClientRect(); pairEl.style.transform = "translateX(" + ((sr.left + sr.width / 2) - (pr.left + pr.width / 2)) + "px)"; }
     void pairEl.offsetWidth; pairEl.style.transition = "";
   }
-  function setupLineup() {
-    const w = TEETH[0].el.clientWidth, H = pairEl.clientHeight, o = TEETH[0].el.offsetLeft, cam = TEETH[0].R.st.cam;
-    const pxu0 = (H / 2) * cam.focal / cam.dist, fit = Math.min(1, (stage.clientWidth - 40) / (4.7 * pxu0)), pxu = pxu0 * fit, mid = o + w, d = 0.98 * pxu;
-    const pos = [["molar", mid - 1.5 * d], ["pm1", mid - 0.5 * d], ["pm2", mid + 0.5 * d], ["canine", mid + 1.5 * d]];
-    const shM = (o + 0.5 * w) - pos[0][1], shC = (o + 1.5 * w) - pos[3][1];
-    lineup.innerHTML = "<div class='box'></div>" + pos.map(([k, c], i) => "<canvas data-i='" + i + "' style='left:" + (c - w / 2) + "px;width:" + w + "px;opacity:0'></canvas>").join("") +
-      "<div class='lbl' data-i='0' style='left:" + pos[0][1] + "px'>FIRST MOLAR</div><div class='lbl' data-i='3' style='left:" + pos[3][1] + "px'>FIRST CANINE</div><div class='arrows'>→ ←</div>";
-    const box = lineup.querySelector(".box");
-    Object.assign(box.style, { left: (pos[0][1] - 0.85 * pxu) + "px", width: (pos[3][1] - pos[0][1] + 1.6 * pxu) + "px", top: "-4px", height: (H + 8) + "px" });
-    lineup.querySelectorAll(".lbl").forEach(l => { l.style.top = (stage.clientWidth < 900 ? 46 : 8) + "px"; });   // clear of Skip intro on narrow screens
-    lineup.querySelector(".arrows").style.top = (H - 44) + "px";
-    const dpr = Math.min(devicePixelRatio || 1, 2), R = TEETH[0].R, b = R.basisFor({ yaw: 0, pitch: 0 });
-    lineup.querySelectorAll("canvas").forEach(cv => {
-      const i = +cv.dataset.i, pts = LINE[pos[i][0]] || [];
-      cv.width = Math.round(w * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + "px";
-      const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = "#1a1a18";
-      ctx.translate(w / 2, H / 2); ctx.scale(fit, fit); ctx.translate(-w / 2, -H / 2);
-      dots(ctx, R, pts, b, 0, 0, 1, 0.08, 0.75);
-    });
-    return { w, shM, shC, fit };
-  }
-  // the opened jaw steps aside, its ringed teeth nearest the lineup; faint where there is no room beside it
-  function jawAside() {
-    const jb = $("#jaw").getBoundingClientRect(), bb = lineup.querySelector(".box").getBoundingClientRect(), sr = stage.getBoundingClientRect(), sc = 0.72;
-    const right = bb.left - 18, dx = right - sc * jb.width / 2 - (jb.left + jb.width / 2);
-    Object.assign(jawLayer.style, { transform: "translateX(" + dx + "px) scale(" + sc + ")", opacity: right - sc * jb.width >= sr.left ? 0.7 : 0.22 });
-  }
   async function intro() {
     const run = ++introRun, alive = () => run === introRun;
     S.scene = "intro"; pause(); leaveRadial(); stage.classList.remove("dashboard", "haspanel", "metals-on"); panelEl.hidden = true; stage.classList.add("intro"); gParts.selectAll("*").remove(); gLabels.selectAll("*").remove();
     jawReset();
-    Object.assign(jawLayer.style, { transform: "", opacity: 1 }); $("#introText").style.opacity = 1; lineup.innerHTML = ""; drawCloud(0, 0); cloud.style.opacity = 1;
+    Object.assign(jawLayer.style, { transform: "", opacity: 1 }); $("#introText").style.opacity = 1;
     centerPair(true);
     await wait(120); if (!alive()) return;
     // 1 · the closed jaw inks itself in, then the lower jaw swings open on its hinge
@@ -5047,42 +4980,39 @@ window.startStatisticalTooth = (function () {
       JAW.rings.classList.add("on");
       await wait(1500); if (!alive()) return;
     }
-    // 2 · the jaw moves aside; four teeth line up, the premolars leave, molar and canine close in
-    $("#introText").style.opacity = 0;
-    const L = setupLineup(); jawAside();
-    await wait(500); if (!alive()) return;
-    lineup.querySelector(".box").style.opacity = 1;
-    lineup.querySelectorAll("canvas").forEach(im => { im.style.opacity = +im.dataset.i === 1 || +im.dataset.i === 2 ? 0.45 : 1; });
-    lineup.querySelectorAll(".lbl").forEach(l => { l.style.opacity = 1; });
-    await wait(1600); if (!alive()) return;
-    lineup.querySelector(".arrows").style.opacity = 1;
-    lineup.querySelectorAll("canvas").forEach(im => { const i = +im.dataset.i; if (i === 1 || i === 2) im.style.opacity = 0; });
-    await wait(600); if (!alive()) return;
-    lineup.querySelectorAll("canvas,.lbl").forEach(el => { const i = +el.dataset.i, pre = el.tagName === "CANVAS" ? "" : "translateX(-50%) "; if (i === 0) el.style.transform = pre + "translateX(" + L.shM + "px)"; if (i === 3) el.style.transform = pre + "translateX(" + L.shC + "px)"; });
-    await wait(1400); if (!alive()) return;
-    // 3 · the flat drawings become 3D point clouds
-    lineup.querySelector(".box").style.opacity = 0; lineup.querySelector(".arrows").style.opacity = 0; jawLayer.style.opacity = 0;
-    lineup.querySelectorAll(".lbl").forEach(l => { l.style.opacity = 0; });
-    lineup.querySelectorAll("canvas").forEach(im => { im.style.transition = "none"; });
-    await tween(700, k => { drawCloud(0, k, L.fit); lineup.querySelectorAll("canvas").forEach(im => { const i = +im.dataset.i; if (i === 0 || i === 3) im.style.opacity = 1 - k; }); });
-    if (!alive()) return;
-    await tween(2400, k => drawCloud(k, 1, L.fit + (1 - L.fit) * ease(k))); if (!alive()) return;
-    // 4 · everything fades in, with the timeline at its beginning
+    // 2 · the jaw steps away, and the two teeth appear as themselves: the whole 3D models, uncut, turning to face us
+    $("#introText").style.opacity = 0; jawLayer.style.opacity = 0;
+    await wait(800); if (!alive()) return;
+    S.reveal = { cut: 5 };   // no cut yet: enterMain() draws them whole (paramsFor), and no marks until they are open
     enterMain(true);
-    cloud.style.transition = "opacity 1.2s"; cloud.style.opacity = 0;
-    await wait(1300); drawCloud(0, 0); cloud.style.transition = ""; cloud.style.opacity = 1;
+    const run2 = introRun, open = () => run2 === introRun && S.scene === "main" && S.reveal;
+    const yaw0 = VIEW.yaw - 1.1;
+    await tween(2600, k => { if (!open()) return; const e = ease(k); TEETH.forEach(T => { T.R.st.cam.yaw = yaw0 + (VIEW.yaw - yaw0) * e; }); requestRender(true); });
+    if (!open()) return;
+    await wait(350); if (!open()) return;
+    // 3 · a cut plane sweeps in from the front to the middle of both teeth: the cross-section the overview plays on
+    const front = revealFront();
+    await tween(1900, k => { if (!open()) return; S.reveal.cut = front * (1 - ease(k)); TEETH.forEach(T => T.R.setParams(paramsFor(T))); requestRender(true); });
+    if (!open()) return;
+    // the cut is open: the year's traces (wear, decay, stress lines, lead) now settle in, easing from the untouched tooth
+    TEETH.forEach(T => { T.ez = easeOf(paramsFor(T)); });
+    S.reveal = null; easeSlowUntil = performance.now() + 2600;
+    TEETH.forEach(T => { T.target = paramsFor(T); T.R.setParams(withEase(T.target, T.ez)); }); kick();
+    requestRender(false); updateParticles(true);
+    // 4 · the record starts to arrive
     await wait(900);
-    if (S.scene === "main") play();
+    if (S.scene === "main" && run2 === introRun) play();
   }
+  // the depth just in front of both teeth: a cut plane there leaves them whole
+  const revealFront = () => Math.max(...TEETH.map(T => T.R.st.S.boxMax[2])) + 0.02;
   // leaving the intro by any way out (its own end, Skip intro): stop its sequence and clear what it set inline, which
   // would otherwise beat the stylesheet and leave the title on later pages
   function endIntro() {
-    introRun++; $("#introText").style.opacity = ""; lineup.innerHTML = ""; jawLayer.style.opacity = 0; stage.classList.remove("intro");
+    introRun++; $("#introText").style.opacity = ""; jawLayer.style.opacity = 0; stage.classList.remove("intro");
   }
   function enterMain(fromIntro) {
     endIntro(); clearTimeout(layersTimer);
-    leaveWear(); stopPseq(); hidePop(); popOpen = false; S.scene = "main"; S.layer = null; S.show = "all"; lineup.innerHTML = ""; jawLayer.style.opacity = 0;
-    if (!fromIntro) drawCloud(0, 0);
+    leaveWear(); stopPseq(); hidePop(); popOpen = false; S.reveal = fromIntro ? S.reveal : null; S.scene = "main"; S.layer = null; S.show = "all"; jawLayer.style.opacity = 0;
     pairEl.style.transform = "";
     leaveRadial(); stage.classList.remove("intro", "dashboard", "haspanel");
     panelEl.hidden = true;
@@ -5101,17 +5031,17 @@ window.startStatisticalTooth = (function () {
   }, 150); });
   (async function start() {
   try { await window.ToothGL.loadModels(); } catch (e) { console.warn("tooth models not loaded; using constructed shapes", e); }
-  try { await loadJaw(); } catch (e) { console.warn("jaw engraving not loaded; the intro starts at the lineup", e); }
+  try { await loadJaw(); } catch (e) { console.warn("jaw engraving not loaded; the intro starts at the teeth", e); }
   if (document.fonts) document.fonts.ready.then(() => { if (liveTeeth()) requestRender(false); else if (S.scene === "radial" && radial) radial.resize(); });
   G = composite(S.t);
-  if (GL) { snapshots(); TEETH.forEach(T => T.R.setParams(paramsFor(T))); }
+  if (GL) { setShapes(); TEETH.forEach(T => T.R.setParams(paramsFor(T))); }
   let q = null; try { q = new URLSearchParams(location.search); } catch (e) { q = null; }
   const qs = k => q && q.get(k);
   if (qs("debug")) window.__dbg = { TEETH, S, composite, paramsFor, setG: g => { G = g; } };
   if (qs("notrans")) document.head.insertAdjacentHTML("beforeend", "<style>*{transition:none!important}</style>");
   if (qs("t")) S.t = +qs("t");
   if (qs("region")) S.region = qs("region");
-  if (qs("jaw")) { S.jaw = qs("jaw"); if (GL) { snapshots(); } }
+  if (qs("jaw")) { S.jaw = qs("jaw"); if (GL) setShapes(); }
   const sc = qs("scene");
   if (REDUCED || sc === "main" || sc === "radial" || sc === "layers" || sc === "layer") {
     enterMain(false);
@@ -5123,8 +5053,7 @@ window.startStatisticalTooth = (function () {
     document.querySelectorAll("#stage *").forEach(el => { el.style.transition = "none"; });
     centerPair(true); const f = +qs("freeze");
     if (JAW.ok) { jawInk(1); jawPose(Math.min(1, f)); JAW.up.style.opacity = f > 0 ? 1 : 0; JAW.rings.classList.toggle("on", f >= 1); }
-    if (f >= 2) { $("#introText").style.opacity = 0; setupLineup(); jawAside(); lineup.querySelector(".box").style.opacity = 1; lineup.querySelectorAll("canvas").forEach(im => { im.style.opacity = +im.dataset.i === 1 || +im.dataset.i === 2 ? 0.45 : 1; }); lineup.querySelectorAll(".lbl").forEach(l => { l.style.opacity = 1; }); lineup.querySelector(".arrows").style.opacity = 1; }
-    if (f >= 3) { lineup.innerHTML = ""; jawLayer.style.opacity = 0; drawCloud(0.6, 1); }
+    if (f >= 2) { $("#introText").style.opacity = 0; S.reveal = { cut: f >= 3 ? revealFront() * 0.5 : 5 }; enterMain(true); TEETH.forEach(T => T.R.setParams(paramsFor(T))); requestRender(false); }   // 2: the whole teeth; 3: half cut
   } else intro();
   })();
 });

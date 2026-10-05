@@ -22,7 +22,7 @@ html,body{height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--serif);font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums}
 button{font:inherit;color:inherit}
 /* labels, controls, numbers and tables use --label (see :root) */
-.btn,.link,#lineup .lbl,.ctxnote,.tcap{font-family:var(--label)}
+.btn,.link,.ctxnote,.tcap{font-family:var(--label)}
 :focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 a{color:inherit}
 .k{font-size:10.5px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
@@ -62,7 +62,7 @@ a{color:inherit}
 #tMolar{grid-column:2}#tCanine{grid-column:3}
 .tooth canvas{position:absolute;inset:0;width:100%;height:100%;display:block;transition:opacity 1.2s ease}
 #stage.intro .tooth canvas{opacity:0}
-#ov,#cloud{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#ov{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 #ov{overflow:visible}
 #ov .pt{pointer-events:auto;cursor:default}
 #ov .pl{font-family:var(--label);font-size:11px;font-style:italic;fill:var(--ink-2);paint-order:stroke;stroke:rgba(233,232,228,.85);stroke-width:3px;stroke-linejoin:round}
@@ -108,11 +108,6 @@ a{color:inherit}
 #stage.radial #again{display:inline-block}
 
 /* intro */
-#lineup{position:absolute;inset:0;pointer-events:none}
-#lineup canvas{position:absolute;top:0;transition:transform 1.2s cubic-bezier(.6,0,.2,1),opacity .9s ease}
-#lineup .box{position:absolute;border:1px solid var(--ink);opacity:0;transition:opacity .8s}
-#lineup .lbl{position:absolute;white-space:nowrap;font-size:11px;font-weight:600;letter-spacing:.08em;text-align:center;transform:translateX(-50%);transition:transform 1.2s cubic-bezier(.6,0,.2,1),opacity .8s;opacity:0}
-#lineup .arrows{position:absolute;left:0;right:0;text-align:center;font-size:22px;letter-spacing:.9em;color:var(--ink-2);opacity:0;transition:opacity .8s}
 #jawLayer{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;z-index:4;transition:transform 1.4s cubic-bezier(.6,0,.2,1),opacity 1s}
 #jaw{position:relative;height:min(78vh,640px);aspect-ratio:522/1010;perspective:2400px;perspective-origin:50% 42%}
 #jaw .rig{position:absolute;inset:0;transform-style:preserve-3d}
@@ -125,9 +120,6 @@ a{color:inherit}
 #jaw .rings.on{opacity:1}
 #jaw .rings circle{fill:none;stroke:var(--ink);stroke-width:2.2;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1s ease}
 #jaw .rings .halo{stroke:var(--card);stroke-width:6}
-#jaw .rings .pm{opacity:0;transition:opacity 1s ease .4s}
-#jaw .rings .pm .halo{stroke-width:4.5}
-#jaw .rings .dot{stroke-width:1.8;stroke-dasharray:.03 .022;stroke-dashoffset:0}
 #jaw .rings.on circle{stroke-dashoffset:0}
 #jaw .rings.on .pm{opacity:1}
 #introText{position:absolute;left:28px;bottom:44px;max-width:480px;z-index:5;transition:opacity .9s}
@@ -653,7 +645,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 .rd-shell{animation:rdDash 14s linear infinite}
 #metalPlate{position:absolute;top:0;bottom:0;left:0;right:34px;display:none;z-index:2}
 #stage.metals-on #metalPlate{display:block}
-#stage.metals-on #pair .tooth canvas,#stage.metals-on #ov,#stage.metals-on #cloud{opacity:0!important;pointer-events:none}
+#stage.metals-on #pair .tooth canvas,#stage.metals-on #ov{opacity:0!important;pointer-events:none}
 #stage.metals-on #views,#stage.metals-on .tcap{display:none}
 .mp-gl{position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
 .mp-gl.grab{cursor:grabbing}
@@ -934,8 +926,6 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
       <div id="pair">
         <div class="tooth" id="tMolar"><canvas></canvas></div>
         <div class="tooth" id="tCanine"><canvas></canvas></div>
-        <canvas id="cloud"></canvas>
-        <div id="lineup"></div>
         <svg id="ov"></svg>
       </div>
       <div id="metalPlate"></div>

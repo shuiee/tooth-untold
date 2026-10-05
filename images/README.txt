@@ -7,9 +7,7 @@ Drop pictures here; bundle.py embeds them into the page.
   Pathogens: the disease pop-up (STRAND_CONTEXT in app.js) shows one picture per event:
   event-justinian.jpg    First plague pandemic, 541-750
   event-blackdeath.jpg   Black Death, 1347-1351
-  event-syphilis.jpg     Spread of syphilis through Europe, 1495-1700
-  event-leprosy.jpg      Leprosy rises and then recedes, 1000-1400
-  event-mercury.jpg      Mercury used to treat leprosy and syphilis, 1100-1536
+  event-leprosy.jpg      Medieval leprosy, 1000-1400
   event-rollermill.jpg   Roller mill invented             (morphology)
   event-sugar.jpg        Refined sugar                    (morphology)
   event-industrial.jpg   Industrial Revolution            (metals)
