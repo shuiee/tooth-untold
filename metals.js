@@ -2,7 +2,7 @@
 // window.MetalPlate; app.js mounts it when the Metals section opens.
 /* Section 4 · right-hand page: metals plate studies (moved in from metals-plate-studies.html; edit here) */
 (function(){ let ready = false;
-  window.MetalsPlates = { html: "<div class=\"dp\" id=\"mpPanel\">\n\n  <header class='sec'><span class='no'>4</span><h2>Metals</h2><p class='dek'>Lead and other metals in childhood enamel, from the Neolithic to the 20th century</p></header>\n\n  <!-- ===================================== Plate 4.A -->\n  <figure class=\"fig\" id=\"plateA\">\n    <div class=\"sheet\">\n      <span class=\"tag\"><b>Metals in enamel</b> · overlay</span>\n      <span class=\"tag r\">change from the archaeological level, log scale</span>\n      <div class=\"bloom\">\n        <svg id=\"bloomSvg\" viewBox=\"-415 -345 830 700\" role=\"img\" aria-label=\"Overlaid radial shapes, one per period, on seven element spokes\"></svg>\n        <div class=\"readout\" id=\"bloomRead\" aria-live=\"polite\"></div>\n      </div>\n      <div class=\"tl\" data-tl=\"A\"></div>\n      \n      <div class=\"kpis\" id=\"kpis\" aria-live=\"polite\"></div>\n    </div>\n    <ol class=\"notes\" data-notes></ol>\n  </figure>\n\n  <!-- ===================================== Plate 4.B -->\n  <figure class=\"fig\" id=\"plateB\">\n    <div class=\"sheet\">\n      <span class=\"tag\"><b>Metals in enamel</b> · orbs</span>\n      <span class=\"tag r\">log scale, ppm</span>\n      <svg id=\"cometSvg\" viewBox=\"0 -10 600 690\" role=\"img\" aria-label=\"Glowing orbs: median enamel lead for each era with tails from the lowest to the highest child, and each element travelling from its archaeological to its 20th-century level\"></svg>\n      <div class=\"isokey\">\n        <span><i class=\"dot\"></i>median lead (mean in the 20th century); bigger orb, more children sampled</span>\n        <span><i class=\"whisk\"></i>tail: lowest to highest child</span>\n        <span><i class=\"trail\"></i>travel from pooled archaeological to 20th century</span>\n      </div>\n      <div class=\"tl\" data-tl=\"B\"></div>\n    </div>\n    <ol class=\"notes\" data-notes></ol>\n  </figure>\n\n  </div><div id=\"mpTip\" role=\"tooltip\"></div>",
+  window.MetalsPlates = { html: "<div class=\"dp\" id=\"mpPanel\">\n\n  <header class='sec'><span class='no'>4</span><h2>Metals</h2><p class='dek'>Lead and other metals in childhood enamel, from the Neolithic to the 20th century</p></header>\n\n  <!-- ===================================== Plate 4: the era, then the radial chart, the time axis, and the series under it -->\n  <figure class=\"fig\" id=\"plateA\">\n    <div class=\"sheet\">\n      <span class=\"tag\"><b>Metals in enamel</b> · overlay and series</span>\n      <span class=\"tag r\">log scales</span>\n      <div class=\"kpis\" id=\"kpis\" aria-live=\"polite\"></div>\n      <div class=\"bloom\"><svg id=\"bloomSvg\" viewBox=\"-415 -345 830 700\" role=\"img\" aria-label=\"Overlaid radial shapes, one per period, on seven element spokes\"></svg><div class=\"readout\" id=\"bloomRead\" aria-live=\"polite\"></div></div>\n      <div class=\"tl\" data-tl=\"A\"></div>\n      <svg id=\"cometSvg\" viewBox=\"0 0 600 548\" role=\"img\" aria-label=\"Every element in childhood enamel, era by era, on one ppm log scale: lead as glowing orbs per era with tails from the lowest to the highest child; the other seven as their pooled archaeological level and a step to their 20th-century value. Hover a line to read it.\"></svg>\n      <div class=\"isokey\">\n        <span><i class=\"dot\"></i>lead: median per era (mean in the 20th century); bigger orb, more teeth sampled</span>\n        <span><i class=\"whisk\"></i>tail: lowest to highest tooth</span>\n        <span>other metals: one pooled archaeological value (no per-era data), then the 20th-century mean</span><span>hover a line to read it</span>\n      </div>\n    </div>\n    <ol class=\"notes\" data-notes></ol>\n  </figure>\n\n  </div><div id=\"mpTip\" role=\"tooltip\"></div>",
   mount() { ready = false; (function(){
 "use strict";
 if (!window.d3) { document.getElementById("mpPanel").insertAdjacentHTML("beforeend","<p>d3 did not load: check the connection and reload.</p>"); return; }
@@ -106,8 +106,9 @@ const cellTip = (e, p) => { const c = cell(e.el, p), P = PERIODS[p];
 
 // ------------------------------------------------------------------ timeline (one per plate)
 function timeline(host, onChange, start = 3) {
-  host.innerHTML = "<button class='btn' type='button'>Play</button><div class='track' role='group' aria-label='Periods'><div class='base'></div><div class='fill'></div></div>";
-  const btn = host.querySelector(".btn"), track = host.querySelector(".track"), fill = host.querySelector(".fill");
+  host.innerHTML = "<button class='mp-replay' type='button' aria-label='Replay the periods' title='Replay'><svg viewBox='0 0 24 24' aria-hidden='true'><path d='M7.6 6.1A8 8 0 1 1 4.4 11.4'/><path d='M3.6 5.2 7.7 6.2 7.2 10.3'/></svg></button>" +
+    "<div class='track' role='group' aria-label='Periods'><div class='base'></div><div class='fill'></div></div>";
+  const btn = host.querySelector(".mp-replay"), track = host.querySelector(".track"), fill = host.querySelector(".fill");
   const stops = PERIODS.map((P, i) => { const b = document.createElement("button"); b.type = "button"; b.className = "stop";
     b.style.left = (i / (PERIODS.length - 1) * 100) + "%"; b.innerHTML = "<i></i><span>" + P.short + "</span>";
     b.setAttribute("aria-label", P.name + ", " + yrs(P)); b.onclick = () => { stop(); set(i); }; track.appendChild(b); return b; });
@@ -120,11 +121,11 @@ function timeline(host, onChange, start = 3) {
     if (host.dataset.tl === "A" && ready && window.MetalPlate && MetalPlate.setPeriod) MetalPlate.setPeriod(i);
     if (host.dataset.tl === "A") { window.METALS_ERA = { i, x: Object.fromEntries(ELS.map(e => [e.el, cell(e.el, i).x])) }; window.dispatchEvent(new CustomEvent("metals:era", { detail: window.METALS_ERA })); }
   }
-  // always playing: a click or key holds the chosen period for a few seconds, then the loop carries on
-  let hold = null;
-  function run() { clearInterval(timer); timer = setInterval(() => { if (!host.isConnected) { clearInterval(timer); clearTimeout(hold); return; } set((cur + 1) % PERIODS.length); }, 1800); }
-  function stop() { clearInterval(timer); clearTimeout(hold); hold = setTimeout(run, 5000); }
-  btn.hidden = true; btn.style.display = "none";
+  // plays through once, from the first period to the last, and stops there; a click or a key on a period stops it
+  // where the reader put it; the replay button runs it again from the start
+  function run() { clearInterval(timer); timer = setInterval(() => { if (!host.isConnected || cur >= PERIODS.length - 1) { clearInterval(timer); return; } set(cur + 1); }, 1800); }
+  function stop() { clearInterval(timer); }
+  btn.onclick = () => { stop(); cur = -1; set(0); if (!reduced) run(); };
   track.addEventListener("keydown", e => { if (e.key === "ArrowRight") { stop(); set(cur + 1); stops[cur].focus(); e.preventDefault(); }
     if (e.key === "ArrowLeft") { stop(); set(cur - 1); stops[cur].focus(); e.preventDefault(); } });
   set(0); if (!reduced) run();
@@ -138,7 +139,13 @@ const NOTES = [
   "The last step in lead mixes studies: a 20th-century mean (Kamenov) against a late-medieval British median (Montgomery). The like-for-like figure, inside Kamenov, is 0.63 to 6.55 ppm, about ten-fold.",
   "Zinc and copper are regulated by the body, so their enamel values reflect physiology as much as exposure. The line under each era name is historical context, not data."
 ];
-document.querySelectorAll("[data-notes]").forEach((ol, k) => ol.innerHTML = (k === 0 ? NOTES : NOTES.slice(0, 3)).map(n => "<li>" + n + "</li>").join(""));
+const NOTES_B = [
+  "This plate draws concentration, in ppm on one log scale, so every element can be read against the others. Magnesium (about 2,400–3,100 ppm), strontium and zinc sit high because they are part of enamel itself; read each line for its own change, as Plate 4.A does.",
+  "Only lead is measured era by era (Montgomery et al. 2010, Table 11.4: British medians and ranges). Copper, chromium, nickel, zinc, barium, strontium and magnesium have one pooled archaeological value (Kamenov et al. 2018, Table 1), drawn as one level across the archaeological eras; its orb travels along it as the timeline plays. Their flat run is an absence of per-era data, not evidence that nothing changed. Copper (0.25 ppm) and nickel (0.24) are drawn a few pixels apart so both lines read.",
+  NOTES[2], NOTES[3]
+];
+const NOTES_ALL = [NOTES[0].replace("Both plates draw change, not concentration:", "The radial chart draws change, not concentration:"), NOTES_B[0], NOTES_B[1], NOTES[2], NOTES[3], NOTES[4]];
+document.querySelectorAll("[data-notes]").forEach(ol => ol.innerHTML = NOTES_ALL.map(n => "<li>" + n + "</li>").join(""));
 
 // ------------------------------------------------------------------ spokes for the element dial (Plates A and B)
 const EA = ELS.map((_, i) => i / ELS.length * 2 * Math.PI);
@@ -150,6 +157,88 @@ function elementSpokes(g, R, labels, r0) {
     g.append("line").attr("class", "spoke").attr("x2", x).attr("y2", y);
     g.append("circle").attr("cx", x).attr("cy", y).attr("r", labels ? 3 : 2).attr("fill", css("--ink"));
   });
+}
+
+// ------------------------------------------------------------------ the era's key figures, as pictograms (laid out as on the caries plate)
+// One dot is a tenth of the pooled archaeological average (0.63 ppm, Kamenov et al. 2018), so the dots stand in exact
+// ratio. First figure: the era's lead as that many dots, black up to the archaeological average, lead-coloured above
+// it, mixed. Second: the same dots with the lead pulled out of the black, so the whole is the ×-figure times the black
+// (below the average, only the era's few black dots). Third: lead flowing
+// into a child's open mouth, faster the higher the most-exposed child's value.
+const DOT = PB_ARCH_MEAN / 10;
+// the child, a line drawing (after the team's sketch), traced at its own scale (about 1000 units tall) and drawn
+// mirrored to face left, the mouth thrown wide open between the upper lip and the jutting chin
+const HEAD =
+  "M320,935C350,890 380,850 360,820C345,780 330,750 318,735C290,712 260,695 240,680C160,630 100,590 75,520C45,440 50,330 80,230C110,140 190,80 300,55C400,35 500,40 560,50" +
+  "C620,62 660,95 690,125C715,150 730,170 750,180C790,198 830,205 842,225C850,240 830,255 800,265C790,270 795,282 800,292C800,298 795,305 785,310" +   // crown, forehead, nose, upper lip
+  "C720,350 650,390 600,410C520,440 440,465 400,505C360,545 370,610 420,665C470,715 540,745 610,745C680,740 760,700 860,630C870,628 872,636 868,645" +  // the mouth, open wide
+  "C850,700 820,760 760,790C710,812 650,815 625,830C605,845 618,880 630,915C640,945 650,960 652,968C600,990 480,1000 400,985C350,975 320,960 320,935Z" + // chin, jaw, throat, neck
+  "M318,298C380,265 460,225 520,185C545,165 560,140 540,132C510,128 495,118 510,105C530,90 570,95 595,78C602,74 605,70 607,68" +                       // the hair's edge
+  "M318,298C270,290 210,300 190,350C175,400 185,460 230,488C260,500 300,500 318,497C322,560 335,640 318,735" +                                     // the ear, the back of the neck
+  "M520,210L660,220M628,162L540,275"                                                                                                               // the eye
+let kpi = null;
+function buildKPIs() {
+  const host = document.getElementById("kpis");
+  host.innerHTML = "<p class='cp-era'></p><p class='cp-yrs'></p><div class='cp-stats mp-stats'>" +
+    "<div><svg class='pg mp-pg' viewBox='0 0 120 80' role='img'></svg><div><b class='s1'></b><span class='c1'></span></div></div>" +
+    "<div><svg class='pg mp-pg' viewBox='0 0 120 80' role='img'></svg><div><b class='s2'></b><span class='c2'></span></div></div>" +
+    "<div><svg class='pg mp-pg' viewBox='0 0 120 80' role='img'></svg><div><b class='s3'></b><span class='c3'></span></div></div></div>";
+  const svgs = host.querySelectorAll(".mp-pg"), pb = css("--pb"), ink = css("--ink");
+  // a fixed random order, so the black dots fall in different places of the cloud but stay put between eras
+  let sd = 5; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647, key = d3.range(400).map(rnd);
+  const phyllo = (i, cx, cy, c) => { const r = c * Math.sqrt(i + 0.5), a = i * 2.39996; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
+  const g1 = d3.select(svgs[0]).append("g"), g2 = d3.select(svgs[1]).append("g");
+  const s3 = d3.select(svgs[2]), flow = s3.append("g");
+  s3.append("path").attr("class", "mp-head").attr("d", HEAD).attr("transform", "translate(123,2) scale(-0.075,0.075)").attr("vector-effect", "non-scaling-stroke");
+  // the particles come in from the left and funnel through the gap between the upper lip and the chin (the nose's tip
+  // is at about (59.6, 20), the chin's at (57.8, 50)), ending inside the mouth, so none crosses the face or body: each
+  // runs a curve from its start, through a point in the gap, to the back of the mouth
+  const gap = [63, 38], mouth = [87, 42.5];
+  const pathAt = q => { const u = q.t;
+    if (u < 0.7) { const v = u / 0.7, cx = (q.x + gap[0]) / 2 + 6, cy = q.g; return [(1 - v) * (1 - v) * q.x + 2 * (1 - v) * v * cx + v * v * gap[0], (1 - v) * (1 - v) * q.y + 2 * (1 - v) * v * cy + v * v * q.g]; }
+    const v = (u - 0.7) / 0.3; return [gap[0] + (mouth[0] - gap[0]) * v, q.g + (mouth[1] - q.g) * v]; };
+  let rate = 0, parts = [], t0 = performance.now(), spawn = 0;
+  const tick = now => {
+    if (!svgs[2].isConnected) return;
+    const dt = Math.min(0.1, (now - t0) / 1000); t0 = now; spawn += rate * dt;
+    while (spawn >= 1) { spawn -= 1; parts.push({ x: 2 + rnd() * 24, y: 14 + rnd() * 56, g: gap[1] + (rnd() - 0.5) * 12, t: 0, d: 1.1 + rnd() * 0.6 }); }
+    parts.forEach(q => { q.t += dt / q.d; }); parts = parts.filter(q => q.t < 1);
+    flow.selectAll("circle").data(parts).join("circle").attr("r", q => 2 * (1 - 0.6 * q.t)).attr("fill", pb)
+      .attr("opacity", q => Math.min(1, q.t * 5) * (1 - Math.pow(q.t, 6)))
+      .attr("cx", q => pathAt(q)[0]).attr("cy", q => pathAt(q)[1]);
+    requestAnimationFrame(tick);
+  };
+  if (!reduced) requestAnimationFrame(tick);
+  kpi = { host, g1, g2, pb, ink, key, phyllo, setRate: r => { rate = r; if (reduced) { parts = d3.range(10).map(k => ({ x: 6, y: 26 + k * 3, g: 33 + k * 1.1, t: k / 10, d: 1 })); tick(performance.now()); } }, svgs };
+}
+function renderKPIs(p) {
+  if (!kpi || !kpi.host.isConnected) buildKPIs();
+  const P = PERIODS[p], c20 = p === PERIODS.length - 1, L = LEAD[p], ratio = L / PB_ARCH_MEAN, hi = PB_RANGE[p] ? PB_RANGE[p][1] : null;
+  const q = sel => kpi.host.querySelector(sel), dur = reduced ? 0 : 700;
+  q(".cp-era").textContent = P.name;
+  q(".cp-yrs").textContent = "CHILDHOOD " + yrs(P).toUpperCase() + " · n = " + P.n + (c20 ? " modern teeth" : " children");
+  q(".s1").innerHTML = L + "<small>ppm</small>";
+  q(".c1").innerHTML = (c20 ? "mean" : "median") + " lead in childhood enamel <i>each dot " + (+DOT.toFixed(3)) + " ppm; black up to the archaeological average</i>";
+  q(".s2").innerHTML = "×" + fmtX(ratio).slice(1); q(".s2").classList.toggle("up", ratio > 1);
+  q(".c2").innerHTML = "the pooled archaeological average, 0.63 ppm <i>" + (ratio > 1 ? "the lead above it, pulled out" : "below it: only the era's own dots") + "</i>";
+  q(".s3").innerHTML = hi != null ? hi + "<small>ppm</small>" : "—";
+  q(".c3").innerHTML = "in the most-exposed " + (c20 ? "modern tooth" : "child") + " of the " + P.n + " sampled";
+  // the dots: n of them, the first ten black (the average), the rest lead
+  const n = Math.max(1, Math.round(L / DOT)), D = d3.range(n).map(k => ({ k, black: k < 10 }));
+  const slot = D.slice().sort((a, b) => kpi.key[a.k] - kpi.key[b.k]); slot.forEach((d, i) => { d.s = i; });
+  const c1 = Math.min(4, 36 / Math.sqrt(n + 1));
+  const reds = D.filter(d => !d.black), cR = Math.min(4, 33 / Math.sqrt(reds.length + 1));
+  D.forEach(d => { d.p1 = kpi.phyllo(d.s, 60, 40, c1); d.p2 = d.black ? kpi.phyllo(d.k, 20, 40, 4) : kpi.phyllo(d.k - 10, 80, 40, cR); });
+  const dots = (g, at) => g.selectAll("circle").data(D, d => d.k).join(
+      en => en.append("circle").attr("r", 0).attr("cx", d => at(d)[0]).attr("cy", d => at(d)[1]),
+      up => up, ex => ex.transition().duration(dur).attr("r", 0).remove())
+    .attr("fill", d => d.black ? kpi.ink : kpi.pb)
+    .transition().duration(dur).attr("r", 2.7).attr("cx", d => at(d)[0]).attr("cy", d => at(d)[1]);
+  dots(kpi.g1, d => d.p1); dots(kpi.g2, d => d.p2);
+  kpi.svgs[0].setAttribute("aria-label", n + " dots: " + Math.min(n, 10) + " black, the archaeological average, and " + Math.max(0, n - 10) + " lead-coloured above it");
+  kpi.svgs[1].setAttribute("aria-label", ratio > 1 ? "the " + (n - 10) + " lead dots pulled out of the 10 black: ×" + ratio.toFixed(1) : n + " black dots, below the average's 10");
+  kpi.svgs[2].setAttribute("aria-label", "lead flowing into a child's open mouth");
+  kpi.setRate(hi != null ? 3 + 8 * Math.log2(1 + hi) : 0);   // particles a second: faster for a more exposed child
 }
 
 // ------------------------------------------------------------------ Plate 4.A: overlay bloom
@@ -193,23 +282,8 @@ function elementSpokes(g, R, labels, r0) {
   });
 })();
 
-// ------------------------------------------------------------------ KPI band (Plate 4.A)
-function renderKPIs(p) {
-  const P = PERIODS[p], c20 = p === PERIODS.length - 1, n = (v, u, cls) => "<p class='n" + (cls ? " " + cls : "") + "'>" + v + (u ? "<small>" + u + "</small>" : "") + "</p>";
-  const k2 = { v: "×" + fmtX(LEAD[p] / PB_ARCH_MEAN).slice(1), c: "the pooled archaeological average, 0.63 ppm" };
-  document.getElementById("kpis").innerHTML =
-    "<p class='era'>" + P.name + "</p><p class='when'>CHILDHOOD " + yrs(P).toUpperCase() + " · n = " + P.n + (c20 ? " modern teeth" : " children") + "</p>" +
-    "<div class='row'>" +
-      "<div class='kpi k1'>" + n(String(LEAD[p]), "ppm") + "<p class='c'>" + (c20 ? "mean" : "median") + " lead in childhood enamel</p></div>" +
-      "<div class='kpi k2'>" + n(k2.v, "", p ? "up" : "") + "<p class='c'>" + k2.c + "</p></div>" +
-      "<div class='kpi k3'>" + n(PB_RANGE[p] ? String(PB_RANGE[p][1]) : "—", PB_RANGE[p] ? "ppm" : "") + "<p class='c'>in the most-exposed " + (c20 ? "modern tooth" : "child") + " of the " + P.n + " sampled</p></div>" +
-    "</div>";
-}
-
-// ------------------------------------------------------------------ Plate 4.B: lead comets, then and now
-// Top: one glowing orb per era at its median enamel lead, its tail running from the lowest to the highest child measured,
-// its size the number of children sampled. Bottom: every element's pooled archaeological value travelling to its
-// 20th-century value, both from the same study (Kamenov et al. 2018). Grain and glow after the team's orb reference.
+// ------------------------------------------------------------------ Plate 4.B: every element, era by era
+// Grain and glow after the team's orb reference.
 (function plateB() {
   const svg = d3.select("#cometSvg"), W = 600, last = PERIODS.length - 1;
   const defs = svg.append("defs");
@@ -229,73 +303,128 @@ function renderKPIs(p) {
     g.append("circle").attr("cx", x - r * .3).attr("cy", y - r * .32).attr("r", r * .38).attr("fill", "#fff").attr("opacity", bright ? .75 : .45).attr("filter", "url(#mpSoft)");
   };
 
-  // ---- top: lead, era by era (Montgomery et al. 2010, Table 11.4; the 20th century from Kamenov et al. 2018)
-  const T0 = 44, T1 = 300, xL = 92, xR = W - 30;
+  // ---- every element, era by era, on one ppm log scale. Lead is measured era by era (Montgomery et al. 2010, Table 11.4;
+  // the 20th century from Kamenov et al. 2018): an orb per era at its median, its tail the lowest to the highest child,
+  // its size the children sampled. The other seven have one pooled archaeological value (Kamenov et al. 2018, Table 1),
+  // drawn as a dashed level across the archaeological eras (an absence of per-era data, not a flat series), then a solid
+  // step to their 20th-century value. Every line and node is in its element's colour on Plate 4.A. Hovering a line picks
+  // it out with a reading of its key values; zinc, barium, strontium and magnesium (part of enamel itself, not
+  // industrial) light up together.
+  const T0 = 16, T1 = 470, xL = 112, xR = W - 74;   // close under the time axis; a hovered line's reading goes under the chart
   const ex = i => xL + (xR - xL) * i / last;
-  const ly = d3.scaleLog().domain([0.002, 60]).range([T1, T0]).clamp(true);
+  const ly = d3.scaleLog().domain([0.002, 4000]).range([T1, T0]).clamp(true);   // the top just above magnesium
   const top = svg.append("g");
-  top.append("text").attr("class", "ttl").attr("x", 0).attr("y", 18).text("Lead in childhood enamel, era by era");
-  [0.01, 0.1, 1, 10].forEach(v => { top.append("line").attr("class", "grid").attr("x1", 56).attr("x2", W - 6).attr("y1", ly(v)).attr("y2", ly(v));
-    top.append("text").attr("class", "ax").attr("x", 52).attr("y", ly(v) + 3).attr("text-anchor", "end").text(v + " ppm"); });
-  const trend = top.append("path").attr("class", "trend");
+  const note = top.append("g").attr("class", "note");
+  // the reading for a hovered line, under the chart: its headline, then a smaller line, each wrapped to the chart's width
+  const sayNote = (a, b) => { note.selectAll("*").remove(); let y = T1 + 26;
+    [[a, "n1", 15], [b, "n2", 13]].forEach(([str, cls, lh]) => { if (!str) return;
+      let t = note.append("text").attr("class", cls).attr("x", 0).attr("y", y), line = "";
+      str.split(" ").forEach(w => { const next = line ? line + " " + w : w; t.text(next);
+        if (t.node().getComputedTextLength() > W - 10 && line) { t.text(line); y += lh; t = note.append("text").attr("class", cls).attr("x", 0).attr("y", y); line = w; t.text(w); } else line = next; });
+      y += lh; }); };
+  [0.01, 0.1, 1, 10, 100, 1000].forEach(v => { top.append("line").attr("class", "grid").attr("x1", 72).attr("x2", xR + 8).attr("y1", ly(v)).attr("y2", ly(v));
+    top.append("text").attr("class", "ax").attr("x", 68).attr("y", ly(v) + 4).attr("text-anchor", "end").text(d3.format(",")(v) + " ppm"); });
+  const fmt = v => v >= 100 ? d3.format(",")(v) : String(v);
+  const rOrb = n => 3 + 0.62 * Math.sqrt(n);   // an orb's radius from the teeth sampled, the same for every metal
+  const NONIND = new Set(["Zn", "Ba", "Sr", "Mg"]);
+  const lines = [];
+  // lead
+  const pbCol = css("--pb"), pbG = top.append("g").attr("class", "mline").datum("Pb");
+  const pbLine = pbG.append("path").attr("class", "ln").attr("stroke", pbCol);
   const eras = PERIODS.map((P, i) => {
-    const g = top.append("g").attr("class", "era").attr("opacity", 0), x = ex(i), y = ly(LEAD[i]), rg = PB_RANGE[i], r = 6 + 1.9 * Math.sqrt(P.n);
+    const g = pbG.append("g").attr("class", "era").attr("opacity", 0), x = ex(i), y = ly(LEAD[i]), rg = PB_RANGE[i], r = rOrb(P.n);   // one size rule for every metal
     if (rg) {   // the tail: a grainy streak from the lowest to the highest child
       const id = "mpTail" + i, a = ly(rg[1]), b = ly(Math.max(0.002, rg[0])), gr = defs.append("linearGradient").attr("id", id).attr("gradientUnits", "userSpaceOnUse").attr("x1", 0).attr("x2", 0).attr("y1", a).attr("y2", b);
       const m = (y - a) / Math.max(1, b - a);
-      [[0, 0], [Math.max(0, m - .25), .35], [m, .85], [Math.min(1, m + .25), .35], [1, 0]].forEach(([o, op]) => gr.append("stop").attr("offset", o).attr("stop-color", P.col).attr("stop-opacity", op));
-      g.append("rect").attr("class", "tail").attr("x", x - 9).attr("width", 18).attr("y", a).attr("height", b - a).attr("rx", 9).attr("fill", "url(#" + id + ")").attr("filter", "url(#mpGrain)");
-      g.append("rect").attr("x", x - 4).attr("width", 8).attr("y", a).attr("height", b - a).attr("rx", 4).attr("fill", "url(#" + id + ")").attr("filter", "url(#mpSoft)").attr("opacity", .8);
+      [[0, 0], [Math.max(0, m - .25), .3], [m, .75], [Math.min(1, m + .25), .3], [1, 0]].forEach(([o, op]) => gr.append("stop").attr("offset", o).attr("stop-color", pbCol).attr("stop-opacity", op));
+      g.append("rect").attr("class", "tail").attr("x", x - 5).attr("width", 10).attr("y", a).attr("height", b - a).attr("rx", 7).attr("fill", "url(#" + id + ")").attr("filter", "url(#mpGrain)");
     }
-    orb(g, x, y, r, P.col, "mpOrb" + i, i === last);
-    g.append("text").attr("class", "val").attr("x", x + r + 6).attr("y", y + 4).text(LEAD[i]);
-    g.append("rect").attr("x", x - 30).attr("width", 60).attr("y", T0 - 10).attr("height", T1 - T0 + 20).attr("fill", "transparent");
-    tipOn(g.datum(i), k => "<b>" + PERIODS[k].name + "</b><br>" + (k === last ? "mean " : "median ") + LEAD[k] + " ppm of lead in childhood enamel" +
+    orb(g, x, y, r, pbCol, "mpOrb" + i, i === last);
+    g.append("text").attr("class", "val").attr("x", i === last ? x - r - 6 : x + r + 6).attr("y", y + 4).attr("text-anchor", i === last ? "end" : "start").text(LEAD[i]);   // the last to the left, clear of the names
+    tipOn(g.datum(i), k => "<b>Lead, " + PERIODS[k].name + "</b><br>" + (k === last ? "mean " : "median ") + LEAD[k] + " ppm in childhood enamel" +
       (PB_RANGE[k] ? "<br><span class='m'>lowest " + PB_RANGE[k][0] + ", highest " + PB_RANGE[k][1] + " ppm · n = " + PERIODS[k].n + "</span>" : ""));
-    const lab = top.append("text").attr("class", "eraL").attr("x", x).attr("y", T1 + 26).attr("text-anchor", "middle").text(P.short);
-    return { g, lab, x, y };
+    return { g, x, y };
   });
-
-  // ---- bottom: then and now, every element, the same study
-  const B0 = 392, RH = 34, bx = d3.scaleLog().domain([0.5, 20]).range([118, W - 70]);
-  const bot = svg.append("g");
-  bot.append("text").attr("class", "ttl").attr("x", 0).attr("y", B0 - 30).text("Then and now, one study: change from the archaeological level");
-  [0.5, 1, 2, 5, 10, 20].forEach(v => { bot.append("line").attr("class", "grid" + (v === 1 ? " one" : "")).attr("x1", bx(v)).attr("x2", bx(v)).attr("y1", B0 - 14).attr("y2", B0 + RH * 8 - 14);
-    bot.append("text").attr("class", "ax").attr("x", bx(v)).attr("y", B0 + RH * 8 + 2).attr("text-anchor", "middle").text("×" + v); });
-  const TN = [["Pb", PB_ARCH_MEAN, 6.55]].concat(ELS.filter(e => e.el !== "Pb").map(e => [e.el, POOLED[e.el], MODERN[e.el]])).sort((p, q) => q[2] / q[1] - p[2] / p[1]);
-  const rows = TN.map(([el, a, b], k) => {
-    const e = ELS.find(q => q.el === el), col = css(e.v), y = B0 + k * RH, g = bot.append("g"), xa = bx(1), xb = bx(b / a), up = b > a;
-    g.append("text").attr("class", "el").attr("x", 0).attr("y", y + 5).style("fill", col).text(el).append("tspan").attr("class", "nm").attr("dx", 6).text(e.name);
-    const id = "mpTrail" + k, gr = defs.append("linearGradient").attr("id", id).attr("gradientUnits", "userSpaceOnUse").attr("x1", xa).attr("x2", xb).attr("y1", 0).attr("y2", 0);
-    gr.append("stop").attr("offset", 0).attr("stop-color", col).attr("stop-opacity", .05); gr.append("stop").attr("offset", 1).attr("stop-color", col).attr("stop-opacity", .75);
-    const trail = g.append("rect").attr("x", Math.min(xa, xb)).attr("y", y - 6).attr("height", 12).attr("rx", 6).attr("width", 0).attr("fill", "url(#" + id + ")").attr("filter", "url(#mpGrain)");
-    const then = g.append("g"); orb(then, xa, y, 6.5, d3.color(col).copy({ opacity: 1 }).brighter(.9).formatHex(), "mpThen" + k, false); then.attr("opacity", .75);
-    const now = g.append("g").attr("opacity", 0); orb(now, xb, y, 9, col, "mpNow" + k, true);
-    const r = b / a, txt = g.append("text").attr("class", "rx" + (up ? " up" : " down")).attr("x", up ? xb + 16 : xb - 16).attr("y", y + 4).attr("text-anchor", up ? "start" : "end")
-      .attr("opacity", 0).text((up ? "▲ ×" : "▼ ×") + (r >= 10 ? r.toFixed(1) : (r < 1 ? (1 / r).toFixed(2) + " less" : r.toFixed(2))));
-    g.append("rect").attr("x", 0).attr("width", W).attr("y", y - RH / 2).attr("height", RH).attr("fill", "transparent").lower();
-    tipOn(g.datum(k), () => "<b>" + e.name + "</b><br>pooled archaeological " + a + " ppm → 20th century " + b + " ppm<br><span class='m'>Kamenov et al. 2018, Table 1" + (el === "Pb" ? "" : "; the archaeological teeth are from Florida, the Philippines and Peru") + "</span>");
-    return { trail, now, txt, xa, xb };
-  });
-
-  let shownNow = null;
-  timeline(document.querySelector("[data-tl=B]"), p => {
-    const dur = reduced ? 0 : 650;
-    eras.forEach((e, i) => { e.g.interrupt().transition().duration(dur).attr("opacity", i < p ? .55 : i === p ? 1 : 0).attr("transform", i === p ? "translate(0,0)" : null);
-      e.lab.classed("cur", i === p).attr("opacity", i <= p ? 1 : .4); e.g.classed("cur", i === p); });
-    const pts = eras.slice(0, p + 1);
-    trend.transition().duration(dur).attr("d", pts.length > 1 ? "M" + pts.map(e => e.x + "," + e.y).join("L") : null);
-    const atNow = p === last;
-    if (atNow !== shownNow) {
-      rows.forEach((r, k) => {
-        const d = reduced ? 0 : 900, dl = reduced ? 0 : k * 90;
-        r.trail.interrupt().transition().delay(atNow ? dl : 0).duration(d).attr("width", atNow ? Math.abs(r.xb - r.xa) : 0);
-        r.now.interrupt().transition().delay(atNow ? dl + d * .7 : 0).duration(reduced ? 0 : 300).attr("opacity", atNow ? 1 : 0);
-        r.txt.interrupt().transition().delay(atNow ? dl + d : 0).duration(reduced ? 0 : 300).attr("opacity", atNow ? 1 : 0);
-      });
-      shownNow = atNow;
+  const pre = LEAD.slice(0, 3), lowPre = d3.min(pre), lowNames = PERIODS.slice(0, 3).filter((P, i) => LEAD[i] === lowPre).map(P => P.name.replace(" Age", ""));
+  const iR = PERIODS.findIndex(P => P.key === "roman"), iL = PERIODS.findIndex(P => P.key === "late");
+  lines.push({ el: "Pb", g: pbG, pts: eras.map(e => [e.x, e.y]), endY: eras[last].y, col: pbCol,
+    say: ["Lead: " + lowPre + " ppm in the " + lowNames.join(" and ") + " Ages, " + LEAD[iR] + " in Roman Britain, " + LEAD[iL] + " in the late medieval period, " + LEAD[last] + " in the 20th century.",
+          "In one study, the like-for-like step is " + PB_ARCH_MEAN + " ppm in archaeological enamel to " + LEAD[last] + ", about ×" + Math.round(LEAD[last] / PB_ARCH_MEAN) + "."] });
+  // the other seven, styled as lead: a solid line and glowing orbs sized by the teeth sampled (the pooled archaeological
+  // sample n = 38, the 20th-century n = 77), the 20th-century orb with a tail from the lowest to the highest tooth (Kamenov
+  // 2018, Table 1; none for magnesium; "bdl", below detection, from the floor), shown while its line is hovered. With no per-era data, the pooled orb
+  // travels along its level as the timeline plays rather than sitting at every era. Levels closer than a few pixels
+  // (copper 0.25 and nickel 0.24 ppm) are drawn a few pixels apart so both read; the notes say so.
+  const N_POOL = 38, N_MOD = 77;
+  const others = ELS.filter(e => e.el !== "Pb").map(e => ({ e, y0: ly(POOLED[e.el]), y1: ly(MODERN[e.el]) }));
+  others.slice().sort((p, q) => p.y0 - q.y0).forEach((o, k, arr) => { if (k && o.y0 - arr[k - 1].y0 < 7) o.y0 = arr[k - 1].y0 + 7; });
+  others.forEach(({ e, y0, y1 }) => {
+    const col = css(e.v), a = POOLED[e.el], b = MODERN[e.el], g = top.append("g").attr("class", "mline").datum(e.el), rg = MOD_RANGE[e.el];
+    const ln = g.append("path").attr("class", "ln").attr("stroke", col);
+    if (rg) {   // the 20th-century tail, as lead's
+      const id = "mpTailM" + e.el, ta = ly(rg[1]), tb = ly(rg[0] == null ? 0.002 : rg[0]), gr = defs.append("linearGradient").attr("id", id).attr("gradientUnits", "userSpaceOnUse").attr("x1", 0).attr("x2", 0).attr("y1", ta).attr("y2", tb);
+      const m = (y1 - ta) / Math.max(1, tb - ta);
+      [[0, 0], [Math.max(0, m - .25), .3], [m, .75], [Math.min(1, m + .25), .3], [1, 0]].forEach(([o, op]) => gr.append("stop").attr("offset", o).attr("stop-color", col).attr("stop-opacity", op));
+      g.append("rect").attr("class", "tail mtail").attr("x", ex(last) - 5).attr("width", 10).attr("y", ta).attr("height", tb - ta).attr("rx", 5).attr("fill", "url(#" + id + ")").attr("filter", "url(#mpGrain)");
     }
-  }, last);
+    const then = g.append("g").attr("class", "then"); orb(then, 0, y0, rOrb(N_POOL), col, "mpThen" + e.el, false);
+    const now = g.append("g").attr("opacity", 0); orb(now, ex(last), y1, rOrb(N_MOD), col, "mpNow" + e.el, true);
+    tipOn(g, () => "<b>" + e.name + "</b><br>pooled archaeological " + fmt(a) + " ppm → 20th century " + fmt(b) + " ppm" + (rg ? "<br>20th century lowest " + (rg[0] == null ? "below detection" : rg[0]) + ", highest " + rg[1] + " ppm" : "") +
+      "<br><span class='m'>Kamenov et al. 2018, Table 1; archaeological n = 38 (Florida, the Philippines and Peru), modern n = 77; no per-era data</span>");
+    const r = b / a;
+    lines.push({ el: e.el, g, ln, then, now, tail: g.select(".mtail"), y0, y1, endY: y1, col, pts: [[ex(0), y0], [ex(last - 1), y0], [ex(last), y1]],
+      say: [e.name + ": " + fmt(a) + " ppm in archaeological enamel, " + fmt(b) + " in the 20th century, " + (r >= 1 ? "×" + (r >= 10 ? Math.round(r) : r.toFixed(1)) : "down to ×" + r.toFixed(2)) + ".",
+            "One pooled archaeological value: no per-era measurements before 1900 (Kamenov et al. 2018)."] });
+  });
+  // names at the right, spread so none overlap, on a hairline to their line's end
+  const labs = lines.map(l => ({ l, y: l.endY })).sort((p, q) => p.y - q.y);
+  for (let k = 1; k < labs.length; k++) labs[k].y = Math.max(labs[k].y, labs[k - 1].y + 14);
+  labs.forEach(q => { const e = ELS.find(z => z.el === q.l.el);
+    q.l.lab = q.l.g.append("g").attr("class", "endlab").attr("opacity", 0);
+    q.l.lab.append("line").attr("class", "lead").attr("x1", ex(last) + 12).attr("x2", xR + 22).attr("y1", q.l.endY).attr("y2", q.y);
+    q.l.lab.append("text").attr("class", "el").attr("x", xR + 26).attr("y", q.y + 4).style("fill", q.l.col).text(e.el); });
+  // hover: a wide invisible band along each line
+  lines.forEach(l => {
+    l.g.insert("path", ":first-child").attr("class", "hit").attr("d", "M" + l.pts.map(q => q[0] + "," + q[1]).join("L"));
+    l.g.on("mouseenter", () => {
+      const grp = NONIND.has(l.el) ? lines.filter(m => NONIND.has(m.el)) : [l];
+      svg.classed("hov", true); lines.forEach(m => m.g.classed("on", grp.includes(m)));
+      if (NONIND.has(l.el)) sayNote("Elements that are not industrial barely moved.",
+        grp.map(m => ELS.find(z => z.el === m.el).name + " " + fmt(POOLED[m.el]) + " → " + fmt(MODERN[m.el])).join(" · ") + " ppm, archaeological to 20th century");
+      else sayNote(l.say[0], l.say[1]);
+    }).on("mouseleave", () => { svg.classed("hov", false); lines.forEach(m => m.g.classed("on", false)); sayNote("", ""); hideTip(); });
+  });
+  sayNote("", "");
+
+  const update = p => {
+    const dur = reduced ? 0 : 650, atNow = p === last, xa = ex(Math.min(p, last - 1));
+    eras.forEach((e, i) => { e.g.interrupt().transition().duration(dur).attr("opacity", i < p ? .6 : i === p ? 1 : 0);
+      e.g.classed("cur", i === p); });
+    const pts = eras.slice(0, p + 1);
+    pbLine.transition().duration(dur).attr("d", pts.length > 1 ? "M" + pts.map(e => e.x + "," + e.y).join("L") : null);
+    lines.filter(l => l.el !== "Pb").forEach(l => {
+      const d = "M" + ex(0) + "," + l.y0 + "L" + xa + "," + l.y0 + (atNow ? "L" + ex(last) + "," + l.y1 : "");
+      l.ln.interrupt().transition().duration(dur).attr("d", d);
+      l.then.interrupt().transition().duration(dur).attr("transform", "translate(" + xa + ",0)").attr("opacity", atNow ? .6 : 1);
+      l.now.interrupt().transition().delay(atNow ? dur * .6 : 0).duration(reduced ? 0 : 300).attr("opacity", atNow ? 1 : 0);
+      l.tail.classed("shown", atNow);   // drawn while its line is hovered (seven at once would be one blur)
+    });
+    lines.forEach(l => l.lab.interrupt().transition().delay(atNow ? dur : 0).duration(reduced ? 0 : 300).attr("opacity", atNow ? 1 : 0));
+  };
+  // one time axis: Plate 4.A's timeline, between the radial chart and this one, its track over this chart's eras, drives both
+  const tlA = document.querySelector("[data-tl=A]");
+  // its first and last stops measured against the chart's first and last eras, and the track's margins set to match
+  const alignTl = () => { if (!tlA || !svg.node().isConnected) return; const st = tlA.querySelectorAll(".stop"); if (st.length < 2) return;
+    const sb = svg.node().getBoundingClientRect(); if (!sb.width) return;
+    const at = i => sb.left + sb.width * ex(i) / W, mid = b => { const r = b.getBoundingClientRect(); return r.left + r.width / 2; };
+    const ml = parseFloat(tlA.style.marginLeft) || 0, mr = parseFloat(tlA.style.marginRight) || 0;
+    tlA.style.marginLeft = (ml + at(0) - mid(st[0])).toFixed(1) + "px"; tlA.style.marginRight = (mr - (at(last) - mid(st[st.length - 1]))).toFixed(1) + "px";
+    const rb = tlA.querySelector(".mp-replay"); if (rb) rb.style.left = (-(parseFloat(tlA.style.marginLeft) || 0)) + "px"; };   // the replay button in the margin, at the chart's left edge
+  if (tlA) { tlA.style.gridTemplateColumns = "minmax(0,1fr)"; tlA.querySelectorAll(".stop").forEach((b, i) => b.classList.toggle("lo", i % 2 === 1));   // every other name a line down for (let k = 0; k < 3; k++) alignTl(); requestAnimationFrame(alignTl);
+    if (window.ResizeObserver) new ResizeObserver(() => { alignTl(); alignTl(); }).observe(svg.node()); }
+  const onEra = e => { if (!svg.node().isConnected) { window.removeEventListener("metals:era", onEra); return; } update(e.detail.i); };
+  window.addEventListener("metals:era", onEra);
+  update(window.METALS_ERA ? window.METALS_ERA.i : last);
 })();
 })();
   ready = true; } };

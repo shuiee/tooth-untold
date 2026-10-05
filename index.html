@@ -501,6 +501,23 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 .cp-agebtn{display:block;margin-top:16px;font-family:var(--label);font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:transparent;border:1px solid var(--ink);padding:7px 14px;cursor:pointer;color:var(--ink)}
 .cp-agebtn:hover{background:var(--card)}
 .eraline.all .seg{stroke-opacity:1}
+/* Metals: the era and its key figures (pictograms, as on the caries plate) on top, then the radial chart, the time axis
+   (Plate 4.A's timeline, its stops over the series' eras), and the series under it */
+#mpPanel #plateA .kpis{margin:6px 0 4px;border-top:0;border-bottom:1px solid var(--rule);padding:0 0 16px}
+#mpPanel .kpis .cp-era{font-size:26px;line-height:1.1;margin:0}
+#mpPanel .kpis .cp-yrs{margin:4px 0 0}
+#mpPanel .mp-stats b.up{color:var(--pb)}
+#mpPanel .mp-pg .mp-head{fill:none;stroke:var(--ink);stroke-width:1.3;stroke-linejoin:round;stroke-linecap:round}
+#mpPanel #plateA .tl{margin:4px 0 0;padding-top:8px}
+#mpPanel #plateA .track{height:58px}
+#mpPanel #plateA .stop.lo span{margin-top:13px}
+#mpPanel #cometSvg{margin-top:2px}
+#mpPanel #plateA .tl{padding-bottom:0}
+#mpPanel #plateA .tl{position:relative}
+#mpPanel .mp-replay{position:absolute;top:8px;left:0;width:34px;height:34px;padding:5px;border:0;border-radius:50%;background:transparent;color:var(--ink);cursor:pointer}
+#mpPanel .mp-replay svg{display:block;width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#mpPanel .mp-replay:hover{background:var(--card)}
+#mpPanel .mp-replay:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
 #tip{position:fixed;pointer-events:none;z-index:50;background:var(--ink);color:var(--bg);font-size:12px;line-height:1.4;padding:7px 10px;max-width:300px}
 #tip .m{font-size:11px;color:#bdbcb6}
 .fallback{position:absolute;inset:0;display:grid;place-items:center;padding:30px;text-align:center;color:var(--ink-2)}
@@ -691,18 +708,6 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 .mp-stops button.cur{color:var(--ink);font-weight:600;text-decoration:underline;text-underline-offset:3px}
 .mp-cap{position:absolute;left:0;right:0;bottom:0;margin:0;font-size:11.5px;line-height:1.4;color:var(--ink-2)}
 .mp-frame{display:block;width:100%;border:0;height:1700px}
-.mv-ov{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:2}
-.mv-cv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
-.mv-cv.body{mix-blend-mode:multiply}
-.mv-cv.shine{mix-blend-mode:screen}
-.mv-ov path{fill:none;stroke-linecap:round;stroke-linejoin:round}
-.mv-ov path.ol{stroke:#5f656c;stroke-width:4.4;stroke-opacity:.45}          /* the strand's dark edge */
-.mv-ov path.sv{stroke:url(#mvSilver);stroke-width:3.2}                       /* silver body */
-.mv-ov path.th{stroke-width:1.1;stroke-opacity:.95}                         /* the element's colour, a fine core */
-.mv-ov path.hl{stroke:#fff;stroke-width:1.1;stroke-opacity:.85;stroke-dasharray:3 26}   /* a glint travelling along it */
-.mv-ov circle.tip{stroke:#8d939a;stroke-width:1}
-.mv-ov line.ld{stroke:var(--ink);stroke-width:.6}
-.mv-ov text{font-family:var(--label);font-size:11px;font-style:italic;fill:var(--ink-2);paint-order:stroke;stroke:rgba(233,232,228,.85);stroke-width:3px;stroke-linejoin:round}
 /* Section 4 right-hand page: the metals plate studies (Plates 4.A and 4.B), scoped to #mpPanel */
 #mpPanel{
   color-scheme: light;
@@ -712,7 +717,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
   --serif:"Lora", Georgia, "Times New Roman", serif; --label:var(--serif);
   
   --up:#c0392b; --down:#2e8540;
-  --pb:#c33a2c; --cu:#d97a3e; --cr:#d6a12c; --ni:#5c9e55; --zn:#3c9893; --ba:#3d6fcc; --sr:#8b78cf; --mg:#8a877c;
+  --pb:#c62828; --cu:#e5780e; --cr:#b89a00; --ni:#2f9a3a; --zn:#0aa1b0; --ba:#2f5fd8; --sr:#8a4fd6; --mg:#d4439a;   /* also the grain on the 3D molar (app.js, metalsStart) */
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
@@ -797,7 +802,16 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 #mpPanel #cometSvg text .nm{font-size:12px;font-weight:400;fill:var(--ink-2)}
 #mpPanel #cometSvg text.rx{font-size:12px;font-weight:600}
 #mpPanel #cometSvg text.rx.up{fill:var(--up)}#mpPanel #cometSvg text.rx.down{fill:var(--down)}
-#mpPanel .isokey i.trail{width:22px;height:8px;border-radius:4px;background:linear-gradient(90deg,transparent,var(--ink-2))}
+#mpPanel #cometSvg .ln{fill:none;stroke-width:1.8;stroke-linejoin:round;transition:stroke-width .25s}
+#mpPanel #cometSvg .hit{fill:none;stroke:transparent;stroke-width:16;pointer-events:stroke}
+#mpPanel #cometSvg .mline{cursor:default;transition:opacity .25s}
+#mpPanel #cometSvg.hov .mline:not(.on){opacity:.12}
+#mpPanel #cometSvg .mline.on .ln{stroke-width:3}
+#mpPanel #cometSvg .mtail{opacity:0;transition:opacity .3s}
+#mpPanel #cometSvg .mline.on .mtail.shown{opacity:1}
+#mpPanel #cometSvg .endlab .lead{stroke:var(--ink-3);stroke-width:.5}
+#mpPanel #cometSvg .note .n1{font-size:12.5px;font-weight:600;fill:var(--ink)}
+#mpPanel #cometSvg .note .n2{font-size:11px;fill:var(--ink-2)}
 #isoSvg{width:100%;max-width:1060px;margin:6px auto 0}
 #mpPanel #isoSvg .floor{fill:none;stroke:var(--rule);stroke-width:.8}
 #mpPanel #isoSvg .wall{stroke:var(--rule);stroke-width:.7;stroke-dasharray:2 3}

@@ -48,7 +48,7 @@
       view: { molar: "whole", canine: "whole" }, byPeriod: true,
       events: [{ label: "Roller mill invented", when: "Year–Year", img: "event-rollermill" }] },
     { key: "metals", n: 4, name: "Metals", dek: "Lead and other metals in childhood enamel, from the Neolithic to the 20th century",
-      view: { molar: "cut", canine: "cut" },
+      view: { molar: "whole", canine: "whole" },   // the side view: the grain sits on the crown's surface
       events: [{ label: "Industrial Revolution", when: "Year–Year", img: "event-industrial" }] },
     { key: "interventions", n: 5, name: "Artificial interventions", dek: "Teeth somebody repaired, from medieval graves to the 2009 dental survey",
       view: { molar: "whole", canine: "whole" },
@@ -207,14 +207,15 @@
     const cr = decay && !cariesPlate && G.caries != null ? (0.015 + 0.7 * G.caries) * (SH.B[0] / 0.5) : 0;
     const cav = cariesPlate && T.type === "molar" ? cavityOf(T) : null;
     const cp = SH.cariesAt === "occlusal" ? [0.06, Math.min(wearY, SH.grooveY) - 0.005, -0.03] : [SH.B[0] * 0.97, 0.44 * top, -0.13];
-    const pb = (L === "all" || L === "metals") && G.pb != null ? clamp(Math.log10(G.pb / 0.05) / Math.log10(10 / 0.05), 0, 1) * (S.mGrow == null ? 1 : S.mGrow) : 0;
+    const pb = L === "all" && G.pb != null ? clamp(Math.log10(G.pb / 0.05) / Math.log10(10 / 0.05), 0, 1) * (S.mGrow == null ? 1 : S.mGrow) : 0;
     // No tartar is drawn, anywhere: the teeth show what was recovered from the tooth itself. (On the Pathogens plate 259
     // of 261 genomes come from inside the tooth; the dataset's calculus rows are oral-microbiome samples and particle
     // counts of starch, plant tissue, fibres, spores and charcoal, which none of the plates draws.)
     const calc = 0;
     const wearAmp = wl && wear != null ? 0.035 * clamp((wear - 1) / 4, 0, 1) : 0, capTint = wl && T.type === "molar" ? [0.2, 0.36, 0.85, 0.72] : [0, 0, 0, 0];
     const strata = wl && T.type === "molar" && wl.strata ? wl.strata : null;
-    return { cav, wearY, wearAmp, capTint, capS: strata && strata.s, capC: strata && strata.c, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: leh && leh.length > 2 ? [0.44, 0.31, 0.56, 0.66].map(f => f * top) : [0.36 * top, 0.54 * top], calc, pb, cutX: viewOf(T) === "cut" ? 0 : 5, jaw: false, real: liveTeeth() };
+    const met = S.met && S.scene === "layer" && S.layer === "metals" && T.type === "molar" ? S.met : null;
+    return { met: met && met.s, metB: met && met.b, metC: met && met.c, metT: met ? met.t : 0, metOn: met ? met.on : 0, cav, wearY, wearAmp, capTint, capS: strata && strata.s, capC: strata && strata.c, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: leh && leh.length > 2 ? [0.44, 0.31, 0.56, 0.66].map(f => f * top) : [0.36 * top, 0.54 * top], calc, pb, cutX: viewOf(T) === "cut" ? 0 : 5, jaw: false, real: liveTeeth() };
   }
   // the view a tooth is drawn in: cut everywhere except on a section's plate, where the section decides
   // Every section's plate has four views (S.viewMode, the buttons under it): top, side, section (cut open) and
@@ -848,95 +849,93 @@
   // Charts are drawn from data/layers.js (build_layers.py, from the team's tabular datasets in source/layer data/).
   // The "human ×" event strips stay placeholders until their pictures and dates arrive.
   const LD = window.LAYER_DATA || null;
-  // Section 4: metallic inclusions set into the molar's crown (see metalsStart).
-  let mvRaf = 0, mvSvg = null, mvData = null;
-  const MV = [["Pb", "lead", 10.4, "#9a5a52"], ["Cu", "copper", 14.4, "#b47a46"], ["Cr", "chromium", 11.1, "#7c8a4a"], ["Ni", "nickel", 9.2, "#5a8a7a"],
-    ["Zn", "zinc", 1.48, "#5f74a0"], ["Ba", "barium", 1.44, "#86699c"], ["Sr", "strontium", 0.89, "#a39463"], ["Mg", "magnesium", 1.26, "#8a877c"]];
-  let mvEra = null;
-  function metalsStop() { if (mvEra) window.removeEventListener("metals:era", mvEra); mvEra = null; cancelAnimationFrame(mvRaf); mvRaf = 0; if (mvSvg) mvSvg.remove(); mvSvg = null; if (mvCv) { mvCv.forEach(c => c.remove()); } mvCv = null; }
-  let mvCv = null;
-  // Section 4: metal set into the molar. Each element is a cluster of small metallic inclusions (nuggets with fine veins
-  // running off them) fixed in the crown, so they turn with the tooth. Two layers, both clipped to the tooth's own pixels:
-  // the metal's body multiplied into the tooth (it takes the tooth's texture and shading) and its specular light screened
-  // over it, a highlight that sweeps slowly as if the light moves. Number and size follow the modern ÷ archaeological
-  // ratio (Kamenov et al. 2018); the tints are the metals' own, silver with a hint of each.
-  const METAL_TINT = { Pb: "#6b7380", Cu: "#b06a34", Cr: "#b9c6d2", Ni: "#9c9a86", Zn: "#8fa3b4", Ba: "#c9bf9c", Sr: "#bfae93", Mg: "#cfd5dc" };
+  // Section 4: the metals as groups of coloured grain on the molar's crown, drawn by the renderer (tooth.js, metGrain()).
+  // All of the grain lives in one amorphous body over about half of the crown's face (its x and y, so front and back
+  // match), which wanders slowly over the crown and changes shape (metBlob(), the same in both files). Inside it, eight
+  // groups, one per element, whose areas are in the proportion of the elements' radii on Plate 4.A's radial chart for the
+  // era playing there (change from the archaeological level, on the chart's log scale, XLO to XHI in metals.js), so the
+  // groups grow and shrink with the chart. The groups are cells of a power diagram, seen through a strong flowing warp
+  // (metWarp(), the same in both files): each element has a centre and a weight, solve() moves the weights until every
+  // cell holds its share of the body, and the centres circle slowly round the body's middle while easing towards their
+  // cells' middles, so the groups keep moving past one another. Each group is most intense at its heart and fades
+  // towards its borders and the body's edge. Colours are the element names' on the chart (#mpPanel's --pb ... --mg).
+  const MET_EL = ["Pb", "Cu", "Cr", "Ni", "Zn", "Ba", "Sr", "Mg"], MET_XLO = 0.08, MET_XHI = 20;
+  const metW = x => clamp((Math.log(Math.max(1e-6, x)) - Math.log(MET_XLO)) / (Math.log(MET_XHI) - Math.log(MET_XLO)), 0, 1);
+  let mvRaf = 0, mvEra = null;
+  function metalsStop() { if (mvEra) window.removeEventListener("metals:era", mvEra); mvEra = null; cancelAnimationFrame(mvRaf); mvRaf = 0; S.met = null; }
+  // the flowing warp that makes the groups amorphous (the same formula as metWarp() in tooth.js)
+  const metWarp = (x, y, t) => [
+    x + 0.08 * Math.sin(y * 7 + t * 0.5) + 0.04 * Math.sin(y * 15 - x * 5 + 1.3 + t * 0.37) + 0.025 * Math.sin(x * 11 + y * 9 + t * 0.6),
+    y + 0.07 * Math.sin(x * 6.5 + 2.1 - t * 0.43) + 0.035 * Math.sin(x * 13 + y * 6 + 0.4 + t * 0.33) + 0.022 * Math.sin(y * 12 - x * 8 + 2.7 - t * 0.55)];
+  // the body: where it is at time t (B = [cx, cy, rx, ry]) and how far out a point is (1 on its edge), as metBlob() in tooth.js
+  const metBody = (F, t) => { const [x0, y0, x1, y1] = F.box, W = x1 - x0, H = y1 - y0;
+    return [(x0 + x1) / 2 + 0.17 * W * Math.sin(t * 0.11) + 0.06 * W * Math.sin(t * 0.29 + 1), (y0 + y1) / 2 + 0.1 * H * Math.sin(t * 0.15 + 1.2), 0.36 * W, 0.4 * H]; };
+  const metBlob = (x, y, B, t) => { const dx = (x - B[0]) / B[2], dy = (y - B[1]) / B[3], a = Math.atan2(dy, dx);
+    return Math.hypot(dx, dy) / (1 + 0.16 * Math.sin(3 * a + 0.35 * t) + 0.09 * Math.sin(5 * a - 0.27 * t + 1) + 0.05 * Math.sin(7 * a + 0.5 * t + 2)); };
+  // the crown's face as a grid of points, kept where the crown is (seen straight on from the front)
+  function crownFace(T) {
+    const SH = T.R.st.S, top = SH.top, x0 = SH.boxMin[0], x1 = SH.boxMax[0], y0 = top * 0.12, NX = 48, NY = 34, pts = [];
+    for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
+      const x = x0 + (i + 0.5) / NX * (x1 - x0), y = y0 + (j + 0.5) / NY * (top - y0);
+      if (T.R.march([x, y, 4], [0, 0, -1], 8)) pts.push([x, y]);
+    }
+    return { pts, box: [x0, y0, x1, top] };
+  }
   function metalsStart() {
-    metalsStop(); const T = TEETH.find(t => t.key === "molar"); if (!T || !T.R || !T.R.march) return;
-    const SS = T.R.st.S, top = SS.top; let sd = 11; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
-    const CC = [0, top * 0.5, 0], Z = -0.02;
-    mvData = MV.map(([sym, name, x], i) => {
-      const th = (196 - i * (212 / (MV.length - 1))) * Math.PI / 180, o = [Math.cos(th), Math.sin(th), 0];
-      const h = T.R.march([CC[0] + o[0] * 3, CC[1] + o[1] * 3, Z], [-o[0], -o[1], 0], 4); if (!h) return null;
-      const nug = Array.from({ length: 7 }, (_, k) => {
-        const f = 0.22 + rnd() * 0.62, jt = (rnd() - .5) * 0.5;   // from just under the surface into the dentine
-        const p = [h.p[0] + (CC[0] - h.p[0]) * f + (h.p[1] - CC[1]) * jt * 0.25, h.p[1] + (CC[1] - h.p[1]) * f - (h.p[0] - CC[0]) * jt * 0.25, Z];
-        const r = k ? 0.6 + rnd() * 0.4 : 1.1, m = 7 + Math.floor(rnd() * 4);   // relative size; the era sets the scale
-        const shape = Array.from({ length: m }, (_, q) => [q / m * Math.PI * 2 + (rnd() - .5) * 0.5, 0.65 + rnd() * 0.5]);
-        const veins = Array.from({ length: k ? (rnd() < 0.5 ? 1 : 0) : 2 }, () => { let a = rnd() * Math.PI * 2, d = 1, pts = [[0, 0]], x0 = 0, y0 = 0;
-          for (let s = 0; s < 6; s++) { a += (rnd() - .5) * 0.9; x0 += Math.cos(a) * r * 0.75; y0 += Math.sin(a) * r * 0.75; pts.push([x0, y0]); } return pts; });
-        return { p, r, shape, veins, rot: rnd() * Math.PI, d: k * 140 + rnd() * 120, s: 0 };
-      });
-      return { sym, name, x, tint: METAL_TINT[sym] || "#a8adb3", nug, anchor: h.p, delay: i * 160, size: 6, ex: x }; }).filter(Boolean);
-    // the era playing on Plate 4.A sets each element's size and count: its change from the archaeological level then,
-    // so lead swells through the medieval periods while the elements with no per-era data hold at ×1
-    const setEra = E => mvData.forEach(d => { const x = E && E.x[d.sym] != null ? E.x[d.sym] : d.x, lx = Math.max(-0.6, Math.min(1, Math.log10(x) / Math.log10(15)));
-      d.ex = x; d.sizeT = 10 + 14 * Math.max(0, lx); d.count = Math.max(1, Math.min(7, 1 + Math.round(Math.max(0, lx + 0.4) * 4.3))); });
-    setEra(window.METALS_ERA); mvData.forEach(d => { d.size = d.sizeT; });
-    mvEra = e => { setEra(e.detail); if (REDUCED) requestAnimationFrame(frame); }; window.addEventListener("metals:era", mvEra);
-    const mk = cls => d3.select(pairEl).append("canvas").attr("class", "mv-cv " + cls).attr("aria-hidden", "true");
-    mvCv = [mk("body"), mk("shine")];
-    mvSvg = d3.select(pairEl).append("svg").attr("class", "mv-ov").attr("aria-hidden", "true");
-    const [cb, cs] = mvCv.map(c => c.node().getContext("2d")), t0 = performance.now(); let tPrev = t0;
-    const blob = (c, q, n, sc) => { c.beginPath(); n.shape.forEach(([a, k], m) => { const rr = n.r * k * sc, x = q[0] + Math.cos(a + n.rot) * rr, y = q[1] + Math.sin(a + n.rot) * rr; m ? c.lineTo(x, y) : c.moveTo(x, y); }); c.closePath(); };
+    metalsStop();
+    const T = TEETH.find(U => U.key === "molar"); if (!T || !T.R || !T.R.march) return;
+    const host = document.getElementById("mpPanel") || document.body, cs = getComputedStyle(host);
+    const c = MET_EL.flatMap(el => { const v = d3.rgb(cs.getPropertyValue("--" + el.toLowerCase()).trim() || "#888"); return [v.r / 255, v.g / 255, v.b / 255]; });
+    const F = crownFace(T), P = F.pts, [bx0, by0, bx1, by1] = F.box, area = (bx1 - bx0) * (by1 - by0);
+    const want = new Float64Array(8), share = new Float64Array(8);
+    const setEra = E => MET_EL.forEach((el, i) => { want[i] = E && E.x && E.x[el] != null ? metW(E.x[el]) : metW(1); });
+    setEra(window.METALS_ERA);
+    let B = metBody(F, 0);
+    // the centres start on a ring round the body's middle, the weights at zero
+    const seed = MET_EL.map((el, i) => { const a = i / 8 * Math.PI * 2; return { x: B[0] + Math.cos(a) * B[2] * 0.5, y: B[1] + Math.sin(a) * B[3] * 0.5, w: 0, ph: i * 1.7 }; });
+    const cx = new Float64Array(8), cy = new Float64Array(8), cnt = new Float64Array(8);
+    let tNow = 0, inBody = 1;
+    const assign = () => { cnt.fill(0); cx.fill(0); cy.fill(0); inBody = 0;
+      for (let k = 0; k < P.length; k++) {
+        if (metBlob(P[k][0], P[k][1], B, tNow) >= 1) continue;   // only the body's points count
+        inBody++;
+        const q = metWarp(P[k][0], P[k][1], tNow); let best = 0, bd = 1e9;
+        for (let i = 0; i < 8; i++) { const d = (q[0] - seed[i].x) ** 2 + (q[1] - seed[i].y) ** 2 - seed[i].w; if (d < bd) { bd = d; best = i; } }
+        cnt[best]++; cx[best] += q[0]; cy[best] += q[1]; }
+      inBody = inBody || 1; };
+    // weights until every cell holds its share of the body (a few steps each frame, carried over between frames)
+    const solve = (t, steps, dt) => {
+      tNow = t; B = metBody(F, t);
+      const tot = want.reduce((a, b) => a + b, 0) || 1;
+      for (let i = 0; i < 8; i++) share[i] = want[i] / tot;
+      for (let it = 0; it < steps; it++) {
+        assign();
+        for (let i = 0; i < 8; i++) seed[i].w += 0.6 * (share[i] - cnt[i] / inBody) * area * 0.3;
+      }
+      assign();
+      // the drift: each centre circles the body's middle (so the groups move past one another) and eases towards its
+      // cell's middle (so each group stays in one piece), with a little wander of its own
+      const spin = 0.22 * (dt || 0);
+      for (let i = 0; i < 8; i++) {
+        const q = seed[i], ox = q.x - B[0], oy = q.y - B[1];
+        q.x = B[0] + ox * Math.cos(spin) - oy * Math.sin(spin) * (B[2] / B[3]); q.y = B[1] + oy * Math.cos(spin) + ox * Math.sin(spin) * (B[3] / B[2]);
+        const mx = cnt[i] ? cx[i] / cnt[i] : B[0], my = cnt[i] ? cy[i] / cnt[i] : B[1];
+        q.x += (mx + 0.02 * Math.sin(t * 0.31 + q.ph) - q.x) * 0.12; q.y += (my + 0.018 * Math.cos(t * 0.27 + q.ph * 1.3) - q.y) * 0.12;
+      }
+    };
+    for (let k = 0; k < 50; k++) solve(0, 3, 0);   // settled before the first frame
+    S.met = { s: new Float32Array(24), b: new Float32Array(4), c, t: 0, on: 0, err: 0 };
+    const push = () => { seed.forEach((q, i) => { S.met.s[i * 3] = q.x; S.met.s[i * 3 + 1] = q.y; S.met.s[i * 3 + 2] = q.w; }); S.met.b.set(B);
+      S.met.err = d3.max(MET_EL, (el, i) => Math.abs(cnt[i] / inBody - share[i])); };   // how far any group is from its share (a check)
+    push();
+    const t0 = performance.now(); let last = 0, tLast = 0;
+    const redraw = () => { T.R.setParams(paramsFor(T)); requestRender(false); };
+    if (REDUCED) { S.met.on = 1; redraw(); mvEra = e => { setEra(e.detail); for (let k = 0; k < 50; k++) solve(0, 3, 0); push(); redraw(); }; window.addEventListener("metals:era", mvEra); return; }
+    mvEra = e => setEra(e.detail); window.addEventListener("metals:era", mvEra);
     const frame = now => {
-      if (S.scene !== "layer" || S.layer !== "metals") { metalsStop(); return; }
-      const W = pairEl.clientWidth, H = pairEl.clientHeight, dpr = Math.min(2, devicePixelRatio || 1), t = REDUCED ? 0 : (now - t0) / 1000;
-      mvCv.forEach(c => { const n = c.node(); if (n.width !== Math.round(W * dpr) || n.height !== Math.round(H * dpr)) { n.width = Math.round(W * dpr); n.height = Math.round(H * dpr); } });
-      [cb, cs].forEach(c => { c.setTransform(dpr, 0, 0, dpr, 0, 0); c.globalCompositeOperation = "source-over"; c.clearRect(0, 0, W, H); });
-      const light = t * 0.35;   // the highlight's direction, turning slowly
-      const ease = REDUCED ? 1 : 1 - Math.exp(-(now - tPrev) / 220); tPrev = now;   // eases sizes toward the era's, whatever the frame rate
-      mvData.forEach(d => {
-        const base = d3.rgb(d.tint), dark = base.darker(1.6), mid = base, hi = base.brighter(1.4);
-        d.scr = []; d.size += (d.sizeT - d.size) * ease;
-        d.nug.forEach((n, k) => {
-          n.s += ((k < d.count ? 1 : 0) - n.s) * ease;
-          const g = REDUCED ? 1 : Math.max(0, Math.min(1, (now - t0 - d.delay - n.d) / 900)), e = (1 - Math.pow(1 - g, 3)) * n.s; if (e <= 0.02) return;
-          const nr = n.r * d.size, nn = { r: nr, shape: n.shape, rot: n.rot };
-          const q = toPair(T, n.p); d.scr.push(q);
-          const ax = Math.cos(light + n.rot), ay = Math.sin(light + n.rot), L = nr * 1.4;
-          // veins: fine metallic threads in the enamel, drawn as they grow
-          const vs = d.size / 4;
-          n.veins.forEach(v => { const m = Math.max(1, Math.round((v.length - 1) * e)); cb.beginPath(); cb.moveTo(q[0], q[1]);
-            for (let k = 1; k <= m; k++) cb.lineTo(q[0] + v[k][0] * vs, q[1] + v[k][1] * vs);
-            cb.lineWidth = 1.1; cb.strokeStyle = dark.copy({ opacity: 0.75 }) + ""; cb.stroke();
-            cs.beginPath(); cs.moveTo(q[0], q[1]); for (let k = 1; k <= m; k++) cs.lineTo(q[0] + v[k][0] * vs - 0.5, q[1] + v[k][1] * vs - 0.5);
-            cs.lineWidth = 0.5; cs.strokeStyle = hi.copy({ opacity: 0.45 }) + ""; cs.stroke(); });
-          // the nugget's body: dark edge to the metal's tint, multiplied into the tooth
-          const gb = cb.createLinearGradient(q[0] - ax * L, q[1] - ay * L, q[0] + ax * L, q[1] + ay * L);
-          gb.addColorStop(0, dark + ""); gb.addColorStop(0.45, mid + ""); gb.addColorStop(0.55, base.brighter(0.5) + ""); gb.addColorStop(1, dark + "");
-          blob(cb, q, nn, e); cb.fillStyle = gb; cb.fill(); cb.lineWidth = 0.8; cb.strokeStyle = dark.darker(0.6) + ""; cb.stroke();
-          // its specular band: a narrow bright streak across the metal, screened on top
-          const gs = cs.createLinearGradient(q[0] - ax * L, q[1] - ay * L, q[0] + ax * L, q[1] + ay * L), sh = 0.5 + 0.18 * Math.sin(t * 0.8 + n.rot * 3);
-          gs.addColorStop(Math.max(0, sh - 0.22), "rgba(0,0,0,0)"); gs.addColorStop(sh, hi.copy({ opacity: 0.95 }) + ""); gs.addColorStop(Math.min(1, sh + 0.08), "rgba(255,255,255,0.9)"); gs.addColorStop(Math.min(1, sh + 0.24), "rgba(0,0,0,0)");
-          blob(cs, q, nn, e * 0.92); cs.fillStyle = gs; cs.fill();
-        });
-      });
-      // clip both layers to the tooth itself, so no metal sits outside it
-      const cv = T.canvas, cr = cv.getBoundingClientRect(), pr = pairEl.getBoundingClientRect();
-      [cb, cs].forEach(c => { c.globalCompositeOperation = "destination-in"; c.drawImage(cv, cr.left - pr.left, cr.top - pr.top, cr.width, cr.height); c.globalCompositeOperation = "source-over"; });
-      // labels outside the crown, each on a hairline to its element's nearest inclusion
-      mvSvg.attr("viewBox", "0 0 " + W + " " + H);
-      mvSvg.selectAll("g.mv").data(mvData).join("g").attr("class", "mv").each(function (d) {
-        const gg = d3.select(this), g = REDUCED ? 1 : Math.max(0, Math.min(1, (now - t0 - d.delay) / 1200));
-        const a = toPair(T, d.anchor), c = toPair(T, CC), ux = a[0] - c[0], uy = a[1] - c[1], ul = Math.hypot(ux, uy) || 1;
-        const lx = a[0] + ux / ul * 40, ly = a[1] + uy / ul * 30;
-        const pts = d.scr.length ? d.scr : [a], near = pts.reduce((b, q) => Math.hypot(q[0] - lx, q[1] - ly) < Math.hypot(b[0] - lx, b[1] - ly) ? q : b, pts[0]);
-        gg.selectAll("line.ld").data([0]).join("line").attr("class", "ld").attr("x1", near[0]).attr("y1", near[1]).attr("x2", lx - (ux > 0 ? 3 : -3)).attr("y2", ly - 4).attr("opacity", g > 0.6 ? 0.7 : 0);
-        gg.selectAll("text").data([0]).join("text").attr("x", lx).attr("y", ly).attr("text-anchor", ux > 0 ? "start" : "end").attr("opacity", g > 0.6 ? (g - 0.6) / 0.4 : 0)
-          .text(d.sym + " " + d.name + " ×" + (d.ex >= 10 ? Math.round(d.ex) : +d.ex.toFixed(1)));
-      });
-      if (REDUCED) return;   // drawn once, still
+      if (S.scene !== "layer" || S.layer !== "metals" || !S.met) { metalsStop(); return; }
+      const t = (now - t0) / 1000;
+      if (now - last > 80) { last = now; S.met.t = t; S.met.on = Math.min(1, t / 1.6); solve(t, 3, t - tLast); tLast = t; push(); redraw(); }   // the grain fades in on opening
       mvRaf = requestAnimationFrame(frame);
     };
     mvRaf = requestAnimationFrame(frame);
@@ -963,11 +962,6 @@
       if (k !== "metals") drawCharts(L);
       if (fresh && k === "pathogens") startPseq(); else updateParticles(!REDUCED);
       requestRender(false);
-      // metals: the lead grows into the enamel once, on opening, then holds
-      if (k === "metals" && !REDUCED) { const t0 = performance.now(); S.mGrow = 0;
-        const grow = now => { if (S.scene !== "layer" || S.layer !== "metals") { S.mGrow = null; return; } S.mGrow = Math.min(1, (now - t0) / 2600); S.mGrow = 1 - Math.pow(1 - S.mGrow, 3);
-          TEETH.forEach(T => T.R.setParams(paramsFor(T))); requestRender(false); if (S.mGrow < 1) requestAnimationFrame(grow); else S.mGrow = null; };
-        requestAnimationFrame(grow); }
       if (k === "metals") metalsStart(); else metalsStop();
     });
   }

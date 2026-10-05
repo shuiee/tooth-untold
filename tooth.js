@@ -173,6 +173,10 @@ uniform vec2 uGroove; uniform float uGrooveY;
 uniform vec4 uRootA[3]; uniform vec4 uRootB[3]; uniform int uNR;
 uniform vec3 uPulpC, uPulpR;
 uniform float uWearY, uCutX, uCalc, uPb, uWearAmp;
+// the metals plate: eight elements as groups of coloured grain on the crown: each group a cell of a power diagram on the
+// crown's face (uMetS: centre x, y and weight; solved in app.js so the cells' areas are the elements' shares), uMetC
+// its colour, uMetOn its fade
+uniform float uMetOn, uMetT; uniform vec3 uMetS[8]; uniform vec3 uMetC[8]; uniform vec4 uMetB;   // uMetB: the body's centre and radii
 uniform vec4 uCapTint;
 // the worn-away crown in layers: layer k is gone by Smith stage uCapS[k] and drawn in uCapC[k] (uCapN = 0: one colour)
 uniform float uCapS[8]; uniform vec3 uCapC[8]; uniform int uCapN;
@@ -326,6 +330,42 @@ float vnoise(vec3 p){ vec3 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
   return mix(mix(mix(hash3(i),hash3(i+vec3(1,0,0)),f.x),mix(hash3(i+vec3(0,1,0)),hash3(i+vec3(1,1,0)),f.x),f.y),
              mix(mix(hash3(i+vec3(0,0,1)),hash3(i+vec3(1,0,1)),f.x),mix(hash3(i+vec3(0,1,1)),hash3(i+vec3(1,1,1)),f.x),f.y),f.z); }
 float fbm(vec3 p){ return .55*vnoise(p)+.3*vnoise(p*2.03+7.1)+.15*vnoise(p*4.1+3.3); }
+// The metals as grain in groups. All the grain lives in one amorphous body (metBlob(): 1 on its edge) that app.js moves
+// over the crown. Inside it every point belongs to the element whose power distance (squared distance on the crown's
+// face, through the flowing warp, less the element's weight) is least; neighbouring groups blend smoothly (a softmax
+// over the distances), so they meet in a gradient. Each group is most intense at its heart: how far a point is from the
+// nearest border (the gap between its two least distances) sets the colour's strength and the grain's density, which
+// fade towards the borders and the body's edge, so each group glows from within. Each pixel redraws at its own moment
+// a few times a second, so the grain shimmers.
+float h21(vec2 q){ return fract(sin(dot(q,vec2(127.1,311.7)))*43758.5453); }
+// the flowing warp (the same formula as metWarp() in app.js, which solves the areas through it)
+vec2 metWarp(vec2 q, float t){
+  return q+vec2(.08*sin(q.y*7.+t*.5)+.04*sin(q.y*15.-q.x*5.+1.3+t*.37)+.025*sin(q.x*11.+q.y*9.+t*.6),
+                .07*sin(q.x*6.5+2.1-t*.43)+.035*sin(q.x*13.+q.y*6.+.4+t*.33)+.022*sin(q.y*12.-q.x*8.+2.7-t*.55));
+}
+float metBlob(vec2 q, float t){
+  vec2 d=(q-uMetB.xy)/uMetB.zw; float a=atan(d.y,d.x);
+  return length(d)/(1.+.16*sin(3.*a+.35*t)+.09*sin(5.*a-.27*t+1.)+.05*sin(7.*a+.5*t+2.));
+}
+vec4 metGrain(vec3 p, out vec3 tint, out float glow){
+  tint=vec3(0.); glow=0.;
+  float cm=smoothstep(.0,.2,p.y)*uMetOn; if(cm<=0.) return vec4(0.);
+  float body=1.-smoothstep(.6,1.08,metBlob(p.xy,uMetT)); if(body<=0.) return vec4(0.);
+  vec2 pw=metWarp(p.xy,uMetT);
+  float d[8]; float d1=1e9, d2=1e9;
+  for(int i=0;i<8;i++){ vec2 q=pw-uMetS[i].xy; d[i]=dot(q,q)-uMetS[i].z; if(d[i]<d1){ d2=d1; d1=d[i]; } else if(d[i]<d2) d2=d[i]; }
+  float wsum=0., e[8];
+  for(int i=0;i<8;i++){ e[i]=exp(-(d[i]-d1)/.006); wsum+=e[i]; }
+  for(int i=0;i<8;i++) tint+=uMetC[i]*e[i]/wsum;
+  float heart=smoothstep(0.,.09,d2-d1);           // 0 on a border, 1 deep inside a group
+  glow=body*cm*(.38+.62*heart);                     // the strength of the colour here
+  vec2 fc=floor(gl_FragCoord.xy/2.2); float ph=h21(fc+.37), tk=floor(uMetT*2.2+ph*4.);
+  float dens=glow*(.62+.25*vnoise(p*7.+vec3(0.,uMetT*.05,0.)));
+  if(h21(fc+tk*17.31)>dens) return vec4(0.);
+  float u=h21(fc+tk*9.13+3.7)*wsum, acc=0.;
+  for(int i=0;i<8;i++){ acc+=e[i]; if(u<acc) return vec4(uMetC[i],1.); }
+  return vec4(uMetC[7],1.);
+}
 // signed distance from the canal centre line (sign = which side), and how far along it
 vec2 canalD(vec2 q){
   float best=1e3, along=0.;
@@ -494,6 +534,11 @@ void main(){
         col*=1.-.4*rim;
       }
     }
+    if(uMetOn>0. && !isBone && !isGum){
+      vec3 tint; float glow; vec4 g=metGrain(p,tint,glow);
+      col=mix(col,tint*(.8+.3*lam),.7*glow);               // each group's colour field, strongest at its heart
+      if(g.a>0.) col=mix(col,g.rgb*(.68+.36*lam),.35+.6*glow);
+    }
     o=vec4(col,1.);
   } else {
     float e=(1.-smoothstep(.6,1.6,minR/uPx))*(uReal>0.?.55:.95);
@@ -600,6 +645,7 @@ void main(){
       gl.uniform1f(u("uWearY"), P.wearY); gl.uniform1f(u("uWearAmp"), P.wearAmp || 0); gl.uniform4fv(u("uCapTint"), P.capTint || [0, 0, 0, 0]);
       gl.uniform1f(u("uCavOn"), P.cav ? 1 : 0); if (P.cav) { gl.uniform4fv(u("uCavC"), P.cav.c); gl.uniform4fv(u("uCavR"), P.cav.r); gl.uniform3fv(u("uCavD"), P.cav.d); }
       gl.uniform1i(u("uCapN"), P.capS ? 8 : 0); if (P.capS) { gl.uniform1fv(u("uCapS"), P.capS); gl.uniform3fv(u("uCapC"), P.capC); } gl.uniform1f(u("uCutX"), P.cutX); gl.uniform1f(u("uCalc"), P.calc); gl.uniform1f(u("uPb"), P.pb);
+      gl.uniform1f(u("uMetOn"), P.met ? P.metOn : 0); if (P.met) { gl.uniform3fv(u("uMetS"), P.met); gl.uniform4fv(u("uMetB"), P.metB); gl.uniform3fv(u("uMetC"), P.metC); gl.uniform1f(u("uMetT"), P.metT || 0); }
       gl.uniform4fv(u("uLeh"), pad4(P.leh, 0)); gl.uniform4fv(u("uLehY"), pad4(P.lehY, -9)); gl.uniform4fv(u("uCaries"), P.caries);
       gl.uniform3fv(u("uBoxMin"), S.rbMin); gl.uniform3fv(u("uBoxMax"), S.rbMax);
       gl.uniform1f(u("uJaw"), S.jaw && P.jaw !== false ? 1 : 0); gl.uniform3fv(u("uJawMin"), S.jawMin); gl.uniform3fv(u("uJawMax"), S.jawMax);
