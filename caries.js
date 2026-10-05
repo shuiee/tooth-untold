@@ -179,7 +179,7 @@
   // ------------------------------------------------------------------ the page
   const NOTES = n => [
     ["What the decay shows", "The shaded area is the share of adults in that era who carried at least one carious tooth, not the damage to one tooth. Its shape grows from the fissure pattern, where occlusal caries starts, and is the same shape in every era; only its extent changes."],
-    ["The scale is expanded", "The shaded share of the crown runs from 8% at a rate of 51% to 80% at a rate of 77%, because the whole record sits between 52.4% and 76.1%. That magnifies every difference about 2.8 times. Even so, eras 1, 4 and 5 lie within a point of one another (63.7, 64.5 and 64.0%), so their outlines all but coincide: that is the finding, not a fault in the drawing."],
+    ["The scale is expanded", "The shaded share of the crown runs from 8% at a rate of 51% to 80% at a rate of 77%, because the whole record sits between 52.4% and 76.1%. That magnifies every difference about 2.8 times. Even so, Pre-medieval, Late medieval and Early modern lie within a point of one another (63.7, 64.5 and 64.0%), so their outlines all but coincide: that is the finding, not a fault in the drawing. On the molar the three are drawn side by side, a few pixels apart in rate order, so each can be seen and clicked; the middle one is at its true place."],
     ["The pictograms", "The share of adults is drawn as ten figures, each a tenth of the period's adults. The counts of carious teeth are drawn on a mouth of 28, a full adult set without wisdom teeth: the record's adults had on average 17 to 20 teeth that could be scored, so the mouths show how many teeth were carious, not what share of the scored teeth that was."],
     ["One reference population", "Every rate is age-standardised to the pooled age distribution of all " + n.toLocaleString("en") + " adults (18–69), so no era reads higher merely because more of its people lived long enough to accumulate decay. It moves each value by at most 1.2 points and changes no ordering."],
     ["The drawing", "The outlines are grown from a drawing of a lower first molar's cusps and fissures and carved into the 3D molar's chewing surface, in three depths (the lesion, its cavitated body and its core) that are illustrative and exaggerated so the decay reads: drawn, not measured. The shaded share of the crown is the data; how deep it cuts is not. Era spans are the 10th to 90th percentile of site dates, so they overlap. A ‘hinge’ marks an event that changed what the tooth could record rather than what it recorded."],
@@ -190,7 +190,7 @@
     "<div><svg class='pg pg-people' role='img'></svg><div><b class='cp-s1'></b><span>of adults carried caries <i>each figure is 10% of adults</i></span></div></div>" +
     "<div><svg class='pg pg-teeth' role='img'></svg><div><b class='cp-s2'></b><span>carious teeth, on average, in an affected mouth <i>of 28</i></span></div></div>" +
     "<div><svg class='pg pg-teeth' role='img'></svg><div><b class='cp-s3'></b><span>or more, in the worst-affected tenth of affected mouths <i>of 28</i></span></div></div></div>" +
-    "<p class='cp-bh'>Teeth carious, per person</p><div class='cp-bar'></div><div class='cp-keys'></div></div>" +
+    "<p class='cp-bh'>Teeth carious, per person</p><div class='cp-bar'></div><div class='cp-ax' aria-hidden='true'><span style='left:0%'>0%</span><span style='left:25%'>25%</span><span style='left:50%'>50%</span><span style='left:75%'>75%</span><span style='left:100%'>100%</span></div><p class='cp-axt'>share of all adults in the period</p><div class='cp-keys'></div></div>" +
     "<div class='cp-detail' hidden><div class='cp-dtop'><button class='link cp-close' type='button'>Close</button></div>" +
     "<p class='cp-h4'>What was happening</p><div class='cp-ev'></div><p class='cp-h4'>Why it may have reached the teeth</p><p class='cp-why'></p>" +
     "<p class='cp-h4'>All six eras</p><div class='cp-cmp'></div></div>" +
@@ -209,7 +209,7 @@
   function pictos(svg, n, cols, kind) {
     const NS = "http://www.w3.org/2000/svg", P = kind === "person" ? { d: PERSON, w: 12, h: 30, gx: 3, gy: 4 } : { d: TOOTH, w: 16, h: 18, gx: 3, gy: 3 };
     const rows = Math.ceil(n / cols), W = cols * (P.w + P.gx) - P.gx, H = rows * (P.h + P.gy) - P.gy, id = "pg" + (++pgN) + "_";
-    svg.setAttribute("viewBox", "-1 -1 " + (W + 2) + " " + (H + 2));
+    svg.setAttribute("viewBox", "-1 -1 " + (W + 2) + " " + (H + 2)); svg.setAttribute("preserveAspectRatio", "xMinYMax meet");   // all three sit on one baseline
     const mk = (tag, a, par) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); par.appendChild(e); return e; };
     const defs = mk("defs", {}, svg), clips = [];
     for (let i = 0; i < n; i++) {
@@ -325,13 +325,13 @@
     q(".cp-keys-all").innerHTML = data.bands.map((b, j) => "<span><i style='background:" + BAND[j] + "'></i>" + esc(b) + "</span>").join("");
     function drawSev() {
       const box = q(".cp-sevall"), W = Math.max(280, box.clientWidth), LW = Math.min(150, W * 0.3), NW = 52, RH = 26, G = 9, top = 4;
-      const H = top + N * (RH + G) + 22, x = v => LW + (W - LW - NW) * v / 100, v = svgEl(W, H);
+      const H = top + N * (RH + G) + 38, x = v => LW + (W - LW - NW) * v / 100, v = svgEl(W, H);
       let h = "";
       PD.forEach((d, i) => {
         const y = top + i * (RH + G);
         h += "<g class='sv-row' data-i='" + i + "' aria-label='" + esc(d.p) + ": " + d.sev.map((s, j) => s + "% " + data.bands[j]).join(", ") + "'>" +
-          "<text class='sv-no' x='0' y='" + (y + RH / 2 + 6) + "' fill='" + COLS[i] + "'>" + (i + 1) + "</text>" +
-          "<text class='sv-nm' x='20' y='" + (y + RH / 2 + 4) + "'>" + esc(d.p) + "</text>";
+          "<rect class='sv-sw' x='0' y='" + (y + RH / 2 - 5) + "' width='10' height='10' fill='" + COLS[i] + "'/>" +
+          "<text class='sv-nm' x='16' y='" + (y + RH / 2 + 4) + "'>" + esc(d.p) + "</text>";
         let l = 0;
         d.sev.forEach((s, j) => {
           h += "<rect x='" + x(l) + "' y='" + y + "' width='" + Math.max(0, x(l + s) - x(l)) + "' height='" + RH + "' fill='" + BAND[j] + "'/>";
@@ -342,12 +342,13 @@
           "<text class='sv-n' x='" + (W - NW + 8) + "' y='" + (y + RH / 2 + 3.5) + "'>n = " + d.n.toLocaleString("en") + "</text></g>";
       });
       const yb = top + N * (RH + G) + 2;
-      [0, 25, 50, 75, 100].forEach(t => { h += "<text class='sv-ax' x='" + x(t) + "' y='" + (yb + 10) + "'>" + t + "%</text>"; });
+      [0, 25, 50, 75, 100].forEach(t => { h += "<line class='sv-tk' x1='" + x(t) + "' x2='" + x(t) + "' y1='" + (yb - 2) + "' y2='" + (yb + 2) + "'/><text class='sv-ax' x='" + x(t) + "' y='" + (yb + 12) + "'>" + t + "%</text>"; });
+      h += "<text class='sv-axt' x='" + (x(0) + x(100)) / 2 + "' y='" + (yb + 30) + "'>share of all adults in the period</text>";
       v.innerHTML = h; box.replaceChildren(v);
       v.querySelectorAll(".sv-row").forEach(g => keyAct(g, +g.dataset.i));
     }
     function drawAge() {
-      const box = q(".cp-agech"), W = Math.max(280, box.clientWidth), short = W < 440, RW = short ? 58 : 150,   // narrow: the lines end in their numbers alone
+      const box = q(".cp-agech"), W = Math.max(280, box.clientWidth), short = W < 440, RW = short ? 96 : 150,   // narrow: the lines end in short names
         L = 38, T = 10, B = 40, H = Math.round(Math.min(340, Math.max(240, W * 0.62)));
       const X = [21.5, 27.5, 32.5, 37.5, 42.5, 47.5, 55, 65];   // the age bands' midpoints, spaced as in the team's figure
       const vals = PD.map(d => AGES.map(a => byAge[d.p] && byAge[d.p][a] ? byAge[d.p][a][0] : null));
@@ -367,7 +368,7 @@
           "<path class='ag-hit' d='M" + pts.map(p => p.join(",")).join("L") + "'/><path class='ag-path' d='M" + pts.map(p => p.join(",")).join("L") + "'/>" +
           pts.map((p, k) => "<circle cx='" + p[0] + "' cy='" + p[1] + "' r='3'><title>" + esc(PD[i].p) + ", " + esc(AGES[k]) + ": " + r[k] + "% (n = " + byAge[PD[i].p][AGES[k]][1] + ")</title></circle>").join("") +
           "<line class='ag-lead' x1='" + (last[0] + 4) + "' y1='" + last[1] + "' x2='" + (last[0] + 14) + "' y2='" + endY[i] + "'/>" +
-          "<text class='ag-end' x='" + (last[0] + 18) + "' y='" + (endY[i] + 4) + "'><tspan class='ag-no'>" + (i + 1) + "</tspan> " + (short ? "" : esc(PD[i].p) + " ") + Math.round(r[r.length - 1]) + "%</text></g>";
+          "<text class='ag-end' x='" + (last[0] + 18) + "' y='" + (endY[i] + 4) + "'>" + esc(short ? PD[i].p.replace("Pre-medieval", "Pre-med.").replace(" medieval", " med.").replace(" modern", " mod.") : PD[i].p) + " " + Math.round(r[r.length - 1]) + "%</text></g>";
       });
       v.innerHTML = h; box.replaceChildren(v);
       v.querySelectorAll(".ag-ln").forEach(g => { keyAct(g, +g.dataset.i);

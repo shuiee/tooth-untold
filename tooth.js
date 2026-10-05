@@ -306,6 +306,8 @@ float mapAll(vec3 p,out float dU,out float dC,out float dT,out float dB,out floa
   return min(dT,min(dB,dG));
 }
 float mapT(vec3 p,out float dU,out float dC){ float dT,dB,dG; return mapAll(p,dU,dC,dT,dB,dG); }
+// the worn-away crown's distance (negative inside): the unworn crown above the worn surface
+float capF(vec3 p){ float dU,dC; mapT(p,dU,dC); return max(max(dU,wearH(p)-p.y),p.z-uCutX); }
 float map(vec3 p){ float a,b; return max(mapT(p,a,b),p.z-uCutX); }
 vec3 normal(vec3 p){ const vec2 k=vec2(1,-1); float h=uReal>0.?.011:.0022;   // wider on the smooth-shaded plates, so the model's voxels do not show
   return normalize(k.xyy*map(p+k.xyy*h)+k.yyx*map(p+k.yyx*h)+k.yxy*map(p+k.yxy*h)+k.xxx*map(p+k.xxx*h)); }
@@ -392,14 +394,21 @@ void main(){
   vec3 ro=uRo;
   vec3 inv=1./rd; vec3 t0=(uBoxMin-ro)*inv, t1=(uBoxMax-ro)*inv; vec3 tmn=min(t0,t1), tmx=max(t0,t1);
   float tn=max(max(tmn.x,tmn.y),tmn.z), tf=min(min(tmx.x,tmx.y),tmx.z);
-  float minR=1e3, minCap=1e3, capY=0.; bool hit=false, capIn=false; float t=max(tn,0.);
+  float minR=1e3, minCap=1e3, capY=0., capT=1., tPrev=0.; vec3 capP=vec3(0.); bool hit=false, capIn=false; float t=max(tn,0.);
   bool worn = uWearY < uTop-.004;
   if(tf>tn){
     for(int i=0;i<200;i++){
       vec3 p=ro+rd*t; float dU,dC; float d=max(mapT(p,dU,dC),p.z-uCutX);
       minR=min(minR,d/t);
       float st=d;
-      if(worn){ float cap=max(max(dU,wearH(p)-p.y),p.z-uCutX); if(cap<0.){ if(!capIn) capY=p.y; capIn=true; } else minCap=min(minCap,cap/t); st=min(d,abs(cap)+.006); }
+      if(worn){ float cap=max(max(dU,wearH(p)-p.y),p.z-uCutX);
+        if(cap<0.){
+          if(!capIn){ capY=p.y;
+            // where the ray enters the worn-away crown, found finely (bisection) so its mesh lines stay crisp
+            float a=tPrev, b=t; for(int k=0;k<6;k++){ float m=.5*(a+b); if(capF(ro+rd*m)<0.) b=m; else a=m; }
+            capT=b; capP=ro+rd*b; }
+          capIn=true; } else minCap=min(minCap,cap/t); st=min(d,abs(cap)+.006); }
+      tPrev=t;
       if(d<.0006*t){ hit=true; break; }
       t+=st*(uLeh.x+uLeh.y+uLeh.z+uLeh.w>0.||uCavOn>0.?.55:.75); if(t>tf) break;   // grooves and decay bend the distance field: smaller steps
     }
@@ -493,7 +502,14 @@ void main(){
   if(worn && uCapTint.a>0.){
     // the worn-away crown as translucent material, with a solid outline: what chewing has taken off the tooth
     float e=(1.-smoothstep(.5,1.4,minCap/uPx))*.9;
-    if(capIn){ vec3 tc=capCol(capY); o=o*(1.-uCapTint.a)+vec4(tc*uCapTint.a,uCapTint.a); }
+    if(capIn){ vec3 tc=capCol(capY); o=o*(1.-uCapTint.a)+vec4(tc*uCapTint.a,uCapTint.a);
+      if(uCapN>0){
+        // the same isocurves as the Wear and LEH section's peaks: lines of constant x and of constant z over the
+        // worn-away crown's surface, about ten across the tooth, in a deeper shade of the layer they cross
+        float S=(uBoxMax.x-uBoxMin.x)/10.; vec2 q=abs(fract(capP.xz/S+.5)-.5)*S;
+        float m=(1.-smoothstep(.4,1.2,min(q.x,q.y)/(uPx*capT)))*.85; vec3 mc=capCol(capP.y)*.5;
+        o=o*(1.-m)+vec4(mc*m,m);
+      } }
     else o=o*(1.-e)+vec4(uCapTint.rgb*e,e);
   } else if(worn && !capIn){
     float e=(1.-smoothstep(.5,1.4,minCap/uPx))*step(.5,fract((gl_FragCoord.x+gl_FragCoord.y)*.12))*.7;

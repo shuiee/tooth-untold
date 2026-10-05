@@ -211,13 +211,19 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 .cp-era{font-size:26px;line-height:1.1;margin:0}
 .cp-yrs{font-family:var(--label);font-size:11px;letter-spacing:.08em;color:var(--ink-3);margin:4px 0 0}
 .cp-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:14px;margin-top:16px}
-.cp-stats>div{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px 8px;min-width:0}
-.cp-stats>div>div{min-width:0;flex:1 1 74px}   /* beside its icons, or under them where the column is narrow */
-.cp-stats b{display:block;font-size:clamp(24px,2.6vw,34px);font-weight:500;line-height:1}
+.cp-stats>div{display:flex;flex-direction:column;gap:10px;min-width:0}   /* the icons, then the number and its caption under them */
+.cp-stats>div>div{min-width:0}
+.cp-stats b{display:block;font-size:clamp(20px,2vw,28px);font-weight:500;line-height:1}
 .cp-stats small{font-size:.55em}
 .cp-stats span{display:block;font-size:12px;line-height:1.3;color:var(--ink-2);margin-top:6px}
 .cp-bh,.cp-h4{font-family:var(--label);font-size:10.5px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:18px 0 8px}
 .cp-bar{display:flex;height:24px;border:1px solid var(--ink);min-width:0}
+.cp-ax{position:relative;height:15px;margin-top:4px;font-family:var(--label);font-size:9.5px;color:var(--ink-3)}
+.cp-ax span{position:absolute;top:3px;transform:translateX(-50%)}
+.cp-ax span::before{content:'';position:absolute;left:50%;top:-6px;height:4px;border-left:1px solid var(--ink-3)}
+.cp-ax span:first-child{transform:none}.cp-ax span:first-child::before{left:0}
+.cp-ax span:last-child{transform:translateX(-100%)}.cp-ax span:last-child::before{left:auto;right:0}
+.cp-axt{font-family:var(--label);font-size:10px;color:var(--ink-3);text-align:center;margin:4px 0 0}
 .cp-bar span{height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--label);font-size:10px;font-weight:600;overflow:hidden;border-right:1px solid var(--ink);transition:width .7s cubic-bezier(.35,0,.2,1)}
 .cp-bar span:last-child{border-right:0}
 .cp-keys{display:flex;flex-wrap:wrap;gap:3px 14px;margin-top:8px;font-family:var(--label);font-size:10.5px;color:var(--ink-3)}
@@ -272,7 +278,9 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 #pair.molar-only #tCanine canvas{opacity:0}
 /* caries, pathogens and metals: the molar alone, centred */
 #pair.solo #tCanine{display:none}
-#pair.solo #tMolar{grid-column:2 / 4}
+#pair.solo #tMolar{grid-column:1 / -1}
+/* a section's plate: the teeth's frame starts below the row of names and Replay, so nothing on the teeth can reach it */
+#stage.haspanel #pair .tooth{margin-top:44px}   /* the whole plate, margins too, so a zoomed molar is not cut off at its sides */
 .dp.wl.wear-only #wlLehBox{display:none}
 #wlLehBox{animation:dpIn .7s ease both}
 .wl-box{position:relative;flex:1 1 0;min-height:0;overflow-y:auto;border:1px solid var(--ink);background:var(--card);padding:12px 14px 14px}
@@ -402,6 +410,8 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 #ov .cp3-ring.all .fl{fill:var(--c);fill-opacity:.16;stroke:none;pointer-events:none}
 #ov .cp3-ring.all .dk{stroke:var(--c);stroke-width:1.8;stroke-dasharray:none}
 #ov .cp3-ring.all:hover .dk{stroke-width:3}
+#ov .cp3-ring.tight .hit{stroke-width:6}   /* side-by-side outlines: a hit band each, no wider than the gap */
+#ov .cp3-ring.tight:hover .lt{stroke-opacity:.9;stroke-width:4.5}
 #ov .cp3-lab:hover text,#ov .cp3-lab.on text{fill:var(--ink)}
 #ov .cp3-lab.on text{font-weight:600}
 #ov .cp3-lab.on .lead{stroke:var(--ink);stroke-width:1}
@@ -416,7 +426,6 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 .eraline svg{display:block;overflow:visible}
 .eraline text{font-family:var(--label)}
 .eraline .seg{stroke:var(--c);stroke-width:7;stroke-opacity:.6;transition:stroke-width .2s,stroke-opacity .2s}
-.eraline .no{font-size:20px;font-weight:600;fill:var(--c)}
 .eraline .nm{font-size:11px;fill:var(--ink-2)}
 .eraline .yr2{font-size:9.5px;fill:var(--ink-3)}
 .eraline .era.on .seg{stroke-width:11;stroke-opacity:1}
@@ -424,9 +433,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 .eraline .era:hover .nm{fill:var(--ink)}
 .eraline .era:hover .seg{stroke-opacity:.9}
 /* the caries readout's pictograms */
-.cp-stats .pg{display:block;flex:none;height:auto;margin-top:2px}
-.cp-stats .pg-people{width:54px}
-.cp-stats .pg-teeth{width:76px}
+.cp-stats .pg{display:block;flex:none;height:clamp(70px,7.5vw,108px);width:auto;max-width:100%}   /* the icons are the figure; one height, so the numbers line up */
 .pg .pg-e{fill:none;stroke:var(--ink);stroke-width:1.1}
 .pg .pg-e.person{fill:#d9d7d0;stroke:none}
 .pg .pg-f{fill:var(--ink)}
@@ -438,12 +445,14 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 .cp-all svg{display:block;overflow:visible}
 .cp-all text{font-family:var(--label)}
 .cp-sevall .sv-row{cursor:pointer;outline:none}
-.cp-sevall .sv-no{font-size:18px;font-weight:600}
+.cp-sevall .sv-sw{stroke:none}
 .cp-sevall .sv-nm{font-size:11.5px;fill:var(--ink-2)}
 .cp-sevall .sv-v{font-size:10px;font-weight:600;text-anchor:middle}
 .cp-sevall .sv-frame{fill:none;stroke-width:0}
 .cp-sevall .sv-n,.cp-sevall .sv-ax,.cp-agech .ag-ax,.cp-agech .ag-lab{font-size:9.5px;fill:var(--ink-3)}
 .cp-sevall .sv-ax{text-anchor:middle}
+.cp-sevall .sv-tk{stroke:var(--ink-3);stroke-width:1}
+.cp-sevall .sv-axt{font-size:10px;fill:var(--ink-3);text-anchor:middle}
 .cp-sevall .sv-row:hover .sv-nm,.cp-sevall .sv-row:focus-visible .sv-nm{fill:var(--ink);font-weight:600}
 .cp-sevall .sv-row:hover .sv-frame,.cp-sevall .sv-row:focus-visible .sv-frame{stroke-width:2.5}
 .cp-agech .ag-grid{stroke:var(--rule);stroke-width:.7}
@@ -453,7 +462,6 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.panel::-webkit-scrollbar,.wl-bo
 .cp-agech circle{fill:var(--c);stroke:var(--bg);stroke-width:1.2}
 .cp-agech .ag-lead{stroke:var(--c);stroke-width:.8;opacity:.6}
 .cp-agech .ag-end{font-size:11px;fill:var(--ink-2)}
-.cp-agech .ag-no{font-size:13px;font-weight:600;fill:var(--c)}
 .cp-agech svg.hov .ag-ln:not(.hot){opacity:.25}
 .cp-agech .ag-ln.hot .ag-path,.cp-agech .ag-ln:focus-visible .ag-path{stroke-width:3.6}
 .cp-agech .ag-ln.hot .ag-end{fill:var(--ink);font-weight:600}
@@ -884,6 +892,8 @@ float mapAll(vec3 p,out float dU,out float dC,out float dT,out float dB,out floa
   return min(dT,min(dB,dG));
 }
 float mapT(vec3 p,out float dU,out float dC){ float dT,dB,dG; return mapAll(p,dU,dC,dT,dB,dG); }
+// the worn-away crown's distance (negative inside): the unworn crown above the worn surface
+float capF(vec3 p){ float dU,dC; mapT(p,dU,dC); return max(max(dU,wearH(p)-p.y),p.z-uCutX); }
 float map(vec3 p){ float a,b; return max(mapT(p,a,b),p.z-uCutX); }
 vec3 normal(vec3 p){ const vec2 k=vec2(1,-1); float h=uReal>0.?.011:.0022;   // wider on the smooth-shaded plates, so the model's voxels do not show
   return normalize(k.xyy*map(p+k.xyy*h)+k.yyx*map(p+k.yyx*h)+k.yxy*map(p+k.yxy*h)+k.xxx*map(p+k.xxx*h)); }
@@ -970,14 +980,21 @@ void main(){
   vec3 ro=uRo;
   vec3 inv=1./rd; vec3 t0=(uBoxMin-ro)*inv, t1=(uBoxMax-ro)*inv; vec3 tmn=min(t0,t1), tmx=max(t0,t1);
   float tn=max(max(tmn.x,tmn.y),tmn.z), tf=min(min(tmx.x,tmx.y),tmx.z);
-  float minR=1e3, minCap=1e3, capY=0.; bool hit=false, capIn=false; float t=max(tn,0.);
+  float minR=1e3, minCap=1e3, capY=0., capT=1., tPrev=0.; vec3 capP=vec3(0.); bool hit=false, capIn=false; float t=max(tn,0.);
   bool worn = uWearY < uTop-.004;
   if(tf>tn){
     for(int i=0;i<200;i++){
       vec3 p=ro+rd*t; float dU,dC; float d=max(mapT(p,dU,dC),p.z-uCutX);
       minR=min(minR,d/t);
       float st=d;
-      if(worn){ float cap=max(max(dU,wearH(p)-p.y),p.z-uCutX); if(cap<0.){ if(!capIn) capY=p.y; capIn=true; } else minCap=min(minCap,cap/t); st=min(d,abs(cap)+.006); }
+      if(worn){ float cap=max(max(dU,wearH(p)-p.y),p.z-uCutX);
+        if(cap<0.){
+          if(!capIn){ capY=p.y;
+            // where the ray enters the worn-away crown, found finely (bisection) so its mesh lines stay crisp
+            float a=tPrev, b=t; for(int k=0;k<6;k++){ float m=.5*(a+b); if(capF(ro+rd*m)<0.) b=m; else a=m; }
+            capT=b; capP=ro+rd*b; }
+          capIn=true; } else minCap=min(minCap,cap/t); st=min(d,abs(cap)+.006); }
+      tPrev=t;
       if(d<.0006*t){ hit=true; break; }
       t+=st*(uLeh.x+uLeh.y+uLeh.z+uLeh.w>0.||uCavOn>0.?.55:.75); if(t>tf) break;   // grooves and decay bend the distance field: smaller steps
     }
@@ -1071,7 +1088,14 @@ void main(){
   if(worn && uCapTint.a>0.){
     // the worn-away crown as translucent material, with a solid outline: what chewing has taken off the tooth
     float e=(1.-smoothstep(.5,1.4,minCap/uPx))*.9;
-    if(capIn){ vec3 tc=capCol(capY); o=o*(1.-uCapTint.a)+vec4(tc*uCapTint.a,uCapTint.a); }
+    if(capIn){ vec3 tc=capCol(capY); o=o*(1.-uCapTint.a)+vec4(tc*uCapTint.a,uCapTint.a);
+      if(uCapN>0){
+        // the same isocurves as the Wear and LEH section's peaks: lines of constant x and of constant z over the
+        // worn-away crown's surface, about ten across the tooth, in a deeper shade of the layer they cross
+        float S=(uBoxMax.x-uBoxMin.x)/10.; vec2 q=abs(fract(capP.xz/S+.5)-.5)*S;
+        float m=(1.-smoothstep(.4,1.2,min(q.x,q.y)/(uPx*capT)))*.85; vec3 mc=capCol(capP.y)*.5;
+        o=o*(1.-m)+vec4(mc*m,m);
+      } }
     else o=o*(1.-e)+vec4(uCapTint.rgb*e,e);
   } else if(worn && !capIn){
     float e=(1.-smoothstep(.5,1.4,minCap/uPx))*step(.5,fract((gl_FragCoord.x+gl_FragCoord.y)*.12))*.7;
@@ -1789,7 +1813,7 @@ void main(){
   // ------------------------------------------------------------------ the page
   const NOTES = n => [
     ["What the decay shows", "The shaded area is the share of adults in that era who carried at least one carious tooth, not the damage to one tooth. Its shape grows from the fissure pattern, where occlusal caries starts, and is the same shape in every era; only its extent changes."],
-    ["The scale is expanded", "The shaded share of the crown runs from 8% at a rate of 51% to 80% at a rate of 77%, because the whole record sits between 52.4% and 76.1%. That magnifies every difference about 2.8 times. Even so, eras 1, 4 and 5 lie within a point of one another (63.7, 64.5 and 64.0%), so their outlines all but coincide: that is the finding, not a fault in the drawing."],
+    ["The scale is expanded", "The shaded share of the crown runs from 8% at a rate of 51% to 80% at a rate of 77%, because the whole record sits between 52.4% and 76.1%. That magnifies every difference about 2.8 times. Even so, Pre-medieval, Late medieval and Early modern lie within a point of one another (63.7, 64.5 and 64.0%), so their outlines all but coincide: that is the finding, not a fault in the drawing. On the molar the three are drawn side by side, a few pixels apart in rate order, so each can be seen and clicked; the middle one is at its true place."],
     ["The pictograms", "The share of adults is drawn as ten figures, each a tenth of the period's adults. The counts of carious teeth are drawn on a mouth of 28, a full adult set without wisdom teeth: the record's adults had on average 17 to 20 teeth that could be scored, so the mouths show how many teeth were carious, not what share of the scored teeth that was."],
     ["One reference population", "Every rate is age-standardised to the pooled age distribution of all " + n.toLocaleString("en") + " adults (18–69), so no era reads higher merely because more of its people lived long enough to accumulate decay. It moves each value by at most 1.2 points and changes no ordering."],
     ["The drawing", "The outlines are grown from a drawing of a lower first molar's cusps and fissures and carved into the 3D molar's chewing surface, in three depths (the lesion, its cavitated body and its core) that are illustrative and exaggerated so the decay reads: drawn, not measured. The shaded share of the crown is the data; how deep it cuts is not. Era spans are the 10th to 90th percentile of site dates, so they overlap. A ‘hinge’ marks an event that changed what the tooth could record rather than what it recorded."],
@@ -1800,7 +1824,7 @@ void main(){
     "<div><svg class='pg pg-people' role='img'></svg><div><b class='cp-s1'></b><span>of adults carried caries <i>each figure is 10% of adults</i></span></div></div>" +
     "<div><svg class='pg pg-teeth' role='img'></svg><div><b class='cp-s2'></b><span>carious teeth, on average, in an affected mouth <i>of 28</i></span></div></div>" +
     "<div><svg class='pg pg-teeth' role='img'></svg><div><b class='cp-s3'></b><span>or more, in the worst-affected tenth of affected mouths <i>of 28</i></span></div></div></div>" +
-    "<p class='cp-bh'>Teeth carious, per person</p><div class='cp-bar'></div><div class='cp-keys'></div></div>" +
+    "<p class='cp-bh'>Teeth carious, per person</p><div class='cp-bar'></div><div class='cp-ax' aria-hidden='true'><span style='left:0%'>0%</span><span style='left:25%'>25%</span><span style='left:50%'>50%</span><span style='left:75%'>75%</span><span style='left:100%'>100%</span></div><p class='cp-axt'>share of all adults in the period</p><div class='cp-keys'></div></div>" +
     "<div class='cp-detail' hidden><div class='cp-dtop'><button class='link cp-close' type='button'>Close</button></div>" +
     "<p class='cp-h4'>What was happening</p><div class='cp-ev'></div><p class='cp-h4'>Why it may have reached the teeth</p><p class='cp-why'></p>" +
     "<p class='cp-h4'>All six eras</p><div class='cp-cmp'></div></div>" +
@@ -1819,7 +1843,7 @@ void main(){
   function pictos(svg, n, cols, kind) {
     const NS = "http://www.w3.org/2000/svg", P = kind === "person" ? { d: PERSON, w: 12, h: 30, gx: 3, gy: 4 } : { d: TOOTH, w: 16, h: 18, gx: 3, gy: 3 };
     const rows = Math.ceil(n / cols), W = cols * (P.w + P.gx) - P.gx, H = rows * (P.h + P.gy) - P.gy, id = "pg" + (++pgN) + "_";
-    svg.setAttribute("viewBox", "-1 -1 " + (W + 2) + " " + (H + 2));
+    svg.setAttribute("viewBox", "-1 -1 " + (W + 2) + " " + (H + 2)); svg.setAttribute("preserveAspectRatio", "xMinYMax meet");   // all three sit on one baseline
     const mk = (tag, a, par) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); par.appendChild(e); return e; };
     const defs = mk("defs", {}, svg), clips = [];
     for (let i = 0; i < n; i++) {
@@ -1935,13 +1959,13 @@ void main(){
     q(".cp-keys-all").innerHTML = data.bands.map((b, j) => "<span><i style='background:" + BAND[j] + "'></i>" + esc(b) + "</span>").join("");
     function drawSev() {
       const box = q(".cp-sevall"), W = Math.max(280, box.clientWidth), LW = Math.min(150, W * 0.3), NW = 52, RH = 26, G = 9, top = 4;
-      const H = top + N * (RH + G) + 22, x = v => LW + (W - LW - NW) * v / 100, v = svgEl(W, H);
+      const H = top + N * (RH + G) + 38, x = v => LW + (W - LW - NW) * v / 100, v = svgEl(W, H);
       let h = "";
       PD.forEach((d, i) => {
         const y = top + i * (RH + G);
         h += "<g class='sv-row' data-i='" + i + "' aria-label='" + esc(d.p) + ": " + d.sev.map((s, j) => s + "% " + data.bands[j]).join(", ") + "'>" +
-          "<text class='sv-no' x='0' y='" + (y + RH / 2 + 6) + "' fill='" + COLS[i] + "'>" + (i + 1) + "</text>" +
-          "<text class='sv-nm' x='20' y='" + (y + RH / 2 + 4) + "'>" + esc(d.p) + "</text>";
+          "<rect class='sv-sw' x='0' y='" + (y + RH / 2 - 5) + "' width='10' height='10' fill='" + COLS[i] + "'/>" +
+          "<text class='sv-nm' x='16' y='" + (y + RH / 2 + 4) + "'>" + esc(d.p) + "</text>";
         let l = 0;
         d.sev.forEach((s, j) => {
           h += "<rect x='" + x(l) + "' y='" + y + "' width='" + Math.max(0, x(l + s) - x(l)) + "' height='" + RH + "' fill='" + BAND[j] + "'/>";
@@ -1952,12 +1976,13 @@ void main(){
           "<text class='sv-n' x='" + (W - NW + 8) + "' y='" + (y + RH / 2 + 3.5) + "'>n = " + d.n.toLocaleString("en") + "</text></g>";
       });
       const yb = top + N * (RH + G) + 2;
-      [0, 25, 50, 75, 100].forEach(t => { h += "<text class='sv-ax' x='" + x(t) + "' y='" + (yb + 10) + "'>" + t + "%</text>"; });
+      [0, 25, 50, 75, 100].forEach(t => { h += "<line class='sv-tk' x1='" + x(t) + "' x2='" + x(t) + "' y1='" + (yb - 2) + "' y2='" + (yb + 2) + "'/><text class='sv-ax' x='" + x(t) + "' y='" + (yb + 12) + "'>" + t + "%</text>"; });
+      h += "<text class='sv-axt' x='" + (x(0) + x(100)) / 2 + "' y='" + (yb + 30) + "'>share of all adults in the period</text>";
       v.innerHTML = h; box.replaceChildren(v);
       v.querySelectorAll(".sv-row").forEach(g => keyAct(g, +g.dataset.i));
     }
     function drawAge() {
-      const box = q(".cp-agech"), W = Math.max(280, box.clientWidth), short = W < 440, RW = short ? 58 : 150,   // narrow: the lines end in their numbers alone
+      const box = q(".cp-agech"), W = Math.max(280, box.clientWidth), short = W < 440, RW = short ? 96 : 150,   // narrow: the lines end in short names
         L = 38, T = 10, B = 40, H = Math.round(Math.min(340, Math.max(240, W * 0.62)));
       const X = [21.5, 27.5, 32.5, 37.5, 42.5, 47.5, 55, 65];   // the age bands' midpoints, spaced as in the team's figure
       const vals = PD.map(d => AGES.map(a => byAge[d.p] && byAge[d.p][a] ? byAge[d.p][a][0] : null));
@@ -1977,7 +2002,7 @@ void main(){
           "<path class='ag-hit' d='M" + pts.map(p => p.join(",")).join("L") + "'/><path class='ag-path' d='M" + pts.map(p => p.join(",")).join("L") + "'/>" +
           pts.map((p, k) => "<circle cx='" + p[0] + "' cy='" + p[1] + "' r='3'><title>" + esc(PD[i].p) + ", " + esc(AGES[k]) + ": " + r[k] + "% (n = " + byAge[PD[i].p][AGES[k]][1] + ")</title></circle>").join("") +
           "<line class='ag-lead' x1='" + (last[0] + 4) + "' y1='" + last[1] + "' x2='" + (last[0] + 14) + "' y2='" + endY[i] + "'/>" +
-          "<text class='ag-end' x='" + (last[0] + 18) + "' y='" + (endY[i] + 4) + "'><tspan class='ag-no'>" + (i + 1) + "</tspan> " + (short ? "" : esc(PD[i].p) + " ") + Math.round(r[r.length - 1]) + "%</text></g>";
+          "<text class='ag-end' x='" + (last[0] + 18) + "' y='" + (endY[i] + 4) + "'>" + esc(short ? PD[i].p.replace("Pre-medieval", "Pre-med.").replace(" medieval", " med.").replace(" modern", " mod.") : PD[i].p) + " " + Math.round(r[r.length - 1]) + "%</text></g>";
       });
       v.innerHTML = h; box.replaceChildren(v);
       v.querySelectorAll(".ag-ln").forEach(g => { keyAct(g, +g.dataset.i);
@@ -2706,6 +2731,7 @@ void main(){
         cam.dist = Math.max(hh * cam.focal / 0.84, r.width > 0 ? half * cam.focal * r.height / (r.width * 0.8) : 0);
       }
       if (S.viewMode === "perspective") Object.assign(cam, { yaw: VIEW.yaw, pitch: 0.38 });
+      cam.home = cam.target.slice();
     });
   }
   const NEUTRAL = SH => ({ wearY: SH.top + 0.02, caries: [0, 0, 0, 0], leh: [0, 0], lehY: [0, 0], calc: 0, pb: 0, cutX: 5, jaw: false });
@@ -2787,7 +2813,13 @@ void main(){
   const liveTeeth = () => S.scene === "main" || S.scene === "layer";
   function toPair(T, p) { const s = T.R.project(p); return [s.x + T.el.offsetLeft, s.y + T.el.offsetTop]; }
 
-  const gLabels = ov.append("g"), gParts = ov.append("g");
+  // what is drawn on the teeth (particles, the caries outlines) is clipped to the teeth's own frame, so it never runs
+  // over the running head, the names or Replay
+  const ovClip = ov.append("defs").append("clipPath").attr("id", "ovClip").append("rect");
+  const clipToTeeth = () => { const T = TEETH.find(U => U.el.offsetWidth) || TEETH[0];
+    ovClip.attr("x", 0).attr("y", T.el.offsetTop).attr("width", pairEl.clientWidth).attr("height", T.el.offsetHeight); };
+  const inTeeth = xy => { const T = TEETH.find(U => U.el.offsetWidth) || TEETH[0]; return xy[1] >= T.el.offsetTop && xy[1] <= T.el.offsetTop + T.el.offsetHeight; };
+  const gLabels = ov.append("g"), gParts = ov.append("g").attr("clip-path", "url(#ovClip)");
   microbeDefs(ov);
   function drawParticles(now) {
     if (!GL || !liveTeeth()) { gParts.selectAll("*").remove(); return false; }
@@ -2833,13 +2865,17 @@ void main(){
   // the tooth names are the only lettering beside the teeth
   function drawLabels() {
     gLabels.selectAll("*").remove();
+    clipToTeeth();
     drawCariesOverlay();
     if (!GL || !liveTeeth()) return;
     ov.attr("viewBox", "0 0 " + pairEl.clientWidth + " " + pairEl.clientHeight);
     if (S.scene === "layer") plateLabels();
-    const y = fixedNameY != null ? fixedNameY : (fixedNameY = nameY());   // set when a view is framed, then held while the teeth turn
+    // on a section's plate the names (and Replay beside them) keep one row at the top, clear of the teeth however they
+    // are framed or zoomed; elsewhere they sit just above the crowns, set when a view is framed and held while it turns
+    const y = S.scene === "layer" ? 24 : fixedNameY != null ? fixedNameY : (fixedNameY = nameY());
     if (!replayEl.hidden) replayEl.style.top = (pairEl.offsetTop + y - 11) + "px";   // level with the names' tops
-    TEETH.filter(T => !wlHidden(T)).forEach(T => gLabels.append("text").attr("class", "tname").attr("x", toPair(T, [0, 0, 0])[0]).attr("y", y).attr("text-anchor", "middle").text(T.label));
+    const nameX = T => S.scene === "layer" ? T.el.offsetLeft + T.el.offsetWidth / 2 : toPair(T, [0, 0, 0])[0];   // a plate's names never move
+    TEETH.filter(T => !wlHidden(T)).forEach(T => gLabels.append("text").attr("class", "tname").attr("x", nameX(T)).attr("y", y).attr("text-anchor", "middle").text(T.label));
   }
   // Atlas-style labels on a section's plate: the anatomy and the traces the section shows, each on a hairline
   // leader to the page margin (molar left, canine right). Illustration, not data.
@@ -2850,7 +2886,7 @@ void main(){
       if (wlHidden(T)) return;
       const SH = T.R.st.S, P = T.R.st.P, top = SH.top, left = T.key === "molar", b = T.R.st.basis, v = viewOf(T);
       if (!b) return;
-      const add = (t, p) => { if (p) sides[T.key].push({ t, xy: toPair(T, p) }); };
+      const add = (t, p) => { if (!p) return; const xy = toPair(T, p); if (inTeeth(xy)) sides[T.key].push({ t, xy }); };   // not if its point is cropped off
       // the visible surface point on the way from the camera to a target inside the tooth
       const seen = target => { const d = [target[0] - b.ro[0], target[1] - b.ro[1], target[2] - b.ro[2]], l = Math.hypot(...d), h = T.R.march(b.ro, d.map(x => x / l), l + 2); return h && h.p; };
       if (v === "cut") {
@@ -2909,7 +2945,7 @@ void main(){
   // halfway to the era after, between their middles. A click or a drag anywhere on it picks the era under the pointer,
   // and the molar and every figure jump there; arrow keys step. It follows the run as the eras play.
   const eraEl = $("#eraLine");
-  const ERA_COL = ["#7b5a43", "#3d7558", "#3f7f9e", "#86ad79", "#c97a3f", "#9c4a72"];   // one per era, muted to sit on the paper
+  const ERA_COL = ["#1a1a18", "#3d7558", "#3f7f9e", "#86ad79", "#c97a3f", "#9c4a72"];   // one per era, muted to sit on the paper
   let eraSel = -1;
   function eraLineDraw() {
     if (eraEl.hidden || !LD || !LD.caries.plate) return;
@@ -2925,11 +2961,9 @@ void main(){
       const s0 = vert ? [p0[0], p0[1] + g] : [p0[0] + g, p0[1]], s1 = vert ? [p1[0], p1[1] - g] : [p1[0] - g, p1[1]];
       h += "<g class='era' data-i='" + i + "' style='--c:" + ERA_COL[i % ERA_COL.length] + "'>" +
         "<line class='seg' x1='" + s0[0] + "' y1='" + s0[1] + "' x2='" + s1[0] + "' y2='" + s1[1] + "'/>";
-      if (vert) h += "<text class='no' x='" + (A + 12) + "' y='" + (c[1] + 6) + "'>" + (i + 1) + "</text>" +
-        "<text class='nm' x='" + (A + 30) + "' y='" + (c[1] - 1) + "'>" + esc(e.p) + "</text><text class='yr2' x='" + (A + 30) + "' y='" + (c[1] + 11) + "'>" + e.lo + "–" + e.hi + " CE</text>";
-      else { const y = i % 2 === 0 ? A + 24 : A + 52;      // alternate rows, so neighbouring names never collide
-        h += "<text class='no' x='" + c[0] + "' y='" + y + "' text-anchor='middle'>" + (i + 1) + "</text>" +
-          "<text class='nm' x='" + c[0] + "' y='" + (y + 12) + "' text-anchor='middle'>" + esc(e.p) + "</text><text class='yr2' x='" + c[0] + "' y='" + (y + 23) + "' text-anchor='middle'>" + e.lo + "–" + e.hi + "</text>"; }
+      if (vert) h += "<text class='nm' x='" + (A + 14) + "' y='" + (c[1] - 1) + "'>" + esc(e.p) + "</text><text class='yr2' x='" + (A + 14) + "' y='" + (c[1] + 11) + "'>" + e.lo + "–" + e.hi + " CE</text>";
+      else { const y = i % 2 === 0 ? A + 22 : A + 46;      // alternate rows, so neighbouring names never collide
+        h += "<text class='nm' x='" + c[0] + "' y='" + y + "' text-anchor='middle'>" + esc(e.p) + "</text><text class='yr2' x='" + c[0] + "' y='" + (y + 11) + "' text-anchor='middle'>" + e.lo + "–" + e.hi + "</text>"; }
       h += "</g>";
     });
     eraEl.innerHTML = h + "</svg>";
@@ -2977,7 +3011,7 @@ void main(){
   // The outlines and their labels (on leaders to the right edge) open their era in the panel. Hidden in the Section view,
   // where the tooth is cut open and keeps its own cavity.
   let cpApi = null, cpState = null;
-  const gCar = ov.insert("g", ":first-child").attr("class", "cp3");
+  const gCar = ov.insert("g", ":first-child").attr("class", "cp3").attr("clip-path", "url(#ovClip)");
   function chewingSurface(T) {
     const SH = T.R.st.S; if (T.hm && T.hm.S === SH) return T.hm;
     const n = 44, x0 = SH.boxMin[0], x1 = SH.boxMax[0], z0 = SH.boxMin[2], z1 = SH.boxMax[2], hm = new Float64Array(n * n).fill(NaN);
@@ -3035,9 +3069,24 @@ void main(){
     // all six eras at once (sel < 0): every outline in its timeline colour, each filled faintly so the overlaps build up,
     // the largest drawn first so the smaller ones stay on top to be clicked
     const overview = cpState.sel < 0, area = r => d3.sum(r, v => v * v);
-    const order = d3.range(cpState.upto + 1); if (overview) order.sort((a, b) => area(cpApi.ring(b)) - area(cpApi.ring(a)));
+    // Eras whose rates are within a point of one another (Pre-medieval, Late medieval and Early modern: 63.7, 64.5 and
+    // 64.0%) have outlines that all but coincide. They are drawn side by side, a few pixels apart in rate order, like
+    // parallel lines on a transit map, so each can be seen and clicked; the middle one is at its true place.
+    const eras = LD.caries.plate.eras, ids = d3.range(cpState.upto + 1), off = ids.map(() => 0), tight = new Map();
+    ids.slice().sort((a, b) => eras[a].std - eras[b].std).forEach((i, n, o) => {
+      const prev = n ? o[n - 1] : null; tight.set(i, prev != null && eras[i].std - eras[prev].std <= 1 ? tight.get(prev) : i); });
+    const shared = new Set();
+    d3.groups(ids, i => tight.get(i)).forEach(([, g]) => { if (g.length > 1) g.sort((a, b) => eras[a].std - eras[b].std).forEach((i, n) => { off[i] = n - (g.length - 1) / 2; shared.add(i); }); });
+    let dr = 0;
+    if (off.some(o => o)) {                                      // radius units per 6 screen pixels, measured on the molar
+      const r0 = cpApi.ring(ids[0]), k0 = d3.range(0, K, 8).find(k => P3(r0[k], k).up);
+      if (k0 != null) { const a = P3(r0[k0], k0).s, b = P3(r0[k0] + 0.02, k0).s, px = Math.hypot(b[0] - a[0], b[1] - a[1]); if (px > 0.1) dr = 0.02 * 6 / px; }
+    }
+    const ringOf = i => off[i] && dr ? cpApi.ring(i).map(v => v + off[i] * dr) : cpApi.ring(i);
+    const order = ids.slice(); if (overview) order.sort((a, b) => area(ringOf(b)) - area(ringOf(a)));
     order.forEach(i => {
-      const d = path(cpApi.ring(i)), g = gCar.append("g").attr("class", "cp3-ring" + (i === cpState.sel ? " on" : "") + (overview ? " all" : ""));
+      const d = path(ringOf(i)), g = gCar.append("g").attr("class", "cp3-ring" + (i === cpState.sel ? " on" : "") + (overview ? " all" : "") + (shared.has(i) ? " tight" : ""));
+      g.append("title").text(eras[i].p + ", " + eras[i].lo + "–" + eras[i].hi + " CE");
       if (overview) { g.style("--c", ERA_COL[i % ERA_COL.length]); if (d.lastIndexOf("M") === 0) g.append("path").attr("class", "fl").attr("d", d + "Z"); }   // a fill only where the whole outline is in view
       g.append("path").attr("class", "lt").attr("d", d); g.append("path").attr("class", "dk").attr("d", d).attr("opacity", overview ? 1 : (0.45 + 0.08 * i).toFixed(2));
       g.append("path").attr("class", "hit").attr("d", d).on("click", () => cpApi.pick(i)).on("pointerdown", ev => ev.stopPropagation());
@@ -3064,22 +3113,59 @@ void main(){
   // zoom both teeth together: the wheel over them (on narrow screens, where it scrolls the page, ctrl+wheel or a pinch),
   // or the - and + buttons beside the views
   S.zoom = 1;
-  function setZoom(z) { S.zoom = clamp(z, 0.35, 3); TEETH.forEach(T => { if (T.R) T.R.st.cam.zoom = 1 / S.zoom; }); }
+  // Zooming in moves towards what is under the pointer (the wheel) or keeps the middle of the view (the buttons), so the
+  // part being looked at stays on the plate long after the rest is cropped; the view never leaves the tooth (its
+  // target stays inside the tooth's box). Zooming out eases the view back to its framing, which it reaches at 1.
+  // the camera's right and up directions (as camBasis() in tooth.js), and the box its target is kept in: the tooth's
+  const camAxes = cam => { const cp = Math.cos(cam.pitch), dir = [Math.sin(cam.yaw) * cp, Math.sin(cam.pitch), Math.cos(cam.yaw) * cp];
+    const rl = Math.hypot(dir[2], dir[0]) || 1, rt = [dir[2] / rl, 0, -dir[0] / rl];
+    return { rt, up: [dir[1] * rt[2] - dir[2] * rt[1], dir[2] * rt[0] - dir[0] * rt[2], dir[0] * rt[1] - dir[1] * rt[0]] }; };
+  const inTooth = (SH, t) => { const lo = [SH.boxMin[0], SH.rootMin, SH.boxMin[2]], hi = [SH.boxMax[0], SH.top, SH.boxMax[2]]; return t.map((v, i) => clamp(v, lo[i], hi[i])); };
+  function setZoom(z, at) {
+    const z0 = S.zoom || 1, z1 = clamp(z, 0.35, 3); S.zoom = z1;
+    TEETH.forEach(T => {
+      if (!T.R) return; const cam = T.R.st.cam, SH = T.R.st.S, home = cam.home || cam.target;
+      cam.zoom = 1 / z1;
+      if (z1 <= 1) { if (z0 > 1) cam.target = home.slice(); return; }   // back at the framing (a pan made there is kept)
+      if (z1 < z0) { const k = (z1 - 1) / Math.max(1e-6, z0 - 1); cam.target = cam.target.map((v, i) => home[i] + (v - home[i]) * k); return; }
+      if (!at) return;
+      // move the target towards the point under the pointer (on the plane through the target), a little faster than
+      // would hold it in place, so the part being zoomed into drifts towards the middle of the plate instead of its edge
+      const { rt, up } = camAxes(cam), d0 = cam.dist / z0, k = 2 * d0 / (at.h * cam.focal) * (1 - (z0 / z1) * (z0 / z1));
+      cam.target = inTooth(SH, cam.target.map((v, i) => v + k * (at.dx * rt[i] - at.dy * up[i])));
+    });
+  }
   TEETH.forEach(T => T.el.addEventListener("wheel", e => {
     if (!GL || !liveTeeth()) return;
     if (matchMedia("(max-width:1100px)").matches && !e.ctrlKey) return;   // narrow screens: the wheel scrolls the page
     e.preventDefault();
-    setZoom(S.zoom * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)));
+    const r = T.el.getBoundingClientRect();
+    setZoom(S.zoom * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), { dx: e.clientX - r.left - r.width / 2, dy: e.clientY - r.top - r.height / 2, h: r.height });
     requestRender(true);
   }, { passive: false }));
-  document.querySelectorAll("#views [data-z]").forEach(b => { b.onclick = () => { setZoom(S.zoom * (+b.dataset.z > 0 ? 1.25 : 0.8)); requestRender(false); }; });
+  // the buttons zoom towards what the section is about: the chewing surface for caries and wear, else the middle
+  const zoomFocus = () => {
+    const T = TEETH[0]; if (!T.R || !T.R.st.basis || !(S.scene === "layer" && (S.layer === "caries" || S.layer === "wear"))) return null;
+    const r = T.el.getBoundingClientRect(), q = T.R.project([0, T.R.st.S.top * 0.97, 0]);
+    return { dx: q.x - r.width / 2, dy: q.y - r.height / 2, h: r.height };
+  };
+  document.querySelectorAll("#views [data-z]").forEach(b => { b.onclick = () => { setZoom(S.zoom * (+b.dataset.z > 0 ? 1.25 : 0.8), zoomFocus()); requestRender(false); }; });
   // drag to orbit both teeth together
+  // On a section's plate, a drag with the right button pans instead: the teeth follow the pointer up, down, left and
+  // right, as far as the view stays on the tooth
   (function orbit() {
     let drag = null;
     TEETH.forEach(T => {
-      T.el.addEventListener("pointerdown", e => { drag = { x: e.clientX, y: e.clientY, moved: 0 }; try { T.el.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ } });
+      T.el.addEventListener("contextmenu", e => { if (S.scene === "layer") e.preventDefault(); });
+      T.el.addEventListener("pointerdown", e => { drag = { x: e.clientX, y: e.clientY, moved: 0, pan: e.button === 2 && S.scene === "layer" }; try { T.el.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ } });
       T.el.addEventListener("pointermove", e => {
         if (!drag || !GL) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.moved += Math.abs(dx) + Math.abs(dy); drag.x = e.clientX; drag.y = e.clientY;
+        if (drag.pan) {
+          const h = T.el.clientHeight || 1;
+          TEETH.forEach(U => { const cam = U.R.st.cam, { rt, up } = camAxes(cam), k = 2 * cam.dist * (cam.zoom || 1) / (h * cam.focal);
+            cam.target = inTooth(U.R.st.S, cam.target.map((v, i) => v - k * (dx * rt[i] - dy * up[i]))); });
+          requestRender(true); return;
+        }
         if (drag.moved < 5) return;
         if (S.scene === "layer" && (S.viewMode === "top" || S.viewMode === "side")) { S.viewMode = "perspective"; setViewButtons(); TEETH.forEach(U => U.R.setParams(paramsFor(U))); }
         TEETH.forEach(U => { U.R.st.cam.yaw -= dx * 0.009; U.R.st.cam.pitch = clamp(U.R.st.cam.pitch + dy * 0.007, -0.4, 1.45); });
@@ -3168,7 +3254,7 @@ void main(){
   // ------------------------------------------------------------------ the journal frame: running head, captions, page numbers
   function setPage() {
     const L = S.scene === "layer" ? layerOf(S.layer) : null, onRadial = S.scene === "radial";
-    $("#rhPlate").innerHTML = L ? "<b>Section " + L.n + "</b><span>" + esc(L.name) + "</span>"
+    $("#rhPlate").innerHTML = L ? ""   // a section page: the index on the right already marks it
       : onRadial ? "<b>Plate II</b><span>How far back each record reaches</span>" : "<b>Plate I</b><span>The composite teeth, 300–1900 CE</span>";
     document.querySelectorAll("#rhIdx [data-l]").forEach(b => b.setAttribute("aria-current", L && b.dataset.l === L.key ? "page" : "false"));
     $("#rhBack").hidden = !L;
