@@ -17,7 +17,7 @@ Harvard MDE data-visualisation prototype. The page itself is still titled *The S
 | **Edit the page** | In this folder run `python3 -m http.server 8000`, open http://localhost:8000, edit `index.html`, `app.js` or `tooth.js`, and refresh. |
 | **Rebuild the data** | `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`, then `python3 build_data.py`, `python3 build_models.py` and `python3 prepare_jaw.py`. `python3 build_layers.py` (the dashboard charts) needs no packages. |
 | **Make the single-file versions** | `python3 bundle.py` writes `dist/` and `data/images.js`; `python3 share.py` writes `share/`. |
-| **Update the live page** | After `share.py`, copy `share/statistical-tooth.html` to `index.html` in [shuiee/tooth-untold-prototype](https://github.com/shuiee/tooth-untold-prototype) and push. GitHub Pages republishes it within a minute or two. |
+| **Update the live page** | Automatic: every push to `main` runs `.github/workflows/publish-site.yml`, which rebuilds the page with `share.py` and copies it to [shuiee/tooth-untold-prototype](https://github.com/shuiee/tooth-untold-prototype) as `index.html`; GitHub Pages serves it a minute or two later. Pushes to `dev` do not change the site until they reach `main`. Check a run under the repo's Actions tab, or start one by hand there (Run workflow). |
 
 Serve the folder rather than double-clicking `index.html`. Browsers block some loading from `file://`. `share/statistical-tooth.html` works either way because everything is inside it.
 
