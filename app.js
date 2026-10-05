@@ -43,7 +43,7 @@
       events: [] },   // the caries plate carries each period's events itself
     { key: "pathogens", n: 2, name: "Pathogens", dek: "Disease DNA recovered from European teeth, 100–1800 CE",
       view: { molar: "cut", canine: "cut" },
-      events: [{ label: "Plague of Justinian", when: "541–750s", img: "event-justinian" }, { label: "The Black Plague", when: "Year–Year", img: "event-blackdeath" }] },
+      events: [] },   // its events open from the strand, in the disease pop-up (STRAND_CONTEXT)
     { key: "wear", n: 3, name: "Wear and LEH", dek: "Chewing wear and childhood stress lines in adults of six periods",
       view: { molar: "whole", canine: "whole" }, byPeriod: true,
       events: [{ label: "Roller mill invented", when: "Year–Year", img: "event-rollermill" }] },
@@ -157,8 +157,6 @@
     G.metals = D.metals.filter(r => inRegion(r) && inSpan(r, a, b));
     const pb = G.metals.filter(r => r.material === "enamel" && r.analyte === "Pb" && r.value != null);
     G.pbRows = pb; G.pb = pb.length ? d3.median(pb, r => r.value) : null;
-    G.calcRecs = [].concat(G.path.filter(r => /calculus/.test(r.material)), G.meta.filter(r => /calculus/.test(r.material)), G.metals.filter(r => r.material === "dental calculus"));
-    G.calcSamples = d3.sum(G.calcRecs, r => r.kind === "metagenome" ? r.n : 1);
     G.byCommon = d3.rollups(G.path, v => v.length, r => common(r.name)).sort((x, y) => y[1] - x[1]);
     return G;
   }
@@ -209,8 +207,11 @@
     const cr = decay && !cariesPlate && G.caries != null ? (0.015 + 0.7 * G.caries) * (SH.B[0] / 0.5) : 0;
     const cav = cariesPlate && T.type === "molar" ? cavityOf(T) : null;
     const cp = SH.cariesAt === "occlusal" ? [0.06, Math.min(wearY, SH.grooveY) - 0.005, -0.03] : [SH.B[0] * 0.97, 0.44 * top, -0.13];
-    const pb = (L === "all" || L === "metals") && G.pb != null ? clamp(Math.log10(G.pb / 0.05) / Math.log10(10 / 0.05), 0, 1) : 0;
-    const calc = G.calcRecs.some(r => L === "all" || (L === "pathogens" && r.kind !== "metal") || (L === "metals" && r.kind === "metal")) ? 1 : 0;
+    const pb = (L === "all" || L === "metals") && G.pb != null ? clamp(Math.log10(G.pb / 0.05) / Math.log10(10 / 0.05), 0, 1) * (S.mGrow == null ? 1 : S.mGrow) : 0;
+    // No tartar is drawn, anywhere: the teeth show what was recovered from the tooth itself. (On the Pathogens plate 259
+    // of 261 genomes come from inside the tooth; the dataset's calculus rows are oral-microbiome samples and particle
+    // counts of starch, plant tissue, fibres, spores and charcoal, which none of the plates draws.)
+    const calc = 0;
     const wearAmp = wl && wear != null ? 0.035 * clamp((wear - 1) / 4, 0, 1) : 0, capTint = wl && T.type === "molar" ? [0.2, 0.36, 0.85, 0.72] : [0, 0, 0, 0];
     const strata = wl && T.type === "molar" && wl.strata ? wl.strata : null;
     return { cav, wearY, wearAmp, capTint, capS: strata && strata.s, capC: strata && strata.c, caries: [cp[0], cp[1], cp[2], cr], leh: leh || [0, 0], lehY: leh && leh.length > 2 ? [0.44, 0.31, 0.56, 0.66].map(f => f * top) : [0.36 * top, 0.54 * top], calc, pb, cutX: viewOf(T) === "cut" ? 0 : 5, jaw: false, real: liveTeeth() };
@@ -241,7 +242,7 @@
         cam.target = [0, (SH.top + SH.rootMin) / 2, 0];
         cam.dist = Math.max(hh * cam.focal / 0.84, r.width > 0 ? half * cam.focal * r.height / (r.width * 0.8) : 0);
       }
-      if (S.viewMode === "perspective") Object.assign(cam, { yaw: VIEW.yaw, pitch: 0.38 });
+      if (S.scene === "layer" && S.viewMode === "perspective") Object.assign(cam, { yaw: VIEW.yaw, pitch: 0.38 });   // the view buttons belong to the sections; the overview keeps its own view
       cam.home = cam.target.slice();
     });
   }
@@ -252,8 +253,10 @@
     return d < -m;
   }
 
-  // particles: one mark per record, split between the two teeth (tooth type is not recorded)
-  const showsRec = r => S.show === "all" || (S.show === "pathogens" && r.kind === "pathogen") || (S.show === "metals" && r.kind === "metal");
+  // particles: one mark per genome recovered from the tooth itself, split between the two teeth (tooth type is not
+  // recorded). The two genomes recovered from calculus are left off, like the tartar; the Metals plate has no marks, its
+  // trace being the lead stipple in the enamel.
+  const showsRec = r => (S.show === "all" || S.show === "pathogens") && r.kind === "pathogen" && !/calculus/.test(r.material || "");
   function updateParticles(animate) {
     if (!GL) return;
     const now = performance.now(), dense = everything();
@@ -261,8 +264,8 @@
       const want = new Map();
       const mine = h => solo() ? ti === 0 : h % 2 === ti;   // split between the teeth, or all on the molar when it is alone
       const reached = r => !PSEQ.on || r.year < PSEQ.upto;   // while Section 2 plays, only the centuries reached so far
-      G.path.forEach(r => { if (showsRec(r) && reached(r) && mine(hash(r.id))) want.set(r.id, r); });
-      G.calcRecs.forEach(r => { if (r.kind !== "metagenome" && showsRec(r) && reached(r) && mine(hash(r.id + "c"))) want.set(r.id, r); });
+      const speck = r => showsRec(r) && !(S.layer === "metals" && r.kind === "metal");   // Section 4 draws its metals as strands instead
+      G.path.forEach(r => { if (speck(r) && reached(r) && mine(hash(r.id))) want.set(r.id, r); });
       T.parts.forEach((q, id) => { if (!want.has(id) && !q.dead) q.dead = now; });
       const placed = [...T.parts.values()].filter(q => !q.dead && q.face).map(q => q.p);
       let k = 0;
@@ -278,36 +281,28 @@
   }
   function makeParticle(T, r, placed, dense) {
     const SH = T.R.st.S, P = T.R.st.P, rnd = rng(hash(r.id + S.jaw));
-    if (!/calculus/.test(r.material || "")) {
-      let pos = null;
-      for (let k = 0; k < 500; k++) {
-        const y = SH.rootMin + 0.12 + rnd() * (P.wearY - 0.04 - SH.rootMin - 0.12), x = SH.boxMin[0] + rnd() * (SH.boxMax[0] - SH.boxMin[0]);
-        const p = [x, y, -0.002];
-        if (!insideSolid(T, p, 0.03)) continue;
-        if (y > 0.05 && T.R.outerJS(p) > -0.12) continue;   // DNA sits in dentine and pulp, not enamel
-        if (k < 400 && placed.some(o => Math.hypot(o[1] - y, o[0] - x) < (dense ? 0.03 : 0.05))) continue;
-        pos = p; break;
-      }
-      if (!pos) return null;
-      placed.push(pos);
-      // route: from the root tip, where the nerve and vessels enter, up the canal to the mark's own height, then across
-      let axis;
-      if (SH.canal && SH.canal.length) axis = SH.canal.map(c => [c[0], c[1]]);
-      else {
-        const root = SH.roots.slice().sort((u, v) => Math.abs(u[4] - pos[0]) - Math.abs(v[4] - pos[0]))[0];
-        const a0 = [root[4], root[5] + 0.03], b0 = [root[0] * 0.6, SH.pulpC[1]];
-        axis = d3.range(0, 1.001, 0.1).map(k => [a0[0] + (b0[0] - a0[0]) * k, a0[1] + (b0[1] - a0[1]) * k]);
-      }
-      const z = -0.002, up = axis.filter(c => c[1] <= pos[1]);
-      const path = withLengths([[axis[0][0], axis[0][1], z], [axis[0][0], axis[0][1] + 0.001, z]].concat(up.map(c => [c[0], c[1], z]), [pos]));
-      return { r, p: pos, path, face: true, cat: r.cat };
+    let pos = null;
+    for (let k = 0; k < 500; k++) {
+      const y = SH.rootMin + 0.12 + rnd() * (P.wearY - 0.04 - SH.rootMin - 0.12), x = SH.boxMin[0] + rnd() * (SH.boxMax[0] - SH.boxMin[0]);
+      const p = [x, y, -0.002];
+      if (!insideSolid(T, p, 0.03)) continue;
+      if (y > 0.05 && T.R.outerJS(p) > -0.12) continue;   // DNA sits in dentine and pulp, not enamel
+      if (k < 400 && placed.some(o => Math.hypot(o[1] - y, o[0] - x) < (dense ? 0.03 : 0.05))) continue;
+      pos = p; break;
     }
-    const a = -0.95 + rnd() * 0.87, dir = [Math.cos(a), 0, Math.sin(a)];
-    const hit = T.R.march([dir[0] * 2, 0.1 + (rnd() - 0.5) * 0.04, dir[2] * 2], [-dir[0], 0, -dir[2]], 3);
-    if (!hit) return null;
-    const pos = [hit.p[0] + dir[0] * 0.035, hit.p[1], hit.p[2] + dir[2] * 0.035];
-    const path = withLengths([[pos[0] + 0.1, SH.top + 0.1, pos[2]], [pos[0] + 0.05, SH.top + 0.04, pos[2]], pos]);   // tartar settles from just above the crown
-    return { r, p: pos, path, face: false, n: dir, cat: r.cat };
+    if (!pos) return null;
+    placed.push(pos);
+    // route: from the root tip, where the nerve and vessels enter, up the canal to the mark's own height, then across
+    let axis;
+    if (SH.canal && SH.canal.length) axis = SH.canal.map(c => [c[0], c[1]]);
+    else {
+      const root = SH.roots.slice().sort((u, v) => Math.abs(u[4] - pos[0]) - Math.abs(v[4] - pos[0]))[0];
+      const a0 = [root[4], root[5] + 0.03], b0 = [root[0] * 0.6, SH.pulpC[1]];
+      axis = d3.range(0, 1.001, 0.1).map(k => [a0[0] + (b0[0] - a0[0]) * k, a0[1] + (b0[1] - a0[1]) * k]);
+    }
+    const z = -0.002, up = axis.filter(c => c[1] <= pos[1]);
+    const path = withLengths([[axis[0][0], axis[0][1], z], [axis[0][0], axis[0][1] + 0.001, z]].concat(up.map(c => [c[0], c[1], z]), [pos]));
+    return { r, p: pos, path, face: true, cat: r.cat };
   }
   function withLengths(path) {
     const cum = [0];
@@ -342,7 +337,6 @@
         let op = 1;
         if (q.dead) { op = 1 - (now - q.dead) / 400; if (op <= 0) { T.parts.delete(id); return; } busy = true; }
         if (q.face && b.ro[2] <= 0) return;
-        if (!q.face && q.n[0] * b.ro[0] + q.n[2] * b.ro[2] < 0.2) return;
         const k = (now - q.born) / q.dur;
         if (k < 0) { busy = true; return; }
         const e = ease(Math.min(k, 1));
@@ -420,7 +414,6 @@
         } else { const bone = [left ? SH.jawMin[0] + 0.12 : SH.jawMax[0] - 0.12, SH.bottom * 0.72, z]; if (P.jaw && !solid(bone)) add("bone", bone); }
         if (L === "caries" && P.caries[3] > 0) add("cavity", P.caries[2] < -0.05 ? seen(P.caries.slice(0, 3)) : P.caries.slice(0, 3));   // a cavity behind the cut: point at where it shows
         if (L === "metals" && (!left || solo()) && P.pb > 0) add("lead in enamel", edge(top * 0.55, 0.015));
-        if ((L === "metals" || L === "pathogens") && P.calc) { const h = T.R.march([left ? -2 : 2, 0.1, -0.2], [left ? 1 : -1, 0, 0], 3); if (h) add("tartar", h.p); }
       } else if (v === "aerial") {
         add(P.wearY < top ? "worn chewing surface" : "chewing surface", seen([0.02, top * 0.5, 0.02]));
         // where wear has gone through the enamel the cusps show dentine: label the cusp nearest the label side
@@ -618,7 +611,29 @@
   function loop(now) {
     const busy = drawParticles(now);
     const walking = stepPlay(now);
-    if (busy || walking) requestAnimationFrame(loop); else looping = false;
+    const easing = easeTeeth(now);
+    if (busy || walking || easing) requestAnimationFrame(loop); else looping = false;
+  }
+  // On the overview the teeth ease towards each moment's values instead of jumping to them. A trace whose records leave
+  // the 100-year window (lead in the enamel) would otherwise blink out and back; it now recedes and returns over
+  // a fraction of a second, and the pooled values at 1900 arrive the same way. Amounts ease; positions follow at once.
+  const EASE_TAU = 0.35;   // seconds
+  const easeOf = P => ({ cr: P.caries[3], l0: P.leh[0], l1: P.leh[1], wearY: P.wearY, pb: P.pb });
+  const withEase = (P, e) => Object.assign({}, P, { caries: [P.caries[0], P.caries[1], P.caries[2], e.cr], leh: [e.l0, e.l1], wearY: e.wearY, pb: e.pb });
+  let easeAt = 0;
+  function easeTeeth(now) {
+    if (!GL || S.scene !== "main") { easeAt = 0; return false; }
+    const dt = easeAt ? Math.min(0.1, (now - easeAt) / 1000) : 0, k = 1 - Math.exp(-dt / EASE_TAU);
+    easeAt = now;
+    let moving = false;
+    TEETH.forEach(T => {
+      if (!T.target || !T.ez) return;
+      const g = easeOf(T.target);
+      for (const key in g) { const d = g[key] - T.ez[key]; if (Math.abs(d) > 1e-4) { T.ez[key] += d * k; moving = true; } else T.ez[key] = g[key]; }
+      T.R.setParams(withEase(T.target, T.ez));
+    });
+    if (moving) requestRender(true); else easeAt = 0;
+    return moving;
   }
 
   // zoom both teeth together: the wheel over them (on narrow screens, where it scrolls the page, ctrl+wheel or a pinch),
@@ -709,7 +724,8 @@
     const cOld = S.t > T_LAST ? "all" : Math.floor((S.t - 250) / 100);
     S.t = t;
     G = composite(S.t);
-    if (GL) TEETH.forEach(T => T.R.setParams(paramsFor(T)));
+    // on the overview the teeth ease towards these values (easeTeeth); elsewhere, and on first entry, they take them at once
+    if (GL) TEETH.forEach(T => { T.target = paramsFor(T); if (S.scene !== "main" || !T.ez) { T.ez = easeOf(T.target); T.R.setParams(T.target); } else kick(); });
     const cNew = S.t > T_LAST ? "all" : Math.floor((S.t - 250) / 100);
     if (cOld !== cNew || force) updateParticles(S.scene === "main" && !REDUCED);
     readout(); requestRender(true);
@@ -775,8 +791,8 @@
   function enterRadial(animate) {
     clearTimeout(layersTimer); pause();
     if (S.scene === "intro") { endIntro(); drawCloud(0, 0); pairEl.style.transform = ""; }
-    leaveWear(); stopPseq(); S.scene = "radial"; S.layer = null; S.show = "all"; S.t = T_ALL; G = composite(T_ALL); readout();
-    stage.classList.remove("dashboard", "haspanel"); panelEl.hidden = true; panelEl.innerHTML = "";
+    leaveWear(); stopPseq(); hidePop(); popOpen = false; S.scene = "radial"; S.layer = null; S.show = "all"; S.t = T_ALL; G = composite(T_ALL); readout();
+    stage.classList.remove("dashboard", "haspanel", "metals-on"); panelEl.hidden = true; panelEl.innerHTML = "";
     gParts.selectAll("*").remove(); gLabels.selectAll("*").remove(); setPage();
     requestAnimationFrame(() => {
       if (S.scene !== "radial") return;
@@ -797,6 +813,99 @@
   // Charts are drawn from data/layers.js (build_layers.py, from the team's tabular datasets in source/layer data/).
   // The "human ×" event strips stay placeholders until their pictures and dates arrive.
   const LD = window.LAYER_DATA || null;
+  // Section 4: metallic inclusions set into the molar's crown (see metalsStart).
+  let mvRaf = 0, mvSvg = null, mvData = null;
+  const MV = [["Pb", "lead", 10.4, "#9a5a52"], ["Cu", "copper", 14.4, "#b47a46"], ["Cr", "chromium", 11.1, "#7c8a4a"], ["Ni", "nickel", 9.2, "#5a8a7a"],
+    ["Zn", "zinc", 1.48, "#5f74a0"], ["Ba", "barium", 1.44, "#86699c"], ["Sr", "strontium", 0.89, "#a39463"], ["Mg", "magnesium", 1.26, "#8a877c"]];
+  let mvEra = null;
+  function metalsStop() { if (mvEra) window.removeEventListener("metals:era", mvEra); mvEra = null; cancelAnimationFrame(mvRaf); mvRaf = 0; if (mvSvg) mvSvg.remove(); mvSvg = null; if (mvCv) { mvCv.forEach(c => c.remove()); } mvCv = null; }
+  let mvCv = null;
+  // Section 4: metal set into the molar. Each element is a cluster of small metallic inclusions (nuggets with fine veins
+  // running off them) fixed in the crown, so they turn with the tooth. Two layers, both clipped to the tooth's own pixels:
+  // the metal's body multiplied into the tooth (it takes the tooth's texture and shading) and its specular light screened
+  // over it, a highlight that sweeps slowly as if the light moves. Number and size follow the modern ÷ archaeological
+  // ratio (Kamenov et al. 2018); the tints are the metals' own, silver with a hint of each.
+  const METAL_TINT = { Pb: "#6b7380", Cu: "#b06a34", Cr: "#b9c6d2", Ni: "#9c9a86", Zn: "#8fa3b4", Ba: "#c9bf9c", Sr: "#bfae93", Mg: "#cfd5dc" };
+  function metalsStart() {
+    metalsStop(); const T = TEETH.find(t => t.key === "molar"); if (!T || !T.R || !T.R.march) return;
+    const SS = T.R.st.S, top = SS.top; let sd = 11; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    const CC = [0, top * 0.5, 0], Z = -0.02;
+    mvData = MV.map(([sym, name, x], i) => {
+      const th = (196 - i * (212 / (MV.length - 1))) * Math.PI / 180, o = [Math.cos(th), Math.sin(th), 0];
+      const h = T.R.march([CC[0] + o[0] * 3, CC[1] + o[1] * 3, Z], [-o[0], -o[1], 0], 4); if (!h) return null;
+      const nug = Array.from({ length: 7 }, (_, k) => {
+        const f = 0.22 + rnd() * 0.62, jt = (rnd() - .5) * 0.5;   // from just under the surface into the dentine
+        const p = [h.p[0] + (CC[0] - h.p[0]) * f + (h.p[1] - CC[1]) * jt * 0.25, h.p[1] + (CC[1] - h.p[1]) * f - (h.p[0] - CC[0]) * jt * 0.25, Z];
+        const r = k ? 0.6 + rnd() * 0.4 : 1.1, m = 7 + Math.floor(rnd() * 4);   // relative size; the era sets the scale
+        const shape = Array.from({ length: m }, (_, q) => [q / m * Math.PI * 2 + (rnd() - .5) * 0.5, 0.65 + rnd() * 0.5]);
+        const veins = Array.from({ length: k ? (rnd() < 0.5 ? 1 : 0) : 2 }, () => { let a = rnd() * Math.PI * 2, d = 1, pts = [[0, 0]], x0 = 0, y0 = 0;
+          for (let s = 0; s < 6; s++) { a += (rnd() - .5) * 0.9; x0 += Math.cos(a) * r * 0.75; y0 += Math.sin(a) * r * 0.75; pts.push([x0, y0]); } return pts; });
+        return { p, r, shape, veins, rot: rnd() * Math.PI, d: k * 140 + rnd() * 120, s: 0 };
+      });
+      return { sym, name, x, tint: METAL_TINT[sym] || "#a8adb3", nug, anchor: h.p, delay: i * 160, size: 6, ex: x }; }).filter(Boolean);
+    // the era playing on Plate 4.A sets each element's size and count: its change from the archaeological level then,
+    // so lead swells through the medieval periods while the elements with no per-era data hold at ×1
+    const setEra = E => mvData.forEach(d => { const x = E && E.x[d.sym] != null ? E.x[d.sym] : d.x, lx = Math.max(-0.6, Math.min(1, Math.log10(x) / Math.log10(15)));
+      d.ex = x; d.sizeT = 10 + 14 * Math.max(0, lx); d.count = Math.max(1, Math.min(7, 1 + Math.round(Math.max(0, lx + 0.4) * 4.3))); });
+    setEra(window.METALS_ERA); mvData.forEach(d => { d.size = d.sizeT; });
+    mvEra = e => { setEra(e.detail); if (REDUCED) requestAnimationFrame(frame); }; window.addEventListener("metals:era", mvEra);
+    const mk = cls => d3.select(pairEl).append("canvas").attr("class", "mv-cv " + cls).attr("aria-hidden", "true");
+    mvCv = [mk("body"), mk("shine")];
+    mvSvg = d3.select(pairEl).append("svg").attr("class", "mv-ov").attr("aria-hidden", "true");
+    const [cb, cs] = mvCv.map(c => c.node().getContext("2d")), t0 = performance.now(); let tPrev = t0;
+    const blob = (c, q, n, sc) => { c.beginPath(); n.shape.forEach(([a, k], m) => { const rr = n.r * k * sc, x = q[0] + Math.cos(a + n.rot) * rr, y = q[1] + Math.sin(a + n.rot) * rr; m ? c.lineTo(x, y) : c.moveTo(x, y); }); c.closePath(); };
+    const frame = now => {
+      if (S.scene !== "layer" || S.layer !== "metals") { metalsStop(); return; }
+      const W = pairEl.clientWidth, H = pairEl.clientHeight, dpr = Math.min(2, devicePixelRatio || 1), t = REDUCED ? 0 : (now - t0) / 1000;
+      mvCv.forEach(c => { const n = c.node(); if (n.width !== Math.round(W * dpr) || n.height !== Math.round(H * dpr)) { n.width = Math.round(W * dpr); n.height = Math.round(H * dpr); } });
+      [cb, cs].forEach(c => { c.setTransform(dpr, 0, 0, dpr, 0, 0); c.globalCompositeOperation = "source-over"; c.clearRect(0, 0, W, H); });
+      const light = t * 0.35;   // the highlight's direction, turning slowly
+      const ease = REDUCED ? 1 : 1 - Math.exp(-(now - tPrev) / 220); tPrev = now;   // eases sizes toward the era's, whatever the frame rate
+      mvData.forEach(d => {
+        const base = d3.rgb(d.tint), dark = base.darker(1.6), mid = base, hi = base.brighter(1.4);
+        d.scr = []; d.size += (d.sizeT - d.size) * ease;
+        d.nug.forEach((n, k) => {
+          n.s += ((k < d.count ? 1 : 0) - n.s) * ease;
+          const g = REDUCED ? 1 : Math.max(0, Math.min(1, (now - t0 - d.delay - n.d) / 900)), e = (1 - Math.pow(1 - g, 3)) * n.s; if (e <= 0.02) return;
+          const nr = n.r * d.size, nn = { r: nr, shape: n.shape, rot: n.rot };
+          const q = toPair(T, n.p); d.scr.push(q);
+          const ax = Math.cos(light + n.rot), ay = Math.sin(light + n.rot), L = nr * 1.4;
+          // veins: fine metallic threads in the enamel, drawn as they grow
+          const vs = d.size / 4;
+          n.veins.forEach(v => { const m = Math.max(1, Math.round((v.length - 1) * e)); cb.beginPath(); cb.moveTo(q[0], q[1]);
+            for (let k = 1; k <= m; k++) cb.lineTo(q[0] + v[k][0] * vs, q[1] + v[k][1] * vs);
+            cb.lineWidth = 1.1; cb.strokeStyle = dark.copy({ opacity: 0.75 }) + ""; cb.stroke();
+            cs.beginPath(); cs.moveTo(q[0], q[1]); for (let k = 1; k <= m; k++) cs.lineTo(q[0] + v[k][0] * vs - 0.5, q[1] + v[k][1] * vs - 0.5);
+            cs.lineWidth = 0.5; cs.strokeStyle = hi.copy({ opacity: 0.45 }) + ""; cs.stroke(); });
+          // the nugget's body: dark edge to the metal's tint, multiplied into the tooth
+          const gb = cb.createLinearGradient(q[0] - ax * L, q[1] - ay * L, q[0] + ax * L, q[1] + ay * L);
+          gb.addColorStop(0, dark + ""); gb.addColorStop(0.45, mid + ""); gb.addColorStop(0.55, base.brighter(0.5) + ""); gb.addColorStop(1, dark + "");
+          blob(cb, q, nn, e); cb.fillStyle = gb; cb.fill(); cb.lineWidth = 0.8; cb.strokeStyle = dark.darker(0.6) + ""; cb.stroke();
+          // its specular band: a narrow bright streak across the metal, screened on top
+          const gs = cs.createLinearGradient(q[0] - ax * L, q[1] - ay * L, q[0] + ax * L, q[1] + ay * L), sh = 0.5 + 0.18 * Math.sin(t * 0.8 + n.rot * 3);
+          gs.addColorStop(Math.max(0, sh - 0.22), "rgba(0,0,0,0)"); gs.addColorStop(sh, hi.copy({ opacity: 0.95 }) + ""); gs.addColorStop(Math.min(1, sh + 0.08), "rgba(255,255,255,0.9)"); gs.addColorStop(Math.min(1, sh + 0.24), "rgba(0,0,0,0)");
+          blob(cs, q, nn, e * 0.92); cs.fillStyle = gs; cs.fill();
+        });
+      });
+      // clip both layers to the tooth itself, so no metal sits outside it
+      const cv = T.canvas, cr = cv.getBoundingClientRect(), pr = pairEl.getBoundingClientRect();
+      [cb, cs].forEach(c => { c.globalCompositeOperation = "destination-in"; c.drawImage(cv, cr.left - pr.left, cr.top - pr.top, cr.width, cr.height); c.globalCompositeOperation = "source-over"; });
+      // labels outside the crown, each on a hairline to its element's nearest inclusion
+      mvSvg.attr("viewBox", "0 0 " + W + " " + H);
+      mvSvg.selectAll("g.mv").data(mvData).join("g").attr("class", "mv").each(function (d) {
+        const gg = d3.select(this), g = REDUCED ? 1 : Math.max(0, Math.min(1, (now - t0 - d.delay) / 1200));
+        const a = toPair(T, d.anchor), c = toPair(T, CC), ux = a[0] - c[0], uy = a[1] - c[1], ul = Math.hypot(ux, uy) || 1;
+        const lx = a[0] + ux / ul * 40, ly = a[1] + uy / ul * 30;
+        const pts = d.scr.length ? d.scr : [a], near = pts.reduce((b, q) => Math.hypot(q[0] - lx, q[1] - ly) < Math.hypot(b[0] - lx, b[1] - ly) ? q : b, pts[0]);
+        gg.selectAll("line.ld").data([0]).join("line").attr("class", "ld").attr("x1", near[0]).attr("y1", near[1]).attr("x2", lx - (ux > 0 ? 3 : -3)).attr("y2", ly - 4).attr("opacity", g > 0.6 ? 0.7 : 0);
+        gg.selectAll("text").data([0]).join("text").attr("x", lx).attr("y", ly).attr("text-anchor", ux > 0 ? "start" : "end").attr("opacity", g > 0.6 ? (g - 0.6) / 0.4 : 0)
+          .text(d.sym + " " + d.name + " ×" + (d.ex >= 10 ? Math.round(d.ex) : +d.ex.toFixed(1)));
+      });
+      if (REDUCED) return;   // drawn once, still
+      mvRaf = requestAnimationFrame(frame);
+    };
+    mvRaf = requestAnimationFrame(frame);
+  }
   function openLayer(k) {
     const L = layerOf(k); if (!L) return;
     clearTimeout(layersTimer); pause();
@@ -804,19 +913,27 @@
     if (k !== "wear" || S.layer !== "wear") leaveWear();
     if (S.layer !== k || !S.viewMode) S.viewMode = defView(L);   // a new section opens in its own view
     pairEl.classList.toggle("solo", SOLO.has(k));
+    stage.classList.remove("metals-on"); if (window.MetalPlate) MetalPlate.hide();   // metals uses the same molar, views and labels as every other section
     const fresh = S.scene !== "layer" || S.layer !== k;   // a fresh visit, not a resize
-    if (fresh) { strandSel = null; strandShown = false; stopPseq(); }
+    if (fresh) { strandSel = null; strandShown = false; stopPseq(); hidePop(); popOpen = false; }
     S.scene = "layer"; S.layer = k; S.show = k; S.t = T_ALL; G = composite(T_ALL); readout();
     leaveRadial(); stage.classList.add("dashboard", "haspanel");
     panelEl.hidden = false; panelEl.classList.toggle("twin", k === "wear"); viewsEl.hidden = false; replayEl.hidden = k !== "wear" && k !== "caries" && k !== "pathogens"; setViewButtons();
     eraEl.hidden = k !== "caries"; stage.classList.toggle("eraline", k === "caries");
-    panelEl.innerHTML = dashHTML(L); panelEl.scrollTop = 0; setPage();
+    panelEl.innerHTML = k === "metals" && window.MetalsPlates ? MetalsPlates.html : dashHTML(L); panelEl.scrollTop = 0; setPage();
+    if (k === "metals" && window.MetalsPlates) try { MetalsPlates.mount(); } catch (e) { console.error(e); }
     requestAnimationFrame(() => {
       if (S.scene !== "layer") return;
       frameView(); TEETH.forEach(T => { T.parts.clear(); T.R.setParams(paramsFor(T)); });
-      drawCharts(L);
+      if (k !== "metals") drawCharts(L);
       if (fresh && k === "pathogens") startPseq(); else updateParticles(!REDUCED);
       requestRender(false);
+      // metals: the lead grows into the enamel once, on opening, then holds
+      if (k === "metals" && !REDUCED) { const t0 = performance.now(); S.mGrow = 0;
+        const grow = now => { if (S.scene !== "layer" || S.layer !== "metals") { S.mGrow = null; return; } S.mGrow = Math.min(1, (now - t0) / 2600); S.mGrow = 1 - Math.pow(1 - S.mGrow, 3);
+          TEETH.forEach(T => T.R.setParams(paramsFor(T))); requestRender(false); if (S.mGrow < 1) requestAnimationFrame(grow); else S.mGrow = null; };
+        requestAnimationFrame(grow); }
+      if (k === "metals") metalsStart(); else metalsStop();
     });
   }
   // Section 2 opens by playing the pathogen record onto the teeth, slower than the overview: a century at a time, each
@@ -855,7 +972,7 @@
         "Pale rungs rest on fewer than five genomes (the 100s to 300s) and swing wildly. The 800s have no European dental samples." + (un.length ? " " + cap(numWord(d3.sum(un, u => u.k))) + " genomes in the century totals are not named in the index (" + un.map(u => numWord(u.k) + " in the " + u.c + "s").join(", ") + "); they keep their own run of dots, listed as not named." : ""),
         "Shares are rounded to whole dots, and every organism found keeps at least one, so a run can be a dot off; hovering a run, and the rows pulled out, give the exact numbers.",
         "The twist is drawing, not data. The ribbon turns only beside small or empty centuries, so the large ones face the reader; rungs on the far side of a turn read right to left.",
-        "Shaded bands are world events, for context and not from this dataset: " + STRAND_CONTEXT.map(e => "the " + e.label.charAt(0).toLowerCase() + e.label.slice(1) + " (" + e.when + ")").join(", ").replace(/, ([^,]*)$/, " and $1") + ", from the team's events list.",
+        "Shaded bands are world events, for context and not from this dataset: " + STRAND_BANDS.map(e => "the " + e.label.charAt(0).toLowerCase() + e.label.slice(1) + " (" + e.when + ")").join(", ").replace(/, ([^,]*)$/, " and $1") + ", from the team's events list.",
         "Source: AncientMetagenomeDir (SPAAM community, CC-BY 4.0), European dental samples; disease labels from the team's pathogen_reference.csv."]; } }],
     // wear: Section 3 draws its own two figures (wearHTML(), wearMount(); wearleh.js)
     interventions: [{ id: "repair", title: "Tooth repair, drawn straight through",
@@ -1212,22 +1329,50 @@
     "Tannerella forsythia": "gum-disease bacterium", "Methanobrevibacter oralis": "oral archaeon" };
   const STRAND_KIND = { bacteria: ["Bacteria", "a bacterium"], virus: ["Viruses", "a virus"], parasite: ["Parasites", "a malaria parasite"],
     other: ["Not disease agents", "not an epidemic disease agent"], unnamed: ["Not named", ""] };
+  // The team's events list (research/Human Correlations/timeline_events_display.csv) for the diseases in this record:
+  // context, not data. taxa: the organisms whose pop-up lists the event; band: also shaded across the strand; img: the
+  // picture key (images/<img>.jpg; a hatched slot until it exists). The first pandemic is dated 541–750 (the list has
+  // 400–700, the span of its century bins).
   const STRAND_CONTEXT = [
-    { from: 541, to: 750, label: "First plague pandemic", short: "Plague pandemic", when: "541–750" },
-    { from: 1347, to: 1351, label: "Black Death", short: "Black Death", when: "1347–1351" },
-    { from: 1495, to: 1495, label: "Syphilis spreading through Europe", short: "Syphilis in Europe", when: "from 1495" },
+    { id: "EV027", from: 541, to: 750, label: "First plague pandemic", short: "Plague pandemic", when: "541–750", taxa: ["Yersinia pestis"], band: true, img: "event-justinian" },
+    { id: "EV014", from: 1347, to: 1351, label: "Black Death", short: "Black Death", when: "1347–1351", taxa: ["Yersinia pestis"], band: true, img: "event-blackdeath" },
+    { id: "EV015", from: 1495, to: 1700, label: "Spread of syphilis through Europe", short: "Syphilis in Europe", when: "1495–1700", taxa: ["Treponema pallidum"], band: true, img: "event-syphilis" },
+    { id: "EV028", from: 1000, to: 1400, label: "Leprosy rises and then recedes", when: "1000–1400", taxa: ["Mycobacterium leprae"], img: "event-leprosy" },
+    { id: "EV016", from: 1100, to: 1536, label: "Mercury used to treat leprosy and syphilis", when: "1100–1536", taxa: ["Mycobacterium leprae", "Treponema pallidum"], img: "event-mercury" },
   ];
+  const STRAND_BANDS = STRAND_CONTEXT.filter(e => e.band);
   const numWord = n => ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"][n] || String(n);
   // genomes a century's total counts but the index names no organism for
   const strandUnnamed = () => { const P = LD.pathogens; return P.centuries.filter(c => P.genomes[c] != null).map(c => ({ c, n: P.genomes[c],
     k: P.genomes[c] - d3.sum(P.taxa, t => t.cells[c] ? t.cells[c][0] : 0) })).filter(u => u.k > 0); };
   let strandSel = null, strandShown = false;   // the chosen organism; whether the strand has assembled on this visit
   let strandNow = null;                          // lights one century's rung while the plate plays the record (startPseq)
+  let popOpen = false, popAt = null;             // the disease pop-up is open, and the point it opened at (client px)
+  function popEl() {
+    let pop = document.getElementById("dzPop");
+    if (!pop) { pop = document.createElement("aside"); pop.id = "dzPop"; pop.className = "dz-pop"; pop.hidden = true; pop.setAttribute("role", "dialog"); pop.setAttribute("aria-labelledby", "dzT"); document.body.appendChild(pop); }
+    return pop;
+  }
+  const hidePop = () => { const pop = document.getElementById("dzPop"); if (pop) pop.hidden = true; };
+  // a small panel beside the point that was clicked: below and to the right of it, flipped left or lifted so it stays on
+  // screen (the pop-up must be showing, unseen, to be measured)
+  function placePop(pop) {
+    const w = Math.min(300, innerWidth - 24), [x, y] = popAt || [innerWidth / 2, innerHeight / 3];
+    Object.assign(pop.style, { width: w + "px", maxHeight: innerHeight - 24 + "px", right: "auto", bottom: "auto" });
+    const h = pop.offsetHeight;
+    let left = x + 14, top = y + 14;
+    if (left + w > innerWidth - 12) left = x - w - 14;
+    left = clamp(left, 12, innerWidth - w - 12);
+    if (top + h > innerHeight - 12) top = Math.max(12, innerHeight - 12 - h);
+    Object.assign(pop.style, { left: Math.round(left) + "px", top: Math.round(top) + "px" });
+  }
+  // where a click happened: the pointer, or for a key press the control's own corner
+  const clickAt = ev => ev && ev.clientX ? [ev.clientX, ev.clientY] : ev && ev.currentTarget && ev.currentTarget.getBoundingClientRect ? (r => [r.right, r.top])(ev.currentTarget.getBoundingClientRect()) : null;
   function drawPathogenStrand(svg, W) {
     const P = LD.pathogens, cents = P.centuries, KINDS = ["bacteria", "virus", "parasite", "other", "unnamed"];
     const lanes = [];
     KINDS.slice(0, 4).forEach(k => P.taxa.filter(t => t.cat === k).sort((a, b) => b.total - a.total)
-      .forEach(t => lanes.push({ id: t.taxon, name: STRAND_NAME[t.taxon] || t.taxon, taxon: t.taxon, kind: k, total: t.total, cells: t.cells })));
+      .forEach(t => lanes.push({ id: t.taxon, name: STRAND_NAME[t.taxon] || t.taxon, taxon: t.taxon, kind: k, total: t.total, cells: t.cells, disease: t.disease })));
     const un = strandUnnamed();
     if (un.length) lanes.push({ id: "unnamed", name: "not named in the index", taxon: null, kind: "unnamed", total: d3.sum(un, u => u.k),
       cells: Object.fromEntries(un.map(u => [u.c, [u.k, u.k / u.n * 100]])) });
@@ -1284,7 +1429,7 @@
     // world events, behind everything: a band across the figure, its label in the right-hand column, in the gap between
     // rungs nearest the event's start
     const ctxG = svg.append("g");
-    STRAND_CONTEXT.forEach(e => {
+    STRAND_BANDS.forEach(e => {
       const y0 = yYear(e.from), y1 = Math.max(yYear(e.to + 1), y0 + 2.5), b = top + Math.round((e.from - cents[0]) / 100) * pitch;
       ctxG.append("rect").attr("x", gutW - 6).attr("width", W - gutW + 6).attr("y", y0).attr("height", y1 - y0).attr("class", "ctxband");
       const t = ctxG.append("text").attr("x", leadX).attr("y", b + 3.5).attr("class", "ctx").text((narrow ? e.short : e.label) + ", " + e.when);
@@ -1307,10 +1452,10 @@
     const dotSel = svg.append("g").selectAll("circle").data(dots).join("circle").attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => dotR * (0.8 + 0.4 * front(d.z)) * d.sq);
     const dotOp = d => (rows[d.d.i].thin ? 0.45 : 0.62 + 0.38 * front(d.z));
     // default: the century's largest share dark, the rest grey; a chosen organism in its colour, the rest faded
-    function paint(hl) {
-      dotSel.attr("fill", o => hl ? (o.d.l === hl ? colOf(hl) : "#a9a7a0") : rows[o.d.i].lead.includes(o.d) ? "#1a1a18" : "#a9a7a0")
+    function paint(hl, out) {   // out: the pixels are pulled out (pull() colours them), so no line through the empty strand
+      if (!out) dotSel.attr("fill", o => hl ? (o.d.l === hl ? colOf(hl) : "#a9a7a0") : rows[o.d.i].lead.includes(o.d) ? "#1a1a18" : "#a9a7a0")
         .attr("opacity", o => hl ? (o.d.l === hl ? 1 : 0.35) : dotOp(o));
-      laneLine(hl);
+      laneLine(out ? null : hl);
     }
     // the side columns: century and its genomes on the left; on the right, each century's largest share
     const labG = svg.append("g");
@@ -1323,31 +1468,46 @@
       labG.append("rect").attr("x", barX).attr("y", yRow(r.i) - 3).attr("width", bw).attr("height", 6).attr("fill", "#b9b7b0");
       labG.append("text").attr("x", barX + bw + 4).attr("y", yRow(r.i) + 3.5).attr("class", "ax").text(r.n);
     });
-    const leadG = svg.append("g");
-    if (!narrow) leadG.append("text").attr("x", leadX).attr("y", top - 10).attr("class", "ax").text("largest share (dark dots)");
-    else leadG.append("text").attr("x", leadX).attr("y", top - 10).attr("class", "ax").text("largest share");
+    const leadG = svg.append("g").attr("class", "leads");
+    // as in the team's heatmap, the number leads: the share of that century's genomes held by the organism found most
+    leadG.append("text").attr("x", leadX).attr("y", top - 10).attr("class", "ax").text(narrow ? "most found" : "found most that century (dark dots)");
     rows.forEach(r => { if (!r.cells.length) return;
       const t = leadG.append("text").attr("x", leadX).attr("y", yRow(r.i) + 3.5).attr("class", r.thin ? "ld thin" : "ld");
-      if (r.lead.length > 1) t.text(numWord(r.lead.length) + " tied, " + pct0(r.max) + " each");
-      else { t.append("tspan").text(r.lead[0].l.name + " "); t.append("tspan").attr("class", "pc").text(pct0(r.max)); } });
-    // the pull-out: the chosen organism's dots fly out of every rung and line up, 50 places to 100%
-    const pullG = svg.append("g"), unit = Math.min(4, (W - leadX - (narrow ? 34 : 70)) / PX);
+      t.append("tspan").attr("class", "pv").text(pct0(r.max) + (r.lead.length > 1 ? " each" : ""));
+      t.append("tspan").text("  " + (r.lead.length > 1 ? numWord(r.lead.length) + " tied" : r.lead[0].l.name)); });
+    // the pull-out: every pixel of every century leaves the strand and lines up in its century's row, 50 pixels to the
+    // row, so each row is the whole century (100%). The chosen organism's pixels lead the row in its colour, the rest
+    // follow in grey (alternating tones, one per organism), so its share reads against the whole century in every
+    // century at once, like a row of the team's heatmap. Its percentage closes each row, bold where it was the
+    // century's largest; a century without it reads "none". Choosing nothing sends every pixel home.
+    const pullG = svg.append("g"), unit = Math.min(4, (W - leadX - (narrow ? 40 : 76)) / PX), pxR = Math.min(unit * 0.42, dotR + 0.35);
+    const homeR = o => dotR * (0.8 + 0.4 * front(o.z)) * o.sq;
     function pull(hl, animate) {
       pullG.selectAll("*").interrupt(); pullG.selectAll("*").remove();
       leadG.interrupt().transition().duration(animate ? 250 : 0).attr("opacity", hl ? 0 : 1);
+      segSel.style("pointer-events", hl ? "none" : null);   // the strand is empty while its pixels are out
+      const to = new Map();
+      if (hl) rows.forEach(r => { if (!r.cells.length) return;
+        const order = r.cells.slice().sort((a, b) => (b.l === hl) - (a.l === hl) || b.v - a.v);
+        let k = 0;
+        order.forEach((c, ci) => c.dots.forEach(o => { to.set(o, { x: leadX + (k++ + 0.5) * unit, y: yRow(r.i), mine: c.l === hl, tone: ci % 2 }); }));
+      });
+      if (hl) dotSel.attr("fill", o => to.get(o).mine ? colOf(hl) : to.get(o).tone ? "#c9c6be" : "#a3a199")
+        .attr("opacity", o => (rows[o.d.i].thin ? 0.55 : 1) * (to.get(o).mine ? 1 : 0.85));
+      const t = dotSel.interrupt().transition().duration(animate ? (hl ? 900 : 650) : 0).ease(d3.easeCubicInOut)
+        .delay(o => !animate ? 0 : hl ? o.d.i * 35 + (to.get(o).x - leadX) / unit * 9 : o.d.i * 15 + o.j * 3);
+      if (hl) t.attr("cx", o => to.get(o).x).attr("cy", o => to.get(o).y).attr("r", pxR);
+      else t.attr("cx", o => o.x).attr("cy", o => o.y).attr("r", homeR);
       if (!hl) return;
       [0, 50, 100].forEach(v => { const x = leadX + v / 100 * PX * unit;
         pullG.append("text").attr("x", x).attr("y", top - 10).attr("text-anchor", v ? "middle" : "start").attr("class", "ax").text(v ? v + "%" : "0");
         if (v) pullG.append("line").attr("x1", x).attr("x2", x).attr("y1", top - 5).attr("y2", H - 4).attr("class", "grid50"); });
-      rows.forEach(r => { const d = r.cells.find(x => x.l === hl); if (!d) return;
-        const y = yRow(r.i), end = j => leadX + (j + 0.5) * unit;
-        const px = pullG.selectAll(null).data(d.dots).join("circle").attr("r", Math.min(unit * 0.42, dotR + 0.3)).attr("fill", colOf(hl));
-        if (animate) px.attr("cx", o => o.x).attr("cy", o => o.y).transition().delay(o => r.i * 16 + o.j * 7).duration(560).ease(d3.easeCubicOut).attr("cx", o => end(o.j)).attr("cy", y);
-        else px.attr("cx", o => end(o.j)).attr("cy", y);
-        const t = pullG.append("text").attr("x", leadX + d.px * unit + 5).attr("y", y + 3.5).attr("class", r.thin ? "ld thin" : "ld");
-        t.append("tspan").text(pct0(d.v));
-        if (!narrow) t.append("tspan").attr("class", "pc").text("  " + d.k + "/" + r.n);
-        if (animate) t.attr("opacity", 0).transition().delay(r.i * 16 + d.px * 7 + 300).duration(300).attr("opacity", 1);
+      rows.forEach(r => { if (r.n == null) return;
+        const d = r.cells.find(x => x.l === hl), y = yRow(r.i);
+        const t = pullG.append("text").attr("x", leadX + PX * unit + 7).attr("y", y + 3.5).attr("class", (r.thin ? "ld thin" : "ld") + (d && r.lead.includes(d) ? " top" : ""));
+        if (d) { t.append("tspan").attr("class", "pv").text(pct0(d.v)); if (!narrow) t.append("tspan").attr("class", "pc").text("  " + d.k + "/" + r.n); }
+        else t.append("tspan").attr("class", "pc").text("none");
+        if (animate) t.attr("opacity", 0).transition().delay(500 + r.i * 35).duration(300).attr("opacity", 1);
       });
     }
     // under the strand: the key (which organisms, of what kind, how many genomes) and a line that reads the chosen one out
@@ -1358,7 +1518,7 @@
       const row = key.append("span").attr("class", "items");
       ls.forEach(l => row.append("button").attr("type", "button").attr("data-id", l.id).attr("aria-pressed", "false").attr("title", l.taxon || "")
         .style("--c", colOf(l)).html(esc(l.name) + "<small>" + l.total + "</small>")
-        .on("click", () => select(strandSel === l.id ? null : l.id, true))
+        .on("click", ev => select(strandSel === l.id ? null : l.id, true, clickAt(ev)))
         .on("mouseenter", () => preview(l)).on("mouseleave", () => preview(null))); });
     const read = fig.insert("p", "ol.notes").attr("class", "keylist strand-read").attr("aria-live", "polite");
     const sampled = rows.filter(r => r.n != null).length;
@@ -1370,12 +1530,39 @@
         " genomes, found in " + own.length + " of the " + sampled + " sampled centuries" + (led.length ? ", with the largest share in " + led.length + " of them" : "") +
         ". Its peak: " + pct0(peak.v) + " of the " + peak.c + "s (" + peak.k + " of " + rows[peak.i].n + "). <button class='link' type='button'>Clear</button>";
     }
+    // the pop-up: what the chosen organism's disease led to, from the team's events list (context, not data), each with
+    // a picture slot and the organism's share of the centuries the event touches, read from the strand's own rows. It
+    // sits over the plate, so the rows pulled out on the right stay in view.
+    // "plague — bubonic, pneumonic, septicaemic" reads "the cause of plague (bubonic, pneumonic, septicaemic)"
+    const diseaseOf = l => { const [a, b] = (l.disease || "").split(" — "), tidy = t => t.replace(/ · /g, ", ").replace(/^NOT /, "not ");
+      return tidy(a) + (b ? " (" + tidy(b) + ")" : ""); };
+    function popFor(l) {
+      const pop = popEl(), evs = STRAND_CONTEXT.filter(e => e.taxa.includes(l.id));
+      const shareIn = e => rows.filter(r => r.n != null && r.c + 100 > e.from && r.c <= e.to).map(r => {
+        const d = r.cells.find(x => x.l === l); return d ? pct0(d.v) + " of the " + r.c + "s (" + d.k + " of " + r.n + ")" : "none in the " + r.c + "s"; });
+      const slot = (img, alt) => IMG[img] ? "<img src='" + IMG[img] + "' alt='" + esc(alt) + "'>" : "<div class='slot'>Image</div>";
+      pop.innerHTML = "<button class='dz-x' type='button' aria-label='Close'>×</button>" +
+        "<p class='dz-k'><i style='background:" + colOf(l) + "'></i>" + esc(STRAND_KIND[l.kind][0]) + "</p>" +
+        "<h3 id='dzT'>" + esc(cap(l.name)) + "</h3>" +
+        "<p class='dz-sub'>" + (!l.taxon ? "Genomes the index counts but does not name. " : "<i>" + esc(l.taxon) + "</i>" + (!l.disease ? "" : l.kind === "other" ? ": " + esc(diseaseOf(l)) : ", the cause of " + esc(diseaseOf(l))) + ". ") + l.total + " of " + total + " genomes in the record.</p>" +
+        "<p class='dz-h'>What it led to</p>" +
+        (evs.length ? evs.map(e => "<figure class='dz-ev'>" + slot(e.img, e.label) + "<figcaption><b>" + esc(e.label) + "</b><span>" + esc(e.when) + "</span>" +
+            esc(cap(l.name)) + " in the record then: " + esc(shareIn(e).join("; ")) + ".</figcaption></figure>").join("")
+          : "<figure class='dz-ev'>" + slot(null, "") + "<figcaption>No event for this disease in the team's timeline yet.</figcaption></figure>") +
+        "<p class='dz-note'>Events are context from the team's timeline, not from the genome data. Pictures to come.</p>";
+      // closing the pop-up lets go of the organism: its pixels go back into the strand
+      pop.querySelector(".dz-x").onclick = () => select(null, true);
+      pop.onkeydown = ev => { if (ev.key === "Escape") select(null, true); };
+      pop.hidden = false; pop.style.visibility = "hidden"; placePop(pop); pop.style.visibility = "";
+    }
     let shown = null;   // what the strand shows now: the chosen organism, or the one under the pointer
     function preview(l) { if (strandSel) return; if (l !== shown) { shown = l; paint(l); } }
-    function select(id, animate) {
+    function select(id, animate, at) {
       strandSel = id; const l = lanes.find(x => x.id === id) || null; shown = l;
       key.selectAll("button").attr("aria-pressed", function () { return this.dataset.id === id ? "true" : "false"; });
-      paint(l); pull(l, animate && !REDUCED); read.html(readText(l));
+      paint(l, !!l); pull(l, animate && !REDUCED); read.html(readText(l));
+      if (at) popAt = at;
+      if (l && (animate || popOpen)) { popFor(l); popOpen = true; } else { hidePop(); popOpen = false; }
       read.select("button").on("click", () => select(null, true));
     }
     fig.on("keydown.strand", ev => { if (ev.key === "Escape" && strandSel) select(null, true); });
@@ -1386,7 +1573,7 @@
     tipOn(segSel, d => "<b>" + esc(cap(d.l.name)) + "</b>" + (d.l.taxon ? " <span class='m'>(" + esc(d.l.taxon) + ")</span>" : "") + "<br>" + d.c + "s: " + d.k + " of " + rows[d.i].n +
       " genomes, " + pct0(d.v) + (rows[d.i].thin ? "<br><span class='m'>fewer than five genomes that century</span>" : ""));
     segSel.on("mouseenter.pv", (ev, d) => preview(d.l)).on("mouseleave.pv", () => preview(null))
-      .on("click", (ev, d) => { hideTip(); select(strandSel === d.l.id ? null : d.l.id, true); });
+      .on("click", (ev, d) => { hideTip(); select(strandSel === d.l.id ? null : d.l.id, true, clickAt(ev)); });
     // a century's whole rung, from its label or its leader
     const hit = svg.append("g");
     rows.forEach(r => { if (r.n == null) return;
@@ -1600,7 +1787,7 @@
   }
   async function intro() {
     const run = ++introRun, alive = () => run === introRun;
-    S.scene = "intro"; pause(); leaveRadial(); stage.classList.remove("dashboard", "haspanel"); panelEl.hidden = true; stage.classList.add("intro"); gParts.selectAll("*").remove(); gLabels.selectAll("*").remove();
+    S.scene = "intro"; pause(); leaveRadial(); stage.classList.remove("dashboard", "haspanel", "metals-on"); panelEl.hidden = true; stage.classList.add("intro"); gParts.selectAll("*").remove(); gLabels.selectAll("*").remove();
     jawReset();
     Object.assign(jawLayer.style, { transform: "", opacity: 1 }); $("#introText").style.opacity = 1; lineup.innerHTML = ""; drawCloud(0, 0); cloud.style.opacity = 1;
     centerPair(true);
@@ -1648,7 +1835,7 @@
   }
   function enterMain(fromIntro) {
     endIntro(); clearTimeout(layersTimer);
-    leaveWear(); stopPseq(); S.scene = "main"; S.layer = null; S.show = "all"; lineup.innerHTML = ""; jawLayer.style.opacity = 0;
+    leaveWear(); stopPseq(); hidePop(); popOpen = false; S.scene = "main"; S.layer = null; S.show = "all"; lineup.innerHTML = ""; jawLayer.style.opacity = 0;
     if (!fromIntro) drawCloud(0, 0);
     pairEl.style.transform = "";
     leaveRadial(); stage.classList.remove("intro", "dashboard", "haspanel");
@@ -1674,7 +1861,7 @@
   if (GL) { snapshots(); TEETH.forEach(T => T.R.setParams(paramsFor(T))); }
   let q = null; try { q = new URLSearchParams(location.search); } catch (e) { q = null; }
   const qs = k => q && q.get(k);
-  if (qs("debug")) window.__dbg = { TEETH, S };
+  if (qs("debug")) window.__dbg = { TEETH, S, composite, paramsFor, setG: g => { G = g; } };
   if (qs("notrans")) document.head.insertAdjacentHTML("beforeend", "<style>*{transition:none!important}</style>");
   if (qs("t")) S.t = +qs("t");
   if (qs("region")) S.region = qs("region");
