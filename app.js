@@ -207,7 +207,7 @@
     const cr = decay && !cariesPlate && G.caries != null ? (0.015 + 0.7 * G.caries) * (SH.B[0] / 0.5) : 0;
     const cav = cariesPlate && T.type === "molar" ? cavityOf(T) : null;
     const cp = SH.cariesAt === "occlusal" ? [0.06, Math.min(wearY, SH.grooveY) - 0.005, -0.03] : [SH.B[0] * 0.97, 0.44 * top, -0.13];
-    const pb = (L === "all" || L === "metals") && G.pb != null ? clamp(Math.log10(G.pb / 0.05) / Math.log10(10 / 0.05), 0, 1) : 0;
+    const pb = (L === "all" || L === "metals") && G.pb != null ? clamp(Math.log10(G.pb / 0.05) / Math.log10(10 / 0.05), 0, 1) * (S.mGrow == null ? 1 : S.mGrow) : 0;
     // No tartar is drawn, anywhere: the teeth show what was recovered from the tooth itself. (On the Pathogens plate 259
     // of 261 genomes come from inside the tooth; the dataset's calculus rows are oral-microbiome samples and particle
     // counts of starch, plant tissue, fibres, spores and charcoal, which none of the plates draws.)
@@ -263,7 +263,8 @@
       const want = new Map();
       const mine = h => solo() ? ti === 0 : h % 2 === ti;   // split between the teeth, or all on the molar when it is alone
       const reached = r => !PSEQ.on || r.year < PSEQ.upto;   // while Section 2 plays, only the centuries reached so far
-      G.path.forEach(r => { if (showsRec(r) && reached(r) && mine(hash(r.id))) want.set(r.id, r); });
+      const speck = r => showsRec(r) && !(S.layer === "metals" && r.kind === "metal");   // Section 4 draws its metals as strands instead
+      G.path.forEach(r => { if (speck(r) && reached(r) && mine(hash(r.id))) want.set(r.id, r); });
       T.parts.forEach((q, id) => { if (!want.has(id) && !q.dead) q.dead = now; });
       const placed = [...T.parts.values()].filter(q => !q.dead && q.face).map(q => q.p);
       let k = 0;
@@ -730,7 +731,7 @@
     clearTimeout(layersTimer); pause();
     if (S.scene === "intro") { endIntro(); drawCloud(0, 0); pairEl.style.transform = ""; }
     leaveWear(); stopPseq(); hidePop(); popOpen = false; S.scene = "radial"; S.layer = null; S.show = "all"; S.t = T_ALL; G = composite(T_ALL); readout();
-    stage.classList.remove("dashboard", "haspanel"); panelEl.hidden = true; panelEl.innerHTML = "";
+    stage.classList.remove("dashboard", "haspanel", "metals-on"); panelEl.hidden = true; panelEl.innerHTML = "";
     gParts.selectAll("*").remove(); gLabels.selectAll("*").remove(); setPage();
     requestAnimationFrame(() => {
       if (S.scene !== "radial") return;
@@ -751,6 +752,99 @@
   // Charts are drawn from data/layers.js (build_layers.py, from the team's tabular datasets in source/layer data/).
   // The "human ×" event strips stay placeholders until their pictures and dates arrive.
   const LD = window.LAYER_DATA || null;
+  // Section 4: metallic inclusions set into the molar's crown (see metalsStart).
+  let mvRaf = 0, mvSvg = null, mvData = null;
+  const MV = [["Pb", "lead", 10.4, "#9a5a52"], ["Cu", "copper", 14.4, "#b47a46"], ["Cr", "chromium", 11.1, "#7c8a4a"], ["Ni", "nickel", 9.2, "#5a8a7a"],
+    ["Zn", "zinc", 1.48, "#5f74a0"], ["Ba", "barium", 1.44, "#86699c"], ["Sr", "strontium", 0.89, "#a39463"], ["Mg", "magnesium", 1.26, "#8a877c"]];
+  let mvEra = null;
+  function metalsStop() { if (mvEra) window.removeEventListener("metals:era", mvEra); mvEra = null; cancelAnimationFrame(mvRaf); mvRaf = 0; if (mvSvg) mvSvg.remove(); mvSvg = null; if (mvCv) { mvCv.forEach(c => c.remove()); } mvCv = null; }
+  let mvCv = null;
+  // Section 4: metal set into the molar. Each element is a cluster of small metallic inclusions (nuggets with fine veins
+  // running off them) fixed in the crown, so they turn with the tooth. Two layers, both clipped to the tooth's own pixels:
+  // the metal's body multiplied into the tooth (it takes the tooth's texture and shading) and its specular light screened
+  // over it, a highlight that sweeps slowly as if the light moves. Number and size follow the modern ÷ archaeological
+  // ratio (Kamenov et al. 2018); the tints are the metals' own, silver with a hint of each.
+  const METAL_TINT = { Pb: "#6b7380", Cu: "#b06a34", Cr: "#b9c6d2", Ni: "#9c9a86", Zn: "#8fa3b4", Ba: "#c9bf9c", Sr: "#bfae93", Mg: "#cfd5dc" };
+  function metalsStart() {
+    metalsStop(); const T = TEETH.find(t => t.key === "molar"); if (!T || !T.R || !T.R.march) return;
+    const SS = T.R.st.S, top = SS.top; let sd = 11; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    const CC = [0, top * 0.5, 0], Z = -0.02;
+    mvData = MV.map(([sym, name, x], i) => {
+      const th = (196 - i * (212 / (MV.length - 1))) * Math.PI / 180, o = [Math.cos(th), Math.sin(th), 0];
+      const h = T.R.march([CC[0] + o[0] * 3, CC[1] + o[1] * 3, Z], [-o[0], -o[1], 0], 4); if (!h) return null;
+      const nug = Array.from({ length: 7 }, (_, k) => {
+        const f = 0.22 + rnd() * 0.62, jt = (rnd() - .5) * 0.5;   // from just under the surface into the dentine
+        const p = [h.p[0] + (CC[0] - h.p[0]) * f + (h.p[1] - CC[1]) * jt * 0.25, h.p[1] + (CC[1] - h.p[1]) * f - (h.p[0] - CC[0]) * jt * 0.25, Z];
+        const r = k ? 0.6 + rnd() * 0.4 : 1.1, m = 7 + Math.floor(rnd() * 4);   // relative size; the era sets the scale
+        const shape = Array.from({ length: m }, (_, q) => [q / m * Math.PI * 2 + (rnd() - .5) * 0.5, 0.65 + rnd() * 0.5]);
+        const veins = Array.from({ length: k ? (rnd() < 0.5 ? 1 : 0) : 2 }, () => { let a = rnd() * Math.PI * 2, d = 1, pts = [[0, 0]], x0 = 0, y0 = 0;
+          for (let s = 0; s < 6; s++) { a += (rnd() - .5) * 0.9; x0 += Math.cos(a) * r * 0.75; y0 += Math.sin(a) * r * 0.75; pts.push([x0, y0]); } return pts; });
+        return { p, r, shape, veins, rot: rnd() * Math.PI, d: k * 140 + rnd() * 120, s: 0 };
+      });
+      return { sym, name, x, tint: METAL_TINT[sym] || "#a8adb3", nug, anchor: h.p, delay: i * 160, size: 6, ex: x }; }).filter(Boolean);
+    // the era playing on Plate 4.A sets each element's size and count: its change from the archaeological level then,
+    // so lead swells through the medieval periods while the elements with no per-era data hold at ×1
+    const setEra = E => mvData.forEach(d => { const x = E && E.x[d.sym] != null ? E.x[d.sym] : d.x, lx = Math.max(-0.6, Math.min(1, Math.log10(x) / Math.log10(15)));
+      d.ex = x; d.sizeT = 10 + 14 * Math.max(0, lx); d.count = Math.max(1, Math.min(7, 1 + Math.round(Math.max(0, lx + 0.4) * 4.3))); });
+    setEra(window.METALS_ERA); mvData.forEach(d => { d.size = d.sizeT; });
+    mvEra = e => { setEra(e.detail); if (REDUCED) requestAnimationFrame(frame); }; window.addEventListener("metals:era", mvEra);
+    const mk = cls => d3.select(pairEl).append("canvas").attr("class", "mv-cv " + cls).attr("aria-hidden", "true");
+    mvCv = [mk("body"), mk("shine")];
+    mvSvg = d3.select(pairEl).append("svg").attr("class", "mv-ov").attr("aria-hidden", "true");
+    const [cb, cs] = mvCv.map(c => c.node().getContext("2d")), t0 = performance.now(); let tPrev = t0;
+    const blob = (c, q, n, sc) => { c.beginPath(); n.shape.forEach(([a, k], m) => { const rr = n.r * k * sc, x = q[0] + Math.cos(a + n.rot) * rr, y = q[1] + Math.sin(a + n.rot) * rr; m ? c.lineTo(x, y) : c.moveTo(x, y); }); c.closePath(); };
+    const frame = now => {
+      if (S.scene !== "layer" || S.layer !== "metals") { metalsStop(); return; }
+      const W = pairEl.clientWidth, H = pairEl.clientHeight, dpr = Math.min(2, devicePixelRatio || 1), t = REDUCED ? 0 : (now - t0) / 1000;
+      mvCv.forEach(c => { const n = c.node(); if (n.width !== Math.round(W * dpr) || n.height !== Math.round(H * dpr)) { n.width = Math.round(W * dpr); n.height = Math.round(H * dpr); } });
+      [cb, cs].forEach(c => { c.setTransform(dpr, 0, 0, dpr, 0, 0); c.globalCompositeOperation = "source-over"; c.clearRect(0, 0, W, H); });
+      const light = t * 0.35;   // the highlight's direction, turning slowly
+      const ease = REDUCED ? 1 : 1 - Math.exp(-(now - tPrev) / 220); tPrev = now;   // eases sizes toward the era's, whatever the frame rate
+      mvData.forEach(d => {
+        const base = d3.rgb(d.tint), dark = base.darker(1.6), mid = base, hi = base.brighter(1.4);
+        d.scr = []; d.size += (d.sizeT - d.size) * ease;
+        d.nug.forEach((n, k) => {
+          n.s += ((k < d.count ? 1 : 0) - n.s) * ease;
+          const g = REDUCED ? 1 : Math.max(0, Math.min(1, (now - t0 - d.delay - n.d) / 900)), e = (1 - Math.pow(1 - g, 3)) * n.s; if (e <= 0.02) return;
+          const nr = n.r * d.size, nn = { r: nr, shape: n.shape, rot: n.rot };
+          const q = toPair(T, n.p); d.scr.push(q);
+          const ax = Math.cos(light + n.rot), ay = Math.sin(light + n.rot), L = nr * 1.4;
+          // veins: fine metallic threads in the enamel, drawn as they grow
+          const vs = d.size / 4;
+          n.veins.forEach(v => { const m = Math.max(1, Math.round((v.length - 1) * e)); cb.beginPath(); cb.moveTo(q[0], q[1]);
+            for (let k = 1; k <= m; k++) cb.lineTo(q[0] + v[k][0] * vs, q[1] + v[k][1] * vs);
+            cb.lineWidth = 1.1; cb.strokeStyle = dark.copy({ opacity: 0.75 }) + ""; cb.stroke();
+            cs.beginPath(); cs.moveTo(q[0], q[1]); for (let k = 1; k <= m; k++) cs.lineTo(q[0] + v[k][0] * vs - 0.5, q[1] + v[k][1] * vs - 0.5);
+            cs.lineWidth = 0.5; cs.strokeStyle = hi.copy({ opacity: 0.45 }) + ""; cs.stroke(); });
+          // the nugget's body: dark edge to the metal's tint, multiplied into the tooth
+          const gb = cb.createLinearGradient(q[0] - ax * L, q[1] - ay * L, q[0] + ax * L, q[1] + ay * L);
+          gb.addColorStop(0, dark + ""); gb.addColorStop(0.45, mid + ""); gb.addColorStop(0.55, base.brighter(0.5) + ""); gb.addColorStop(1, dark + "");
+          blob(cb, q, nn, e); cb.fillStyle = gb; cb.fill(); cb.lineWidth = 0.8; cb.strokeStyle = dark.darker(0.6) + ""; cb.stroke();
+          // its specular band: a narrow bright streak across the metal, screened on top
+          const gs = cs.createLinearGradient(q[0] - ax * L, q[1] - ay * L, q[0] + ax * L, q[1] + ay * L), sh = 0.5 + 0.18 * Math.sin(t * 0.8 + n.rot * 3);
+          gs.addColorStop(Math.max(0, sh - 0.22), "rgba(0,0,0,0)"); gs.addColorStop(sh, hi.copy({ opacity: 0.95 }) + ""); gs.addColorStop(Math.min(1, sh + 0.08), "rgba(255,255,255,0.9)"); gs.addColorStop(Math.min(1, sh + 0.24), "rgba(0,0,0,0)");
+          blob(cs, q, nn, e * 0.92); cs.fillStyle = gs; cs.fill();
+        });
+      });
+      // clip both layers to the tooth itself, so no metal sits outside it
+      const cv = T.canvas, cr = cv.getBoundingClientRect(), pr = pairEl.getBoundingClientRect();
+      [cb, cs].forEach(c => { c.globalCompositeOperation = "destination-in"; c.drawImage(cv, cr.left - pr.left, cr.top - pr.top, cr.width, cr.height); c.globalCompositeOperation = "source-over"; });
+      // labels outside the crown, each on a hairline to its element's nearest inclusion
+      mvSvg.attr("viewBox", "0 0 " + W + " " + H);
+      mvSvg.selectAll("g.mv").data(mvData).join("g").attr("class", "mv").each(function (d) {
+        const gg = d3.select(this), g = REDUCED ? 1 : Math.max(0, Math.min(1, (now - t0 - d.delay) / 1200));
+        const a = toPair(T, d.anchor), c = toPair(T, CC), ux = a[0] - c[0], uy = a[1] - c[1], ul = Math.hypot(ux, uy) || 1;
+        const lx = a[0] + ux / ul * 40, ly = a[1] + uy / ul * 30;
+        const pts = d.scr.length ? d.scr : [a], near = pts.reduce((b, q) => Math.hypot(q[0] - lx, q[1] - ly) < Math.hypot(b[0] - lx, b[1] - ly) ? q : b, pts[0]);
+        gg.selectAll("line.ld").data([0]).join("line").attr("class", "ld").attr("x1", near[0]).attr("y1", near[1]).attr("x2", lx - (ux > 0 ? 3 : -3)).attr("y2", ly - 4).attr("opacity", g > 0.6 ? 0.7 : 0);
+        gg.selectAll("text").data([0]).join("text").attr("x", lx).attr("y", ly).attr("text-anchor", ux > 0 ? "start" : "end").attr("opacity", g > 0.6 ? (g - 0.6) / 0.4 : 0)
+          .text(d.sym + " " + d.name + " ×" + (d.ex >= 10 ? Math.round(d.ex) : +d.ex.toFixed(1)));
+      });
+      if (REDUCED) return;   // drawn once, still
+      mvRaf = requestAnimationFrame(frame);
+    };
+    mvRaf = requestAnimationFrame(frame);
+  }
   function openLayer(k) {
     const L = layerOf(k); if (!L) return;
     clearTimeout(layersTimer); pause();
@@ -758,19 +852,27 @@
     if (k !== "wear" || S.layer !== "wear") leaveWear();
     if (S.layer !== k || !S.viewMode) S.viewMode = defView(L);   // a new section opens in its own view
     pairEl.classList.toggle("solo", SOLO.has(k));
+    stage.classList.remove("metals-on"); if (window.MetalPlate) MetalPlate.hide();   // metals uses the same molar, views and labels as every other section
     const fresh = S.scene !== "layer" || S.layer !== k;   // a fresh visit, not a resize
     if (fresh) { strandSel = null; strandShown = false; stopPseq(); hidePop(); popOpen = false; }
     S.scene = "layer"; S.layer = k; S.show = k; S.t = T_ALL; G = composite(T_ALL); readout();
     leaveRadial(); stage.classList.add("dashboard", "haspanel");
     panelEl.hidden = false; panelEl.classList.toggle("twin", k === "wear"); viewsEl.hidden = false; replayEl.hidden = k !== "wear" && k !== "caries" && k !== "pathogens"; setViewButtons();
     eraEl.hidden = k !== "caries"; stage.classList.toggle("eraline", k === "caries");
-    panelEl.innerHTML = dashHTML(L); panelEl.scrollTop = 0; setPage();
+    panelEl.innerHTML = k === "metals" && window.MetalsPlates ? MetalsPlates.html : dashHTML(L); panelEl.scrollTop = 0; setPage();
+    if (k === "metals" && window.MetalsPlates) try { MetalsPlates.mount(); } catch (e) { console.error(e); }
     requestAnimationFrame(() => {
       if (S.scene !== "layer") return;
       frameView(); TEETH.forEach(T => { T.parts.clear(); T.R.setParams(paramsFor(T)); });
-      drawCharts(L);
+      if (k !== "metals") drawCharts(L);
       if (fresh && k === "pathogens") startPseq(); else updateParticles(!REDUCED);
       requestRender(false);
+      // metals: the lead grows into the enamel once, on opening, then holds
+      if (k === "metals" && !REDUCED) { const t0 = performance.now(); S.mGrow = 0;
+        const grow = now => { if (S.scene !== "layer" || S.layer !== "metals") { S.mGrow = null; return; } S.mGrow = Math.min(1, (now - t0) / 2600); S.mGrow = 1 - Math.pow(1 - S.mGrow, 3);
+          TEETH.forEach(T => T.R.setParams(paramsFor(T))); requestRender(false); if (S.mGrow < 1) requestAnimationFrame(grow); else S.mGrow = null; };
+        requestAnimationFrame(grow); }
+      if (k === "metals") metalsStart(); else metalsStop();
     });
   }
   // Section 2 opens by playing the pathogen record onto the teeth, slower than the overview: a century at a time, each
@@ -1624,7 +1726,7 @@
   }
   async function intro() {
     const run = ++introRun, alive = () => run === introRun;
-    S.scene = "intro"; pause(); leaveRadial(); stage.classList.remove("dashboard", "haspanel"); panelEl.hidden = true; stage.classList.add("intro"); gParts.selectAll("*").remove(); gLabels.selectAll("*").remove();
+    S.scene = "intro"; pause(); leaveRadial(); stage.classList.remove("dashboard", "haspanel", "metals-on"); panelEl.hidden = true; stage.classList.add("intro"); gParts.selectAll("*").remove(); gLabels.selectAll("*").remove();
     jawReset();
     Object.assign(jawLayer.style, { transform: "", opacity: 1 }); $("#introText").style.opacity = 1; lineup.innerHTML = ""; drawCloud(0, 0); cloud.style.opacity = 1;
     centerPair(true);
