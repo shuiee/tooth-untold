@@ -24,7 +24,7 @@ GUIDE = """<!--
   It needs an internet connection for the fonts and d3, and a browser with WebGL2 for the 3D teeth.
 
   THE FLOW
-    Intro      the engraved jaw opens, four teeth line up, the first molar and canine become point clouds.
+    Intro      the engraved jaw opens; the first molar and canine appear whole in 3D, then a cut opens them.
     Overview   the two teeth alone, as realistic sections with their nerves (no gum or bone, no caption), play
                through 300-1900 CE (no timeline); every kind of mark arrives century by century.
     Timeline   Plate II, the radial timeline in perspective (radial.js, data in radial-data.js): five lines from
@@ -78,7 +78,7 @@ GUIDE = """<!--
     ?scene=radial             the radial timeline (&animate=1 plays its entrance)
     ?scene=layer&layer=metals one section (caries, pathogens, wear, metals, interventions)
     &still=1  &notrans=1      no travelling marks / no CSS transitions (for screenshots)
-    ?freeze=0|0.5|1|2|3       hold one intro frame (0 closed jaw, 0.5 half open, 1 open, 2 lineup, 3 cloud)
+    ?freeze=0|0.5|1|2|3       hold one intro frame (0 closed jaw, 0.5 half open, 1 open, 2 whole teeth, 3 half cut)
 
   DATA (window.TOOTH_DATA)
     Built by build_data.py from four supplied sources. No synthetic values anywhere.
