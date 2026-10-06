@@ -1,6 +1,6 @@
 # Publishes the live page, https://shuiee.github.io/tooth-untold-prototype/, on every push to main.
-# The site is served from the public repo shuiee/tooth-untold-prototype (this repo is private), so this rebuilds the
-# standalone page from the source here (share.py, standard library only) and copies it there as index.html.
+# The site is served from the public repo shuiee/tooth-untold-prototype, so this copies the published page, live/index.html
+# (the single-file radial timeline prototype), there as index.html. The Statistical Tooth (share.py) is no longer published.
 # Access: the deploy key "tooth-untold auto-deploy" on tooth-untold-prototype (write access to that repo only), whose
 # private half is this repo's secret PAGES_DEPLOY_KEY. Revoke it in tooth-untold-prototype > Settings > Deploy keys.
 name: Publish the live page
@@ -16,8 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build the standalone page
-        run: python3 share.py
       - name: Copy it to the public site
         env:
           DEPLOY_KEY: ${{ secrets.PAGES_DEPLOY_KEY }}
@@ -27,7 +25,7 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
           git clone --depth 1 git@github.com:shuiee/tooth-untold-prototype.git site
-          cp share/statistical-tooth.html site/index.html
+          cp live/index.html site/index.html
           cd site
           if git diff --quiet; then echo "The live page already matches main."; exit 0; fi
           git config user.name "tooth-untold publisher"

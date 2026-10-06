@@ -7,6 +7,8 @@
 
 Harvard MDE data-visualisation prototype. The page itself is still titled *The Statistical Tooth*.
 
+**The live page is now the radial timeline prototype** (`live/index.html`, one self-contained file). The Statistical Tooth described below is still here as source, but is no longer what the link opens.
+
 ---
 
 ## Quick start
@@ -17,7 +19,7 @@ Harvard MDE data-visualisation prototype. The page itself is still titled *The S
 | **Edit the page** | In this folder run `python3 -m http.server 8000`, open http://localhost:8000, edit `index.html`, `app.js` or `tooth.js`, and refresh. |
 | **Rebuild the data** | `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`, then `python3 build_data.py`, `python3 build_models.py` and `python3 prepare_jaw.py`. `python3 build_layers.py` (the dashboard charts) needs no packages. |
 | **Make the single-file versions** | `python3 bundle.py` writes `dist/` and `data/images.js`; `python3 share.py` writes `share/`. |
-| **Update the live page** | Automatic: every push to `main` runs `.github/workflows/publish-site.yml`, which rebuilds the page with `share.py` and copies it to [shuiee/tooth-untold-prototype](https://github.com/shuiee/tooth-untold-prototype) as `index.html`; GitHub Pages serves it a minute or two later. Pushes to `dev` do not change the site until they reach `main`. Check a run under the repo's Actions tab, or start one by hand there (Run workflow). |
+| **Update the live page** | Automatic: every push to `main` runs `.github/workflows/publish-site.yml`, which copies `live/index.html` (the single-file radial timeline prototype) to [shuiee/tooth-untold-prototype](https://github.com/shuiee/tooth-untold-prototype) as `index.html`. To change the live page, replace `live/index.html`; GitHub Pages serves it a minute or two later. Pushes to `dev` do not change the site until they reach `main`. Check a run under the repo's Actions tab, or start one by hand there (Run workflow). |
 
 Serve the folder rather than double-clicking `index.html`. Browsers block some loading from `file://`. `share/statistical-tooth.html` works either way because everything is inside it.
 
